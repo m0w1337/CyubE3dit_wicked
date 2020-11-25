@@ -1,0 +1,516 @@
+{
+    "SolidBlock": [
+      {
+        "id": 0,
+        "textype": 1,
+        "texture0": "stone.png",
+        "text": "Stone"
+      },
+      {
+        "id": 1,
+        "textype": 3,
+        "texture0": "grass_up.png",
+        "texture1": "dirt.png",
+        "texture2": "grass_side.png",
+        "text": "Grass"
+      },
+      {
+        "id": 2,
+        "textype": 1,
+        "texture0": "dirt.png",
+        "text": "Dirt"
+      },
+      {
+        "id": 4,
+        "textype": 1,
+        "texture0": "bedrock.png",
+        "text": "Bedrock"
+      },
+      {
+        "id": 6,
+        "textype": 2,
+        "texture0": "darkwood_updown.png",
+        "texture2": "darkwood_side.png",
+        "text": "Dark Wood"
+      },
+      {
+        "id": 8,
+        "textype": 1,
+        "texture0": "cobblestone.png",
+        "text": "Cobblestone"
+      },
+      {
+        "id": 10,
+        "textype": 1,
+        "texture0": "sand.png",
+        "text": "Sand"
+      },
+      {
+        "id": 12,
+        "textype": 1,
+        "texture0": "Coal_ore.png",
+        "text": "Coal Ore"
+      },
+      {
+        "id": 13,
+        "textype": 1,
+        "texture0": "Iron_ore.png",
+        "text": "Iron Ore"
+      },
+      {
+        "id": 25,
+        "textype": 1,
+        "texture0": "Copper_ore.png",
+        "#text": "Copper Ore"
+      },
+      {
+        "id": 26,
+        "textype": 1,
+        "texture0": "Gold_ore.png",
+        "text": "Gold Ore"
+      },
+      {
+        "id": 32,
+        "textype": 2,
+        "texture0": "lightwood_updown.png",
+        "texture2": "lightwood_side.png",
+        "text": "Light wood"
+      },
+      {
+        "id": 33,
+        "textype": 1,
+        "texture0": "lightplanks.png",
+        "text": "Light Planks"
+      },
+      {
+        "id": 34,
+        "textype": 1,
+        "texture0": "darkplanks.png",
+        "text": "Dark Planks"
+      },
+      {
+        "id": 35,
+        "textype": 1,
+        "texture0": "stone.png",
+        "text": "Mined Stone"
+      },
+      {
+        "id": 46,
+        "textype": 1,
+        "texture0": "wallstone.png",
+        "text": "Wallstone"
+      },
+      {
+        "id": 47,
+        "textype": 1,
+        "texture0": "flagstone.png",
+        "text": "Flagstone"
+      },
+      {
+        "id": 52,
+        "textype": 1,
+        "texture0": "Scaffolding.png",
+        "text": "Wood Scaffolding"
+      },
+      {
+        "id": 67,
+        "textype": 1,
+        "texture0": "Crystal_ore.png",
+        "text": "Crystal Ore"
+      }
+    ],
+    "AlphaBlock": [
+      {
+        "id": 5,
+        "textype": 5,
+        "texture0": "straws.material",
+        "text": "Grassblades"
+      },
+      {
+        "id": 15,
+        "textype": 6,
+        "texture0": "torch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Torch"
+      },
+      {
+        "id": 16,
+        "textype": 5,
+        "texture0": "flower1.material",
+        "text": "Flower 1"
+      },
+      {
+        "id": 17,
+        "textype": 5,
+        "texture0": "flower2.material",
+        "text": "Flower 2"
+      },
+      {
+        "id": 18,
+        "textype": 6,
+        "texture0": "StickTool.png",
+        "text": "Stick Tool"
+      },
+      {
+        "id": 19,
+        "textype": 6,
+        "texture0": "StonePickaxe.png",
+        "text": "Stone Pickaxe"
+      },
+      {
+        "id": 20,
+        "textype": 6,
+        "texture0": "StoneAxe.png",
+        "text": "Stone Axe"
+      },
+      {
+        "id": 21,
+        "textype": 6,
+        "texture0": "StoneShovel.png",
+        "text": "Stone Shovel"
+      },
+      {
+        "id": 22,
+        "textype": 6,
+        "texture0": "CopperNugget.png",
+        "text": "Copper Nugget"
+      },
+      {
+        "id": 23,
+        "textype": 6,
+        "texture0": "Gold Nugget.png",
+        "text": "Gold Nugget"
+      },
+      {
+        "id": 24,
+        "textype": 6,
+        "texture0": "Coal Nugget.png",
+        "text": "Coal Nugget"
+      },
+      {
+        "id": 28,
+        "textype": 6,
+        "texture0": "CopperPickaxe.png",
+        "text": "Copper Pickaxe"
+      },
+      {
+        "id": 29,
+        "textype": 6,
+        "texture0": "CopperAxe.png",
+        "text": "Copper Axe"
+      },
+      {
+        "id": 30,
+        "textype": 6,
+        "texture0": "CopperShovel.png",
+        "text": "Copper Shovel"
+      },
+      {
+        "id": 31,
+        "textype": 6,
+        "texture0": "DeerMeat.png",
+        "text": "Deer Meat"
+      },
+      {
+        "id": 36,
+        "textype": 5,
+        "texture0": "flower3.material",
+        "text": "Flower 3"
+      },
+      {
+        "id": 37,
+        "textype": 6,
+        "texture0": "BlueTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Blue Torch"
+      },
+      {
+        "id": 38,
+        "textype": 6,
+        "texture0": "BlueDye.png",
+        "text": "Blue Dye"
+      },
+      {
+        "id": 39,
+        "textype": 5,
+        "texture0": "flower4.material",
+        "text": "Flower 4"
+      },
+      {
+        "id": 40,
+        "textype": 6,
+        "texture0": "GreenTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Green Torch"
+      },
+      {
+        "id": 41,
+        "textype": 6,
+        "texture0": "GreenDye.png",
+        "text": "Blue Dye"
+      },
+      {
+        "id": 42,
+        "textype": 6,
+        "texture0": "Compass.png",
+        "text": "Compass"
+      },
+      {
+        "id": 43,
+        "textype": 6,
+        "texture0": "Chest1.png",
+        "text": "Chest"
+      },
+      {
+        "id": 45,
+        "textype": 6,
+        "texture0": "Mesh.png",
+        "text": "Mesh"
+      },
+      {
+        "id": 48,
+        "textype": 6,
+        "texture0": "RedDye.png",
+        "text": "Red Dye"
+      },
+      {
+        "id": 49,
+        "textype": 6,
+        "texture0": "RedTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Red Torch"
+      },
+      {
+        "id": 50,
+        "textype": 6,
+        "texture0": "Chair.png",
+        "text": "Chair"
+      },
+      {
+        "id": 51,
+        "textype": 6,
+        "texture0": "BirchChair.png",
+        "text": "Birch Chair"
+      },
+      {
+        "id": 53,
+        "textype": 6,
+        "texture0": "Arrow.png",
+        "text": "Arrow"
+      },
+      {
+        "id": 54,
+        "textype": 6,
+        "texture0": "CopperWallMount.png",
+        "text": "Copper Wallmount"
+      },
+      {
+        "id": 55,
+        "textype": 6,
+        "texture0": "Cactus.png",
+        "text": "Cactus"
+      },
+      {
+        "id": 56,
+        "textype": 5,
+        "texture0": "desertgrass.png",
+        "text": "Desert Grass"
+      },
+      {
+        "id": 57,
+        "textype": 6,
+        "texture0": "WoodFrame.png",
+        "text": "Wood Frame"
+      },
+      {
+        "id": 58,
+        "textype": 6,
+        "texture0": "GoldFrame.png",
+        "text": "Gold Frame"
+      },
+      {
+        "id": 59,
+        "textype": 6,
+        "texture0": "CopperFrame.png",
+        "text": "Copper Frame"
+      },
+      {
+        "id": 60,
+        "textype": 6,
+        "texture0": "CopperSlegdehammer.png",
+        "text": "Copper Sledgehammer"
+      },
+      {
+        "id": 61,
+        "textype": 6,
+        "texture0": "RainbowTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Rainbow Torch"
+      },
+      {
+        "id": 62,
+        "textype": 6,
+        "texture0": "RainbowDye.png",
+        "text": "Rainbow Dye"
+      },
+      {
+        "id": 63,
+        "textype": 5,
+        "texture0": "Rainbowflower.material",
+        "text": "Rainbow Flower"
+      },
+      {
+        "id": 64,
+        "textype": 6,
+        "texture0": "WhiteDye.png",
+        "text": "White Dye"
+      },
+      {
+        "id": 68,
+        "textype": 6,
+        "texture0": "crystal.png",
+        "text": "Crystal"
+      },
+      {
+        "id": 69,
+        "textype": 6,
+        "texture0": "Furnace.png",
+        "text": "Furnace"
+      },
+      {
+        "id": 70,
+        "textype": 6,
+        "texture0": "IngotMould.png",
+        "text": "Iron Ingot mould"
+      },
+      {
+        "id": 71,
+        "textype": 6,
+        "texture0": "Flintstone.png",
+        "text": "Flintstone"
+      },
+      {
+        "id": 72,
+        "textype": 6,
+        "texture0": "DryGrass.png",
+        "text": "Dry Grass"
+      },
+      {
+        "id": 73,
+        "textype": 6,
+        "texture0": "IngotIron.png",
+        "text": "Iron Ingot"
+      },
+      {
+        "id": 74,
+        "textype": 6,
+        "texture0": "IronPickaxe.png",
+        "text": "Iron Pickaxe"
+      },
+      {
+        "id": 75,
+        "textype": 6,
+        "texture0": "IronSledgehammer.png",
+        "text": "Iron Sledgehammer"
+      },
+      {
+        "id": 76,
+        "textype": 6,
+        "texture0": "IronAxe.png",
+        "text": "Iron Axe"
+      },
+      {
+        "id": 77,
+        "textype": 6,
+        "texture0": "IronShovel.png",
+        "text": "Iron Shovel"
+      },
+      {
+        "id": 78,
+        "textype": 6,
+        "texture0": "WoodStool.png",
+        "text": "Wood Stool"
+      },
+      {
+        "id": 79,
+        "textype": 6,
+        "texture0": "WoodTable1.png",
+        "text": "Woodden Table 1"
+      },
+      {
+        "id": 80,
+        "textype": 6,
+        "texture0": "WoodTable2.png",
+        "text": "Woodden Table 2"
+      },
+      {
+        "id": 81,
+        "textype": 6,
+        "texture0": "WoodCarafe.png",
+        "text": "Woodden Carafe"
+      },
+      {
+        "id": 82,
+        "textype": 6,
+        "texture0": "WoodBench1.png",
+        "text": "Woodden Bench 1"
+      },
+      {
+        "id": 83,
+        "textype": 6,
+        "texture0": "WoodBarrel.png",
+        "text": "Woodden Barrel"
+      },
+      {
+        "id": 84,
+        "textype": 6,
+        "texture0": "WoodFence.png",
+        "text": "Woodden Fence"
+      },
+      {
+        "id": 85,
+        "textype": 6,
+        "texture0": "MetalPod.png",
+        "text": "Metal Pod"
+      },
+      {
+        "id": 86,
+        "textype": 6,
+        "texture0": "WoodBench2.png",
+        "text": "Woodden Bench 2"
+      },
+      {
+        "id": 87,
+        "textype": 6,
+        "texture0": "WoodBench3.png",
+        "text": "Woodden Bench 3"
+      },
+      {
+        "id": 88,
+        "textype": 6,
+        "texture0": "Sandbags.png",
+        "text": "Pile of Sandbags"
+      },
+      {
+        "id": 89,
+        "textype": 1,
+        "texture0": "Glass.material",
+        "text": "Glass"
+      }
+    ],
+	"VoidBlock": [
+      {
+        "id": 3,
+        "textype": 0,
+        "text": "Air"
+      }
+	],
+    "ModBlock":  [
+	  {
+        "id": 66,
+        "textype": 66,
+        "texture0": "Modblock.png",
+        "text": "Custom Block"
+      }
+	]
+  }

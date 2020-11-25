@@ -37,6 +37,9 @@
     <ClInclude Include="cyBlocks.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="json.hpp">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

@@ -21,7 +21,7 @@ void CyMainComponent::Initialize()
 	infoDisplay.heap_allocation_counter = true;
 
 	renderer.Load();
-	//pathRenderer.Load();
+	pathRenderer.Load();
 	ActivatePath(&renderer);
 }
 

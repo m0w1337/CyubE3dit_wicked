@@ -184,6 +184,7 @@
   <ItemGroup>
     <ClInclude Include="cyBlocks.h" />
     <ClInclude Include="CyRender.h" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="lz4.h" />
     <ClInclude Include="meshGen.h" />
     <ClInclude Include="resource.h" />
