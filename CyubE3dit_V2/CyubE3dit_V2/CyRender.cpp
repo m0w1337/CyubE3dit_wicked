@@ -88,8 +88,8 @@ void CyMainComponent::CreateScene(void) {
 
 	MaterialComponent* material = scene2.materials.GetComponent(materialID);
 	material->baseColorMap = wiResourceManager::Load("images/glass.jpg");
-	//material->userBlendMode = BLENDMODE_ALPHA;
-	//material->baseColorMapName = "images/glass.jpg";
+	material->userBlendMode = BLENDMODE_ALPHA;
+	material->baseColorMapName = "images/glass.jpg";
 	material->SetRefractionIndex(0.07f);
 	material->SetBaseColor(XMFLOAT4(0, 0, 0, 0.01f));
 	material->SetMetalness(0.2f);

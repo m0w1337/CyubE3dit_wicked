@@ -64,8 +64,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     cyBlocks.LoadRegBlocks();
     // Reset all state that tests might have modified:
     ofstream file;
-    file.open("debug.log", ofstream::out);
-    wiBackLog::save(file);
+    //file.open("debug.log", ofstream::out);
+    //wiBackLog::save(file);
     mainComp.CreateScene();
     // Reset camera position:
     TransformComponent transform;
