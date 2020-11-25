@@ -1,3 +1,4 @@
 [submodule "WickedEngine"]
+	ignore = dirty
 	path = WickedEngine
 	url = https://github.com/m0w1337/WickedEngine

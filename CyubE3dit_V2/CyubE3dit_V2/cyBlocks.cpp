@@ -2,5 +2,4 @@
 #include "cyBlocks.h"
 
 void cyBlocks::LoadRegBlocks(void) {
-	
 }
