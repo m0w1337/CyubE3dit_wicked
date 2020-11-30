@@ -10,15 +10,16 @@ meshGen::meshGen() {
 }
 
 MeshComponent* meshGen::AddMesh(Scene& scene, Entity materialID) {
-	Entity entity = scene.Entity_CreateObject("editorTerrain");
+	Entity entity = scene.Entity_CreateObject("Chunk");
 	ObjectComponent& object = *scene.objects.GetComponent(entity);
-	object.meshID = scene.Entity_CreateMesh("terrainMesh");
+	object.meshID = scene.Entity_CreateMesh("ChunkMesh");
 	MeshComponent* mesh = scene.meshes.GetComponent(object.meshID);
 	mesh->subsets.emplace_back();
 	mesh->subsets.back().materialID = materialID;
 	mesh->subsets.back().indexOffset = 0;
 	return mesh;
 }
+
 /*
 MeshComponent* meshGen::AddMesh(Scene& scene,int32_t x, int32_t y){
 	Entity entity = scene.Entity_CreateObject("editorTerrain");

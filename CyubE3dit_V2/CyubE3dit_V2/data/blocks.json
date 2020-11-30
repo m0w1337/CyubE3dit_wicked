@@ -3,7 +3,9 @@
       {
         "id": 0,
         "textype": 1,
-        "texture0": "stone.png",
+        "texture0": "stone.jpg",
+		"normal0": "stone_n.jpg",
+		"rough": 0.4,
         "text": "Stone"
       },
       {
@@ -146,6 +148,80 @@
         "text": "Flower 2"
       },
       {
+        "id": 36,
+        "textype": 5,
+        "texture0": "flower3.material",
+        "text": "Flower 3"
+      },
+      {
+        "id": 37,
+        "textype": 6,
+        "texture0": "BlueTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Blue Torch"
+      },
+      {
+        "id": 39,
+        "textype": 5,
+        "texture0": "flower4.material",
+        "text": "Flower 4"
+      },
+      {
+        "id": 40,
+        "textype": 6,
+        "texture0": "GreenTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Green Torch"
+      },
+      {
+        "id": 49,
+        "textype": 6,
+        "texture0": "RedTorch.jpg",
+        "mesh": "torch_obj.mesh",
+        "text": "Red Torch"
+      },
+      {
+        "id": 53,
+        "textype": 6,
+        "texture0": "Arrow.png",
+        "text": "Arrow"
+      },
+      {
+        "id": 56,
+        "textype": 5,
+        "texture0": "desertgrass.png",
+        "text": "Desert Grass"
+      },
+      {
+        "id": 63,
+        "textype": 5,
+        "texture0": "Rainbowflower.material",
+        "text": "Rainbow Flower"
+      },
+      {
+        "id": 89,
+        "textype": 1,
+        "texture0": "Glass.material",
+        "text": "Glass"
+      }
+    ],
+	"VoidBlock": [
+      {
+        "id": 3,
+        "textype": 0,
+        "text": "Air"
+      }
+	],
+    "ModBlock":  [
+	  {
+        "id": 66,
+        "textype": 66,
+        "texture0": "Modblock.png",
+        "text": "Custom Block"
+      }
+	],
+	"FunctionalMesh":[
+	  {
         "id": 18,
         "textype": 6,
         "texture0": "StickTool.png",
@@ -211,37 +287,11 @@
         "texture0": "DeerMeat.png",
         "text": "Deer Meat"
       },
-      {
-        "id": 36,
-        "textype": 5,
-        "texture0": "flower3.material",
-        "text": "Flower 3"
-      },
-      {
-        "id": 37,
-        "textype": 6,
-        "texture0": "BlueTorch.jpg",
-        "mesh": "torch_obj.mesh",
-        "text": "Blue Torch"
-      },
-      {
+	  {
         "id": 38,
         "textype": 6,
         "texture0": "BlueDye.png",
         "text": "Blue Dye"
-      },
-      {
-        "id": 39,
-        "textype": 5,
-        "texture0": "flower4.material",
-        "text": "Flower 4"
-      },
-      {
-        "id": 40,
-        "textype": 6,
-        "texture0": "GreenTorch.jpg",
-        "mesh": "torch_obj.mesh",
-        "text": "Green Torch"
       },
       {
         "id": 41,
@@ -250,6 +300,12 @@
         "text": "Blue Dye"
       },
       {
+        "id": 48,
+        "textype": 6,
+        "texture0": "RedDye.png",
+        "text": "Red Dye"
+      },
+	  {
         "id": 42,
         "textype": 6,
         "texture0": "Compass.png",
@@ -266,73 +322,6 @@
         "textype": 6,
         "texture0": "Mesh.png",
         "text": "Mesh"
-      },
-      {
-        "id": 48,
-        "textype": 6,
-        "texture0": "RedDye.png",
-        "text": "Red Dye"
-      },
-      {
-        "id": 49,
-        "textype": 6,
-        "texture0": "RedTorch.jpg",
-        "mesh": "torch_obj.mesh",
-        "text": "Red Torch"
-      },
-      {
-        "id": 50,
-        "textype": 6,
-        "texture0": "Chair.png",
-        "text": "Chair"
-      },
-      {
-        "id": 51,
-        "textype": 6,
-        "texture0": "BirchChair.png",
-        "text": "Birch Chair"
-      },
-      {
-        "id": 53,
-        "textype": 6,
-        "texture0": "Arrow.png",
-        "text": "Arrow"
-      },
-      {
-        "id": 54,
-        "textype": 6,
-        "texture0": "CopperWallMount.png",
-        "text": "Copper Wallmount"
-      },
-      {
-        "id": 55,
-        "textype": 6,
-        "texture0": "Cactus.png",
-        "text": "Cactus"
-      },
-      {
-        "id": 56,
-        "textype": 5,
-        "texture0": "desertgrass.png",
-        "text": "Desert Grass"
-      },
-      {
-        "id": 57,
-        "textype": 6,
-        "texture0": "WoodFrame.png",
-        "text": "Wood Frame"
-      },
-      {
-        "id": 58,
-        "textype": 6,
-        "texture0": "GoldFrame.png",
-        "text": "Gold Frame"
-      },
-      {
-        "id": 59,
-        "textype": 6,
-        "texture0": "CopperFrame.png",
-        "text": "Copper Frame"
       },
       {
         "id": 60,
@@ -352,12 +341,6 @@
         "textype": 6,
         "texture0": "RainbowDye.png",
         "text": "Rainbow Dye"
-      },
-      {
-        "id": 63,
-        "textype": 5,
-        "texture0": "Rainbowflower.material",
-        "text": "Rainbow Flower"
       },
       {
         "id": 64,
@@ -424,8 +407,52 @@
         "textype": 6,
         "texture0": "IronShovel.png",
         "text": "Iron Shovel"
+      }
+	],
+	"DecoMesh": [
+	  {
+        "id": 50,
+        "textype": 6,
+        "texture0": "Chair.png",
+        "text": "Chair"
       },
       {
+        "id": 51,
+        "textype": 6,
+        "texture0": "BirchChair.png",
+        "text": "Birch Chair"
+      },
+      {
+        "id": 54,
+        "textype": 6,
+        "texture0": "CopperWallMount.png",
+        "text": "Copper Wallmount"
+      },
+      {
+        "id": 55,
+        "textype": 6,
+        "texture0": "Cactus.png",
+        "text": "Cactus"
+      },
+      {
+        "id": 57,
+        "textype": 6,
+        "texture0": "WoodFrame.png",
+        "text": "Wood Frame"
+      },
+      {
+        "id": 58,
+        "textype": 6,
+        "texture0": "GoldFrame.png",
+        "text": "Gold Frame"
+      },
+      {
+        "id": 59,
+        "textype": 6,
+        "texture0": "CopperFrame.png",
+        "text": "Copper Frame"
+      },
+	  {
         "id": 78,
         "textype": 6,
         "texture0": "WoodStool.png",
@@ -490,27 +517,6 @@
         "textype": 6,
         "texture0": "Sandbags.png",
         "text": "Pile of Sandbags"
-      },
-      {
-        "id": 89,
-        "textype": 1,
-        "texture0": "Glass.material",
-        "text": "Glass"
-      }
-    ],
-	"VoidBlock": [
-      {
-        "id": 3,
-        "textype": 0,
-        "text": "Air"
-      }
-	],
-    "ModBlock":  [
-	  {
-        "id": 66,
-        "textype": 66,
-        "texture0": "Modblock.png",
-        "text": "Custom Block"
       }
 	]
   }

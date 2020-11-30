@@ -6,6 +6,8 @@
 #include <string>
 #include <sstream>
 
+#include "sqlite3.h"
+
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
@@ -60,13 +62,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     mainComp.infoDisplay.fpsinfo = true;
     mainComp.Initialize();
 
-    cyBlocks cyBlocks;
-    cyBlocks.LoadRegBlocks();
+
     // Reset all state that tests might have modified:
     ofstream file;
     //file.open("debug.log", ofstream::out);
     //wiBackLog::save(file);
     mainComp.CreateScene();
+	cyBlocks cyBlocks(wiScene::GetScene());
+	cyBlocks.LoadRegBlocks();
     // Reset camera position:
     TransformComponent transform;
     transform.Translate(XMFLOAT3(0, 1.f, -6.5f));
@@ -85,6 +88,57 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
     wiJobSystem::Wait(ctx);
     */
+	meshGen mGen;
+    Scene& scene2 = wiScene::GetScene();
+
+	Entity materialID = scene2.Entity_CreateMaterial("terrainMaterial");
+	MaterialComponent* material = scene2.materials.GetComponent(materialID);
+	material->baseColorMap		= wiResourceManager::Load("images/glass.jpg");
+	material->baseColorMapName	= "images/2floor.jpg";
+	//material->SetEmissiveColor(XMFLOAT4(1, 1, 1, 0.1));
+	material->SetDirty();
+	wiScene::MeshComponent* mesh = mGen.AddMesh(wiScene::GetScene(),cyBlocks::m_regBlockMats[2][0]);
+	mGen.AddFaceTop(mesh, -0.5, 1, 1);
+	mGen.AddFaceBottom(mesh, -0.5, 1, 1);
+	mGen.AddFaceLeft(mesh, -0.5, 1, 1);
+	mGen.AddFaceRight(mesh, -0.5, 1, 1);
+	mGen.AddFaceFront(mesh, -0.5, 1, 1);
+	mGen.AddFaceBack(mesh, -0.5, 1, 1);
+	meshGen::newMaterial(mesh, cyBlocks::m_regBlockMats[1][0]);
+	mGen.AddFaceTop(mesh, 1, 0, 2);
+	meshGen::newMaterial(mesh, cyBlocks::m_regBlockMats[1][1]);
+	mGen.AddFaceBottom(mesh, 1, 0, 2);
+	meshGen::newMaterial(mesh, cyBlocks::m_regBlockMats[1][2]);
+	mGen.AddFaceLeft(mesh, 1, 0, 2);
+	mGen.AddFaceRight(mesh, 1, 0, 2);
+	mGen.AddFaceFront(mesh, 1, 0, 2);
+	mGen.AddFaceBack(mesh, 1, 0, 2);
+	//mesh->ComputeNormals(MeshComponent::COMPUTE_NORMALS_HARD);
+	mesh->SetDynamic(false);
+	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
+	mesh->CreateRenderData();
+	uint32_t neightbours[4] = {0, 0, 0, 0};
+	sqlite3* db;
+	sqlite3_open("C:/Users/m0/AppData/Local/cyubeVR/Saved/WorldData/test/chunkdata.sqlite", &db);
+
+    	wiTimer timer;
+	timer.record();
+
+	cyChunk chunk(db,0);
+	//::loadChunk(db, 0, neightbours);
+	chunkLoader::RenderChunk(chunk,neightbours);
+    double time = timer.elapsed();
+
+	std::stringstream ss("");
+	ss << "Simple loop took " << time << " milliseconds" << std::endl;
+	static wiSpriteFont font;
+	font				= wiSpriteFont(ss.str());
+	font.params.posX	= wiRenderer::GetDevice()->GetScreenWidth() / 2;
+	font.params.posY	= wiRenderer::GetDevice()->GetScreenHeight() / 2;
+	font.params.h_align = WIFALIGN_CENTER;
+	font.params.v_align = WIFALIGN_CENTER;
+	font.params.size	= 24;
+	mainComp.renderer.AddFont(&font);
 
 	MSG msg = { 0 };
     while (msg.message != WM_QUIT)
@@ -99,6 +153,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 //mainComp.ActivatePath(&mainComp.renderer, 1);
             }
         }
+		if (wiInput::Press((wiInput::BUTTON)'M')) {
+			//int msgboxID = MessageBox(NULL, L"test", L"", 0);
+			if (mainComp.GetActivePath() == &mainComp.renderer) {
+				mainComp.ActivatePath(&mainComp.pathRenderer, 1);
+			} else {
+				mainComp.ActivatePath(&mainComp.renderer, 1);
+			}
+		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);

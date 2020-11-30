@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderPath3D_PathTracing.h"
 #include "meshGen.h"
+#include "cyBlocks.h"
 class CyRender : public RenderPath3D
 {
 public:

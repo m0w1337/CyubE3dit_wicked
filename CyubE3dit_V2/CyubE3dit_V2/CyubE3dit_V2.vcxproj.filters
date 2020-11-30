@@ -40,6 +40,18 @@
     <ClInclude Include="json.hpp">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="sqlite3.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="cyChunk.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="chunkLoader.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="cyImportant.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -58,6 +70,18 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="cyBlocks.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="sqlite3.c">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="cyChunk.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="chunkLoader.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="cyImportant.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

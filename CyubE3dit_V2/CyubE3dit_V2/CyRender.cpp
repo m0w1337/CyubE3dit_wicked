@@ -45,7 +45,7 @@ void CyMainComponent::CreateScene(void) {
 	weather.horizon = XMFLOAT3(0.4f, 0.4f, 0.9f);
 	weather.zenith = XMFLOAT3(0.5f, 0.7f, 0.9f);
 	weather.cloudiness = 0.50f;
-	Entity LightEnt = scene.Entity_CreateLight("Sunlight", XMFLOAT3(1, 0.5, -1), XMFLOAT3(1.0, 1., 1.f), 1.5, 10000);
+	Entity LightEnt = scene.Entity_CreateLight("Sunlight", XMFLOAT3(1, 0.5, -1), XMFLOAT3(1.0, 1., 1.f), 40, 10000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	TransformComponent& transform = *scene.transforms.GetComponent(LightEnt);
@@ -67,7 +67,7 @@ void CyMainComponent::CreateScene(void) {
 	light->lensFlareNames[4] = "flare4";
 	light->lensFlareRimTextures[5] = wiResourceManager::Load("images/flare5.jpg");
 	light->lensFlareNames[5] = "flare5";
-	Entity fillLight = scene.Entity_CreateLight("filllight", XMFLOAT3(100, 300, -100), XMFLOAT3(1.0f, 1., 1.f), 0.5, 1000);
+	Entity fillLight = scene.Entity_CreateLight("filllight", XMFLOAT3(100, 300, -100), XMFLOAT3(1.0f, 1., 1.f), 5, 1000);
 	//LightComponent* lights;
 	//for (int i = -5;i < 5;i++) {
 	//	for (int y = -5; y < 5; y++) {
@@ -105,31 +105,30 @@ void CyMainComponent::CreateScene(void) {
 
 	Entity material2ID = scene2.Entity_CreateMaterial("terrainMaterial2");
 	material = scene2.materials.GetComponent(material2ID);
-	material->baseColorMap = wiResourceManager::Load("images/floor.jpg");
-	material->normalMap = wiResourceManager::Load("images/floor_norm.jpg");
-	material->baseColorMapName = "images/floor.jpg";
-	material->normalMapName = "images/floor_norm.jpg";
-	material->displacementMap = wiResourceManager::Load("images/floor_disp.jpg");
-	material->SetMetalness(0.1f);
-	material->SetRoughness(0.5f);
-	material->displacementMapName = "images/floor_disp.jpg";
-	material->SetDisplacementMapping(true);
-	material->SetUVSet_DisplacementMap(0);
-	material->SetUVSet_NormalMap(0);
-	material->SetNormalMapStrength(1);
-	//material->SetReflectance(100);
+	material->baseColorMapName = "images/grass.jpg";
+	material->normalMapName = "images/grass_n.jpg";
+	material->occlusionMapName  = "images/grass_o.jpg";
+	material->SetParallaxOcclusionMapping(2);
+	material->SetReflectance(0.0);
+	material->SetMetalness(0.2f);
+	material->SetRoughness(1.f);
+	material->SetNormalMapStrength(2.0);
 	material->SetDirty();
 
 
 	wiScene::MeshComponent* mesh = mGen.AddMesh(scene2, material2ID);
-	wiTimer timer;
+	
 	wiJobSystem::context ctx;
-	timer.record();
+
 	for (float x = -50; x < 50; x = x + 0.5f) {
 		for (float y = -50; y < 50; y = y + 0.5f) {
 			mGen.AddFaceTop(mesh, x, y, 0);
 		}
 	}
+	mesh->SetDynamic(false);
+	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
+	mesh->CreateRenderData();
+	/*
 	mGen.AddFaceTop(mesh, 0, 1, 1);
 	mGen.AddFaceBottom(mesh, 0, 1, 1);
 	mGen.AddFaceLeft(mesh, 0, 1, 1);
@@ -143,8 +142,7 @@ void CyMainComponent::CreateScene(void) {
 	mGen.AddFaceRight(mesh, 2, 1, 2);
 	mGen.AddFaceFront(mesh, 2, 1, 2);
 	mGen.AddFaceBack(mesh, 2, 1, 2);
-	mesh->SetDynamic(false);
-	mesh->CreateRenderData();
+	
 	mesh = mGen.AddMesh(scene2, materialID);
 	mGen.AddFaceTop(mesh, -0.5, 0, 1);
 	mGen.AddFaceBottom(mesh, -0.5, 0, 1);
@@ -161,22 +159,7 @@ void CyMainComponent::CreateScene(void) {
 	mGen.AddFaceBack(mesh, 0, 0, 2);
 	//mesh->ComputeNormals(MeshComponent::COMPUTE_NORMALS_HARD);
 	mesh->SetDynamic(false);
-	mesh->CreateRenderData();
-	
-	double time = timer.elapsed();
-
-
-
-	std::stringstream ss("");
-	ss << "Simple loop took " << time << " milliseconds" << std::endl;
-	static wiSpriteFont font;
-	font = wiSpriteFont(ss.str());
-	font.params.posX = wiRenderer::GetDevice()->GetScreenWidth() / 2;
-	font.params.posY = wiRenderer::GetDevice()->GetScreenHeight() / 2;
-	font.params.h_align = WIFALIGN_CENTER;
-	font.params.v_align = WIFALIGN_CENTER;
-	font.params.size = 24;
-	renderer.AddFont(&font);
+	mesh->CreateRenderData();*/
 }
 
 
@@ -195,6 +178,7 @@ void CyRender::Load()
 	setBloomEnabled(true);
 	setReflectionsEnabled(true);
 	//setColorGradingEnabled(true);
+	wiPhysicsEngine::SetEnabled(false);
 	setLightShaftsEnabled(true);
 	setShadowsEnabled(true);
 	//setVolumetricCloudsEnabled(true);
