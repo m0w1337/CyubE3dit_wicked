@@ -17,5 +17,5 @@ public:
 		}
 	};
 
-	static void RenderChunk(cyChunk& chunk, cyChunk& northChunk, cyChunk& eastChunk, cyChunk& southChunk, cyChunk& westChunk);
+	static void RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk);
 };

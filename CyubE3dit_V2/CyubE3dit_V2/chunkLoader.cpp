@@ -5,7 +5,7 @@ using namespace std;
 using namespace wiScene;
 
 
-void chunkLoader::RenderChunk(cyChunk& chunk, cyChunk& northChunk, cyChunk& eastChunk, cyChunk& southChunk, cyChunk& westChunk) {
+void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk) {
 
 	face_t tmpface;
 	vector<face_t> faces;
@@ -96,22 +96,22 @@ void chunkLoader::RenderChunk(cyChunk& chunk, cyChunk& northChunk, cyChunk& east
 		}
 		switch (faces[i].face) {
 			case 0:
-				meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z);
+				meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
 			case 1:
-				meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z);
+				meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
 			case 2:
-				meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z);
+				meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
 			case 3:
-				meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z);
+				meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
 			case 4:
-				meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z);
+				meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
 			case 5:
-				meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z);
+				meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
 		}
 	}

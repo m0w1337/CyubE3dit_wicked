@@ -5,7 +5,7 @@
 #include "main.h"
 #include <string>
 #include <sstream>
-
+#include "cyImportant.h"
 #include "sqlite3.h"
 
 using namespace std;
@@ -90,7 +90,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     */
 	meshGen mGen;
     Scene& scene2 = wiScene::GetScene();
-
+	/*
 	Entity materialID = scene2.Entity_CreateMaterial("terrainMaterial");
 	MaterialComponent* material = scene2.materials.GetComponent(materialID);
 	material->baseColorMap		= wiResourceManager::Load("images/glass.jpg");
@@ -116,17 +116,49 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//mesh->ComputeNormals(MeshComponent::COMPUTE_NORMALS_HARD);
 	mesh->SetDynamic(false);
 	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-	mesh->CreateRenderData();
-	uint32_t neightbours[4] = {0, 0, 0, 0};
+	mesh->CreateRenderData();*/
+
 	sqlite3* db;
-	sqlite3_open("C:/Users/m0/AppData/Local/cyubeVR/Saved/WorldData/test/chunkdata.sqlite", &db);
+	sqlite3_open("C:\\Users\\m0\\AppData\\Local\\cyubeVR\\Saved\\WorldData\\My Great World - Kopie(cleaned)\\chunkdata.sqlite", &db);
 
-    	wiTimer timer;
+    wiTimer timer;
 	timer.record();
+	cyImportant world;
+	world.loadWorldInfo(L"My Great World - Kopie(cleaned)");
+	uint32_t chunkID;
+	cyChunk chunk;
+	cyChunk chunkL;
+	cyChunk chunkR;
+	cyChunk chunkU;
+	cyChunk chunkD;
+	if (world.getChunkID(world.m_playerpos.x / 100, world.m_playerpos.y / 100, &chunkID))
+		chunk.loadChunk(db, chunkID);
 
-	cyChunk chunk(db,0);
-	//::loadChunk(db, 0, neightbours);
-	chunkLoader::RenderChunk(chunk,neightbours);
+	if (16 + world.getChunkID(world.m_playerpos.x / 100, world.m_playerpos.y / 100, &chunkID))
+		chunkL.loadChunk(db, chunkID, true);
+	if (-16 + world.getChunkID(world.m_playerpos.x / 100, world.m_playerpos.y / 100, &chunkID))
+		chunkR.loadChunk(db, chunkID, true);
+	if (world.getChunkID(world.m_playerpos.x / 100, 16 + world.m_playerpos.y / 100, &chunkID))
+		chunkU.loadChunk(db, chunkID, true);
+	if (world.getChunkID(world.m_playerpos.x / 100, -16 + world.m_playerpos.y / 100, &chunkID))
+		chunkD.loadChunk(db, chunkID,true);
+
+		chunkLoader::RenderChunk(chunk, chunkL, chunkR, chunkU, chunkD);
+ 
+	
+	/*MeshComponent* mesh;
+	mesh				  = meshGen::AddMesh(wiScene::GetScene(),cyBlocks::m_regBlockMats[0][0]);
+	for (float x = 0; x < 4; x = x + 0.5) {
+		for (float y= 0; y< 4; y = y+ 0.5) {
+			meshGen::AddFaceTop(mesh, y, x, 0, true);
+		}
+	}
+
+    meshGen::AddFaceBack(mesh, 0, 0, 0, false);
+	meshGen::AddFaceFront(mesh, 0, 0, 0, false);
+	meshGen::AddFaceLeft(mesh, 0, 0, 0, false);
+	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
+	mesh->CreateRenderData();*/
     double time = timer.elapsed();
 
 	std::stringstream ss("");

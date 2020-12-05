@@ -80,7 +80,7 @@ void CyMainComponent::CreateScene(void) {
 
 
 	wiScene::GetScene().Merge(scene); // add lodaded scene to global scene
-
+	/*
 	Scene& scene2 = wiScene::GetScene();
 
 	Entity materialID = scene2.Entity_CreateMaterial("terrainMaterial");
@@ -127,7 +127,7 @@ void CyMainComponent::CreateScene(void) {
 	}
 	mesh->SetDynamic(false);
 	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-	mesh->CreateRenderData();
+	mesh->CreateRenderData();*/
 	/*
 	mGen.AddFaceTop(mesh, 0, 1, 1);
 	mGen.AddFaceBottom(mesh, 0, 1, 1);

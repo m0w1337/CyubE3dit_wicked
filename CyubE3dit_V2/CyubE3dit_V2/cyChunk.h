@@ -9,8 +9,9 @@ public:
 
 	uint32_t m_id;
 	char* m_chunkdata;
-
-	explicit cyChunk(sqlite3* db, uint32_t chunkID, bool fast = false);
+	explicit cyChunk(void);
+	void loadChunk(sqlite3* db, uint32_t chunkID, bool fast = false);
+	void airChunk(void);
 
 	void RenderChunk(uint32_t neightbourIDs[4]);
 

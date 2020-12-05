@@ -3,9 +3,10 @@
       {
         "id": 0,
         "textype": 1,
-        "texture0": "stone.jpg",
-		"normal0": "stone_n.jpg",
-		"rough": 0.4,
+        "texture0": "stone.png",
+		"normal0": "stone_n2.jpg",
+		"occlusion0": "stone_o2.jpg",
+		"rough": 1.0,
         "text": "Stone"
       },
       {
@@ -50,7 +51,9 @@
       {
         "id": 12,
         "textype": 1,
-        "texture0": "Coal_ore.png",
+        "texture0": "stone_albedo.png",
+		"normal0": "stone_normal.png",
+		"occlusion0": "stone_AO.png",
         "text": "Coal Ore"
       },
       {

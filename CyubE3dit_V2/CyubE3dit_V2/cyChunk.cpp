@@ -4,15 +4,17 @@
 
 using namespace std;
 
-cyChunk::cyChunk(sqlite3* db, uint32_t chunkID, bool fast) :
-  m_db(db),
-  m_id(chunkID) {
+cyChunk::cyChunk(void) {
+	m_chunkdata = (char*)malloc(32 * 32 * 800);
+	memset(m_chunkdata, cyBlocks::m_voidID, 32 * 32 * 800);
+}
+
+void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast){
 	int rc;
 	sqlite3_blob* pChunkBlob;
 	rc = sqlite3_blob_open(db, "main", "CHUNKDATA", "DATA", chunkID, 0, &pChunkBlob);
 	if (rc) {
-		m_chunkdata = (char*)malloc(32 * 32 * 800);
-		memset(m_chunkdata, cyBlocks::m_voidID, 32 * 32 * 800);
+		return;
 	} else {
 		int32_t chunksize	   = 0;
 		int32_t compressedSize = sqlite3_blob_bytes(pChunkBlob) - 4;
@@ -31,6 +33,10 @@ cyChunk::cyChunk(sqlite3* db, uint32_t chunkID, bool fast) :
 			}
 		}
 	}
+}
+void cyChunk::airChunk(void) {
+	m_chunkdata = (char*)malloc(32 * 32 * 800);
+	memset(m_chunkdata, cyBlocks::m_voidID, 32 * 32 * 800);
 }
 
 void cyChunk::loadCustomBlocks(void) {

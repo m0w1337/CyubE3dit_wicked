@@ -85,11 +85,18 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
 			material->SetDirty();
 			material->baseColorMapName = "images/" + tex;
-
+			material->SetReflectance(0.01);
+			material->SetMetalness(0.01);
 			tex						= it.value().at(i).at("normal" + std::to_string(ft));
 			material->normalMapName = "images/" + tex;
+			material->SetNormalMapStrength(1.0);
+			tex						= it.value().at(i).at("occlusion" + std::to_string(ft));
+			//material->occlusionMapName = "images/" + tex;
+			material->SetParallaxOcclusionMapping(1.0);
+			tex						   = it.value().at(i).at("environment" + std::to_string(ft));
+			material->surfaceMapName = "images/" + tex;
 			float roughness			= it.value().at(i).at("rough");
-			material->SetRoughness(roughness);
+			//material->SetRoughness(roughness);
 		}
 		catch (...) {
 		}
