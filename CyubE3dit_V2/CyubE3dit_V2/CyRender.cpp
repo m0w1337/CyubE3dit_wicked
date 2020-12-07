@@ -21,12 +21,12 @@ void CyMainComponent::Initialize()
 	infoDisplay.heap_allocation_counter = true;
 
 	renderer.Load();
-	pathRenderer.Load();
+	//pathRenderer.Load();
 	ActivatePath(&renderer);
 }
 
 void CyMainComponent::CreateScene(void) {
-	Scene scene;
+	Scene &scene = wiScene::GetScene();
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetToDrawGridHelper(false);
 	wiRenderer::SetTemporalAAEnabled(false);
@@ -38,14 +38,14 @@ void CyMainComponent::CreateScene(void) {
 	// Add some nice weather, not just black:
 	auto& weather = scene.weathers.Create(CreateEntity());
 	weather.ambient = XMFLOAT3(0.6f, 0.5f, 0.5f);
-	weather.fogStart = 0;
-	weather.fogEnd = 100;
-	weather.fogHeight = 0;
+	weather.fogStart = 200;
+	weather.fogEnd = 800;
+	weather.fogHeight = 10;
 
 	weather.horizon = XMFLOAT3(0.4f, 0.4f, 0.9f);
 	weather.zenith = XMFLOAT3(0.5f, 0.7f, 0.9f);
 	weather.cloudiness = 0.50f;
-	Entity LightEnt = scene.Entity_CreateLight("Sunlight", XMFLOAT3(1, 0.5, -1), XMFLOAT3(1.0, 1., 1.f), 40, 10000);
+	Entity LightEnt = scene.Entity_CreateLight("Sunlight", XMFLOAT3(1, 0.5, -1), XMFLOAT3(1.0, 1., 1.f), 40, 1000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	TransformComponent& transform = *scene.transforms.GetComponent(LightEnt);
@@ -79,7 +79,7 @@ void CyMainComponent::CreateScene(void) {
 	meshGen mGen;
 
 
-	wiScene::GetScene().Merge(scene); // add lodaded scene to global scene
+	//wiScene::GetScene().Merge(scene); // add lodaded scene to global scene
 	/*
 	Scene& scene2 = wiScene::GetScene();
 
@@ -175,15 +175,15 @@ void CyRender::ResizeLayout()
 void CyRender::Load()
 {
 	setSSREnabled(true);
-	setBloomEnabled(true);
-	setReflectionsEnabled(true);
-	//setColorGradingEnabled(true);
+	setBloomEnabled(false);
+	setReflectionsEnabled(false);
+	setColorGradingEnabled(false);
 	wiPhysicsEngine::SetEnabled(false);
-	setLightShaftsEnabled(true);
+	//setLightShaftsEnabled(true);
 	setShadowsEnabled(true);
-	//setVolumetricCloudsEnabled(true);
+	setVolumetricCloudsEnabled(false);
 	//setRaytracedReflectionsEnabled(true);
-	setFXAAEnabled(false);
+	setFXAAEnabled(true);
 	setEyeAdaptionEnabled(true);
 	RenderPath3D::Load();
 }
@@ -293,6 +293,7 @@ void CyRender::Update(float dt)
 		move = XMVectorSet(0, 0, 0, 0);
 	}
 	wiScene::TransformComponent camera_transform;
+	
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
 
@@ -308,10 +309,13 @@ void CyRender::Update(float dt)
 		camera.SetDirty();
 		camera.TransformCamera(camera_transform);
 		camera.UpdateCamera();
+		//camera.CreatePerspective((float)wiRenderer::GetInternalResolution().x, (float)wiRenderer::GetInternalResolution().y, 0.1f,200.0f);
 	}
+	
+
 	RenderPath3D::Update(dt);
 }
-
+/*
 void CyPathRender::ResizeLayout()
 {
 	RenderPath3D_PathTracing::ResizeLayout();
@@ -324,12 +328,12 @@ void CyPathRender::ResizeLayout()
 void CyPathRender::Load()
 {
 	setSSREnabled(true);
-	setReflectionsEnabled(true);
+	setReflectionsEnabled(false);
 	setColorGradingEnabled(false);
 	setLightShaftsEnabled(true);
 	setShadowsEnabled(false);
 	//setRaytracedReflectionsEnabled(true);
-	setFXAAEnabled(false);
+	setFXAAEnabled(true);
 	//setEyeAdaptionEnabled(true);
 	RenderPath3D_PathTracing::Load();
 }
@@ -457,3 +461,4 @@ void CyPathRender::Update(float dt)
 	}
 	RenderPath3D_PathTracing::Update(dt);
 }
+*/

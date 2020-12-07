@@ -3,9 +3,9 @@
 
 using namespace std;
 using namespace wiScene;
+extern mutex m;
 
-
-void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk) {
+void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
 
 	face_t tmpface;
 	vector<face_t> faces;
@@ -30,7 +30,7 @@ void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, c
 					else
 						frontB = cyBlocks::m_regBlockTypes[(uint8_t) * (northChunk.m_chunkdata + 4 + x + 32 * 32 * z)];
 
-					if (y > 1)
+					if (y > 0)
 						backB = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * (y - 1) + 32 * 32 * z)];
 					else
 						backB = cyBlocks::m_regBlockTypes[(uint8_t) * (southChunk.m_chunkdata + 4 + x + 32*31 + 32 * 32 * z)];
@@ -46,36 +46,39 @@ void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, c
 						leftB = cyBlocks::m_regBlockTypes[(uint8_t) * (westChunk.m_chunkdata + 4 + 31 + 32 * y + 32 * 32 * z)];
 
 					tmpface.x = x / 2.0f;
-					tmpface.y = y / 2.0f;
+					tmpface.y = 16-y / 2.0f;
 					tmpface.z = z / 2.0f;
+					uint8_t antitile = 0;
+					if (blocktype == 0 || blocktype == 13 || blocktype == 25)
+						antitile = 6;
 					if (upperB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.face	 = 0;
+						tmpface.face	 = 0+antitile;
 						tmpface.material = cyBlocks::m_regBlockMats[blocktype][0];
 						faces.emplace_back(tmpface);
 					}
 					if (lowerB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 						tmpface.material = cyBlocks::m_regBlockMats[blocktype][1];
-						tmpface.face	 = 1;
+						tmpface.face	 = 1 + antitile;
 						faces.emplace_back(tmpface);
 					}
 					if (leftB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 						tmpface.material = cyBlocks::m_regBlockMats[blocktype][2];
-						tmpface.face	 = 2;
+						tmpface.face	 = 2 + antitile;
 						faces.emplace_back(tmpface);
 					}
 					if (rightB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 						tmpface.material = cyBlocks::m_regBlockMats[blocktype][3];
-						tmpface.face	 = 3;
+						tmpface.face	 = 3 + antitile;
 						faces.emplace_back(tmpface);
 					}
 					if (frontB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 						tmpface.material = cyBlocks::m_regBlockMats[blocktype][4];
-						tmpface.face	 = 4;
+						tmpface.face	 = 5 + antitile;
 						faces.emplace_back(tmpface);
 					}
 					if (backB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 						tmpface.material = cyBlocks::m_regBlockMats[blocktype][5];
-						tmpface.face	 = 5;
+						tmpface.face	 = 4 + antitile;
 						faces.emplace_back(tmpface);
 					}
 				}
@@ -84,8 +87,10 @@ void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, c
 	}
 	sort(faces.begin(), faces.end());
 	MeshComponent* mesh;
+	m.lock();
 	mesh				  = meshGen::AddMesh(wiScene::GetScene(), faces[0].material);
 	wiECS::Entity currMat = faces[0].material;
+	mesh->SetDoubleSided(true);
 	for (unsigned i = 0; i < faces.size(); ++i)
 	{
 		if (faces[i].material != currMat) {
@@ -113,14 +118,34 @@ void chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, c
 			case 5:
 				meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, false);
 				break;
+			case 6:
+				meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, true);
+				break;
+			case 7:
+				meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, true);
+				break;
+			case 8:
+				meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, true);
+				break;
+			case 9:
+				meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z, true);
+				break;
+			case 10:
+				meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, true);
+				break;
+			case 11:
+				meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, true);
+				break;
 		}
 	}
 	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
 	for (auto& pos : mesh->vertex_positions)
 	{
-		pos.x += 17;
-		pos.y += 17;
-		pos.z += 17;
+		pos.x += relX;
+		pos.z += relY;
 	}
+	
+	mesh->SetDynamic(false);
 	mesh->CreateRenderData();
+	m.unlock();
 }

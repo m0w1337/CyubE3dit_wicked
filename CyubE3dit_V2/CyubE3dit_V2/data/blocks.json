@@ -4,9 +4,8 @@
         "id": 0,
         "textype": 1,
         "texture0": "stone.png",
-		"normal0": "stone_n2.jpg",
-		"occlusion0": "stone_o2.jpg",
-		"rough": 1.0,
+		"normal0": "stone_n.png",
+		"occlusion0": "stone_o.png",
         "text": "Stone"
       },
       {
@@ -59,13 +58,17 @@
       {
         "id": 13,
         "textype": 1,
-        "texture0": "Iron_ore.png",
+        "texture0": "iron.png",
+		"normal0": "iron_n.png",
+		"surface0": "iron_s.png",
         "text": "Iron Ore"
       },
       {
         "id": 25,
         "textype": 1,
-        "texture0": "Copper_ore.png",
+        "texture0": "copper.png",
+		"normal0": "iron_n.png",
+		"surface0": "iron_s.png",
         "#text": "Copper Ore"
       },
       {

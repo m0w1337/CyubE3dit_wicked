@@ -10,7 +10,7 @@ public:
 	void Update(float dt) override;
 	void ResizeLayout() override;
 };
-
+/*
 class CyPathRender : public RenderPath3D_PathTracing
 {
 public:
@@ -19,13 +19,13 @@ public:
 	void Update(float dt) override;
 	void ResizeLayout() override;
 };
-
+*/
 class CyMainComponent : public MainComponent
 {
 	
 public:
 	CyRender renderer;
-	CyPathRender pathRenderer;
+	//CyPathRender pathRenderer;
 	void Initialize() override;
 	void CreateScene(void);
 };
