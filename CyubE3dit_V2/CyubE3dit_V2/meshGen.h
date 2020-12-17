@@ -1,19 +1,92 @@
 #pragma once
 #include "WickedEngine.h"
-#define ANTITILE_FACT 4
+#include "SimplexNoise.h"
+#define ANTITILE_FACT 8
 class meshGen {
 
 public:
+	static SimplexNoise m_noise;
 	meshGen();
-	static wiScene::MeshComponent* AddMesh(wiScene::Scene& scene, wiECS::Entity materialID);
+	static wiScene::MeshComponent* AddMesh(wiScene::Scene& scene, wiECS::Entity _material, wiECS::Entity* _newEntity);
 
-	static void inline AddFaceTop(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
+	static void inline AddBillboard(wiScene::MeshComponent* mesh, float x, float y, float z) {
+		uint32_t start = (uint32_t)mesh->vertex_positions.size();
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y - 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y - 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y + 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y + 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x-0.25f, z - 0.25f, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x-0.25f, z + 0.25f, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x+0.25f, z + 0.25f, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x+0.25f, z - 0.25f, y));
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(100);
+		mesh->vertex_windweights.emplace_back(100);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(100);
+		mesh->vertex_windweights.emplace_back(100);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_colors.emplace_back(0xFFFFFF);
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
+
+		mesh->indices.emplace_back(start + 2);
+		mesh->indices.emplace_back(start + 1);
+		mesh->indices.emplace_back(start);
+
+		mesh->indices.emplace_back(start + 0);
+		mesh->indices.emplace_back(start + 3);
+		mesh->indices.emplace_back(start + 2);
+		start += 4;
+		mesh->indices.emplace_back(start + 2);
+		mesh->indices.emplace_back(start + 1);
+		mesh->indices.emplace_back(start);
+
+		mesh->indices.emplace_back(start + 0);
+		mesh->indices.emplace_back(start + 3);
+		mesh->indices.emplace_back(start + 2);
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+	}
+
+	static void inline AddFaceTop(wiScene::MeshComponent* mesh, float x, float y, float z, float relx, float rely, bool antitile = false) {
 		z			   = z + 0.25f;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y + 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y + 0.25f));
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		
+		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
+		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
+		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
+		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
+		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
+		
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
@@ -43,13 +116,22 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
 	}
 
-	static void inline AddFaceBottom(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
+	static void inline AddFaceBottom(wiScene::MeshComponent* mesh, float x, float y, float z, float relx, float rely, bool antitile = false) {
 		z			   = z - 0.25f;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y + 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y + 0.25f));
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
@@ -64,6 +146,7 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, uvy));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, 1.0f / ANTITILE_FACT + uvy));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, 1.0f / ANTITILE_FACT + uvy));
+	
 		}
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start + 1);
@@ -79,13 +162,22 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(0, -1, 0));
 	}
 
-	static void inline AddFaceRight(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
+	static void inline AddFaceRight(wiScene::MeshComponent* mesh, float x, float y, float z, float relx, float rely, bool antitile = false) {
 		x			   = x + 0.25f;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y + 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y + 0.25f));
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
@@ -120,13 +212,22 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
 	}
 
-	static void inline AddFaceLeft(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
+	static void inline AddFaceLeft(wiScene::MeshComponent* mesh, float x, float y, float z, float relx, float rely, bool antitile = false) {
 		x			   = x - 0.25f;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y - 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y + 0.25f));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y + 0.25f));
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
@@ -163,14 +264,22 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(-1, 0, 0));
 	}
 
-	static void inline AddFaceFront(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
+	static void inline AddFaceFront(wiScene::MeshComponent* mesh, float x, float y, float z, float relx, float rely, bool antitile = false) {
 		y			   = y + 0.25f;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z - 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z + 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z + 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z - 0.25f, y));
-		
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
@@ -204,13 +313,22 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
 	}
 
-	static void inline AddFaceBack(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
+	static void inline AddFaceBack(wiScene::MeshComponent* mesh, float x, float y, float z, float relx, float rely, bool antitile = false) {
 		y			   = y - 0.25f;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z - 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z + 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z + 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z - 0.25f, y));
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		mesh->vertex_windweights.emplace_back(0);
+		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 		
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));

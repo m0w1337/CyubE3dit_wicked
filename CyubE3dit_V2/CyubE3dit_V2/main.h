@@ -6,3 +6,4 @@
 #include "cyBlocks.h"
 #include "cyChunk.h"
 #include "chunkLoader.h"
+#include "settings.h"

@@ -5,6 +5,12 @@
 
 namespace fs = std::filesystem;
 
+cyImportant::cyImportant(void) {
+	for (uint8_t i = 0; i < 32; i++) {
+		db[i] = nullptr;
+	}
+}
+
 wstring cyImportant::find_importantFile(const std::wstring path)  // placing path here if found
 {
 	fs::file_time_type filetime;
@@ -75,10 +81,21 @@ void cyImportant::loadData(const std::wstring filename) {
 		file.read(reinterpret_cast<char*>(&(m_playerpos.x)), sizeof(m_playerpos.x));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.y)), sizeof(m_playerpos.y));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.z)), sizeof(m_playerpos.z));
+		for (uint8_t i = 0; i < 32; i++) {
+			if (db[i] != nullptr) {
+				sqlite3_close(db[i]);
+			}
+			if (sqlite3_open_v2("C:\\Users\\m0\\AppData\\Local\\cyubeVR\\Saved\\WorldData\\My Great World - Kopie(cleaned)\\chunkdata.sqlite", &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
+				if (sqlite3_open_v2("C:\\Users\\m0\\AppData\\Local\\cyubeVR\\Saved\\WorldData\\My Great World - Kopie(cleaned)\\chunkdata.sqlite", &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
+					MessageBox(NULL, L"ERROR", L"SQlite not opened", MB_ICONWARNING);
+					db[i] = nullptr;
+				}
+			}
+		}
+		m_valid = true;
 		file.close();
 	}
 }
 bool cyImportant::isValid(void) {
-
-	return false;
+	return m_valid;
 }

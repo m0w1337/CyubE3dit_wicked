@@ -4,6 +4,7 @@
 #include "cyBlocks.h"
 class CyRender : public RenderPath3D
 {
+	wiComboBox worldSelector;
 public:
 	void Load() override;
 	

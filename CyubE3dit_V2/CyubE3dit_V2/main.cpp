@@ -12,47 +12,8 @@
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
+cyImportant* world = settings::getWorld();
 mutex m;
-
-
-void chunkloadingTest(uint8_t num) {
-	sqlite3* db;
-	sqlite3_open("C:\\Users\\m0\\AppData\\Local\\cyubeVR\\Saved\\WorldData\\My Great World - Kopie(cleaned)\\chunkdata.sqlite", &db);
-	//Sleep(3000);
-	//wiTimer timer;
-	//timer.record();
-	cyImportant world;
-	world.loadWorldInfo(L"My Great World - Kopie(cleaned)");
-	uint32_t chunkID;
-	cyChunk chunk;
-	cyChunk chunkL;
-	cyChunk chunkR;
-	cyChunk chunkU;
-	cyChunk chunkD;
-	cyChunk emptyChunk;
-	for (double x = -256 + num * 16; x < 256; x += 16 * 6) {
-		for (double y = -256; y < 256; y += 16) {
-			if (world.getChunkID(x + world.m_playerpos.x / 100, y + world.m_playerpos.y / 100, &chunkID))
-				chunk.loadChunk(db, chunkID);
-			else
-				chunk.airChunk();
-
-			if (world.getChunkID(x + 16 + world.m_playerpos.x / 100, y + world.m_playerpos.y / 100, &chunkID))
-				chunkL.loadChunk(db, chunkID);
-			if (world.getChunkID(x - 16 + world.m_playerpos.x / 100, y + world.m_playerpos.y / 100, &chunkID))
-				chunkR.loadChunk(db, chunkID);
-			if (world.getChunkID(x + world.m_playerpos.x / 100, y + 16 + world.m_playerpos.y / 100, &chunkID))
-				chunkU.loadChunk(db, chunkID);
-			if (world.getChunkID(x + world.m_playerpos.x / 100, y - 16 + world.m_playerpos.y / 100, &chunkID))
-				chunkD.loadChunk(db, chunkID);
-			chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, x, -y);
-		}
-	}
-	//double time = timer.elapsed();
-}
-
-
-
 
 #define MAX_LOADSTRING 100
 
@@ -110,15 +71,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	mainComp.CreateScene();
 	cyBlocks cyBlocks(wiScene::GetScene());
 	cyBlocks.LoadRegBlocks();
+	cyBlocks.LoadCustomBlocks();
 	// Reset camera position:
 	TransformComponent transform;
 	transform.Translate(XMFLOAT3(0.f, 500.f, 0.f));
-	transform.RotateRollPitchYaw(XMFLOAT3(1.5,0,0));
+	transform.RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
 	transform.SetDirty();
 	transform.UpdateTransform();
-	wiRenderer::GetCamera().SetDirty();
-	wiRenderer::GetCamera().TransformCamera(transform);
-	wiRenderer::GetCamera().UpdateCamera();
+	wiScene::GetCamera().SetDirty();
+	wiScene::GetCamera().TransformCamera(transform);
+	wiScene::GetCamera().UpdateCamera();
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
 	wiRenderer::SetTemporalAAEnabled(true);
@@ -162,7 +124,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
 	mesh->CreateRenderData();*/
 
-	
 	/*
 	if (16 + world.getChunkID(world.m_playerpos.x / 100, world.m_playerpos.y / 100, &chunkID))
 		chunkL.loadChunk(db, chunkID, true);
@@ -173,7 +134,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	if (world.getChunkID(world.m_playerpos.x / 100, -16 + world.m_playerpos.y / 100, &chunkID))
 		chunkD.loadChunk(db, chunkID,true);
 */
-
 
 	/*MeshComponent* mesh;
 	mesh				  = meshGen::AddMesh(wiScene::GetScene(),cyBlocks::m_regBlockMats[0][0]);
@@ -188,10 +148,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	meshGen::AddFaceLeft(mesh, 0, 0, 0, false);
 	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
 	mesh->CreateRenderData();*/
-	wiRenderer::SetTemporalAAEnabled(false);
-	
+	wiRenderer::SetTemporalAAEnabled(true);
 
-	
 	/*
 	std::stringstream ss("");
 	ss << "Simple loop took " << time << " milliseconds" << std::endl;
@@ -204,27 +162,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	font.params.size	= 24;
 	mainComp.renderer.AddFont(&font);
 	*/
-	MSG msg = {0};
+	MSG msg		= {0};
 	uint8_t ran = 0;
+	mainComp.Run();	 // run the update - render loop (mandatory)
+	
+	world->loadWorldInfo(L"My Great World - Kopie(cleaned)");
+	Sleep(1000);
+	chunkLoader loader;
+	loader.spawnThreads(wiJobSystem::GetThreadCount());
+
 	while (msg.message != WM_QUIT)
 	{
 		if (wiInput::Press((wiInput::BUTTON)'T')) {
 			//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 			wiBackLog::Toggle();
 		}
-		
+
 		if (wiInput::Press((wiInput::BUTTON)'M')) {
-			//int msgboxID = MessageBox(NULL, L"test", L"", 0);
-			if (ran == 0) {
-				ran = 1;
-				wiJobSystem::context ctx[6];
-				wiJobSystem::Execute(ctx[0], [](wiJobArgs args) { chunkloadingTest(0); });
-				wiJobSystem::Execute(ctx[1], [](wiJobArgs args) { chunkloadingTest(1); });
-				wiJobSystem::Execute(ctx[2], [](wiJobArgs args) { chunkloadingTest(2); });
-				wiJobSystem::Execute(ctx[3], [](wiJobArgs args) { chunkloadingTest(3); });
-				wiJobSystem::Execute(ctx[4], [](wiJobArgs args) { chunkloadingTest(4); });
-				wiJobSystem::Execute(ctx[5], [](wiJobArgs args) { chunkloadingTest(5); });
-			} 
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
@@ -232,7 +186,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		} else {
 			m.lock();
 			mainComp.Run();	 // run the update - render loop (mandatory)
-
 			m.unlock();
 		}
 	}
@@ -384,5 +337,3 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 	}
 	return (INT_PTR)FALSE;
 }
-
-

@@ -14,6 +14,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WickedEngine_SOURCE", "..\W
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders_SOURCE", "..\WickedEngine\WickedEngine\Shaders_SOURCE.vcxitems", "{92E86448-0724-4387-ABAC-96E63EDF4190}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders_SPIRV", "..\WickedEngine\WickedEngine\Shaders_SPIRV.vcxproj", "{DF832DE3-02FA-4D00-B853-1229A9505E14}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaders_HLSL6", "..\WickedEngine\WickedEngine\Shaders_HLSL6.vcxproj", "{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		..\WickedEngine\WickedEngine\Shaders_SOURCE.vcxitems*{06163dcb-b183-4ed9-9c62-13ef1658e049}*SharedItemsImports = 4
@@ -44,6 +48,20 @@ Global
 		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x64.Build.0 = Release|x64
 		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x86.ActiveCfg = Release|Win32
 		{06163DCB-B183-4ED9-9C62-13EF1658E049}.Release|x86.Build.0 = Release|Win32
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Debug|x64.ActiveCfg = Release|x64
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Debug|x64.Build.0 = Release|x64
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Debug|x86.ActiveCfg = Release|x64
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Debug|x86.Build.0 = Release|x64
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Release|x64.ActiveCfg = Release|x64
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Release|x64.Build.0 = Release|x64
+		{DF832DE3-02FA-4D00-B853-1229A9505E14}.Release|x86.ActiveCfg = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Debug|x64.ActiveCfg = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Debug|x64.Build.0 = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Debug|x86.ActiveCfg = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Debug|x86.Build.0 = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Release|x64.ActiveCfg = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Release|x64.Build.0 = Release|x64
+		{9C8F8910-CCA3-41CB-A2FA-3545CDD5D8BF}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

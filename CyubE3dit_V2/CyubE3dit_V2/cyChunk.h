@@ -13,8 +13,7 @@ public:
 	void loadChunk(sqlite3* db, uint32_t chunkID, bool fast = false);
 	void airChunk(void);
 
-	void RenderChunk(uint32_t neightbourIDs[4]);
-
+	~cyChunk(void);
 protected:
 	sqlite3* m_db;
 	

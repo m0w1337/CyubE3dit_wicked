@@ -52,6 +52,15 @@
     <ClInclude Include="cyImportant.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="SimplexNoise.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="settings.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="json_simple.hpp">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -82,6 +91,12 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="cyImportant.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="SimplexNoise.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="settings.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

@@ -3,23 +3,31 @@
       {
         "id": 0,
         "textype": 1,
-        "texture0": "stone.png",
-		"normal0": "stone_n.png",
-		"occlusion0": "stone_o.png",
+        "texture0": "Rock029_overlay.jpg",
+		"normal0": "Rock029_n.jpg",
+		"occlusion0": "Rock029_o.jpg",
         "text": "Stone"
       },
       {
         "id": 1,
         "textype": 3,
-        "texture0": "grass_up.png",
-        "texture1": "dirt.png",
-        "texture2": "grass_side.png",
+        "texture0": "Grass_Albedo.jpg",
+		"normal0": "Grass_Normal.jpg",
+		"occlusion0": "Grass_AO.jpg",
+        "texture1": "dirt_Albedo.jpg",
+		"normal1": "dirt_Normal.jpg",
+		"occlusion1": "dirt_AO.jpg",
+        "texture2": "grassEdge_Albedo.jpg",
+		"normal2": "grassEdge_Normal.jpg",
+		"occlusion2": "grassEdge_AO.jpg",
         "text": "Grass"
       },
       {
         "id": 2,
         "textype": 1,
-        "texture0": "dirt.png",
+        "texture0": "dirt_Albedo.jpg",
+		"normal0": "dirt_Normal.jpg",
+		"occlusion0": "dirt_AO.jpg",
         "text": "Dirt"
       },
       {
@@ -66,9 +74,9 @@
       {
         "id": 25,
         "textype": 1,
-        "texture0": "copper.png",
-		"normal0": "iron_n.png",
-		"surface0": "iron_s.png",
+        "texture0": "orecopper.jpg",
+		"normal0": "ore_n.jpg",
+		"surface0": "ore_s.jpg",
         "#text": "Copper Ore"
       },
       {
@@ -127,13 +135,51 @@
         "text": "Crystal Ore"
       }
     ],
-    "AlphaBlock": [
+    "Billboard": [
       {
         "id": 5,
         "textype": 5,
-        "texture0": "straws.material",
+        "texture0": "straws.png",
         "text": "Grassblades"
       },
+      {
+        "id": 16,
+        "textype": 5,
+        "texture0": "flower1.png",
+        "text": "Flower 1"
+      },
+      {
+        "id": 17,
+        "textype": 5,
+        "texture0": "flower2.png",
+        "text": "Flower 2"
+      },
+      {
+        "id": 36,
+        "textype": 5,
+        "texture0": "flower3.png",
+        "text": "Flower 3"
+      },
+      {
+        "id": 39,
+        "textype": 5,
+        "texture0": "flower4.png",
+        "text": "Flower 4"
+      },
+      {
+        "id": 56,
+        "textype": 5,
+        "texture0": "desertgrass.png",
+        "text": "Desert Grass"
+      },
+      {
+        "id": 63,
+        "textype": 5,
+        "texture0": "Rainbowflower.png",
+        "text": "Rainbow Flower"
+      }
+    ],
+	"AlphaBlock":[
       {
         "id": 15,
         "textype": 6,
@@ -142,37 +188,13 @@
         "text": "Torch"
       },
       {
-        "id": 16,
-        "textype": 5,
-        "texture0": "flower1.material",
-        "text": "Flower 1"
-      },
-      {
-        "id": 17,
-        "textype": 5,
-        "texture0": "flower2.material",
-        "text": "Flower 2"
-      },
-      {
-        "id": 36,
-        "textype": 5,
-        "texture0": "flower3.material",
-        "text": "Flower 3"
-      },
-      {
         "id": 37,
         "textype": 6,
         "texture0": "BlueTorch.jpg",
         "mesh": "torch_obj.mesh",
         "text": "Blue Torch"
       },
-      {
-        "id": 39,
-        "textype": 5,
-        "texture0": "flower4.material",
-        "text": "Flower 4"
-      },
-      {
+	  {
         "id": 40,
         "textype": 6,
         "texture0": "GreenTorch.jpg",
@@ -192,25 +214,13 @@
         "texture0": "Arrow.png",
         "text": "Arrow"
       },
-      {
-        "id": 56,
-        "textype": 5,
-        "texture0": "desertgrass.png",
-        "text": "Desert Grass"
-      },
-      {
-        "id": 63,
-        "textype": 5,
-        "texture0": "Rainbowflower.material",
-        "text": "Rainbow Flower"
-      },
-      {
+	  {
         "id": 89,
         "textype": 1,
         "texture0": "Glass.material",
         "text": "Glass"
       }
-    ],
+	],
 	"VoidBlock": [
       {
         "id": 3,

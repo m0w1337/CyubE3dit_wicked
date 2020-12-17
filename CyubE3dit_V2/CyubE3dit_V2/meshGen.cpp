@@ -4,22 +4,21 @@
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
-
+SimplexNoise meshGen::m_noise;
 meshGen::meshGen() {
 
 }
 
-MeshComponent* meshGen::AddMesh(Scene& scene, Entity materialID) {
-	Entity entity = scene.Entity_CreateObject("Chunk");
-	ObjectComponent& object = *scene.objects.GetComponent(entity);
-	object.meshID = scene.Entity_CreateMesh("ChunkMesh");
+MeshComponent* meshGen::AddMesh(Scene& scene, wiECS::Entity _material, Entity* _newEntity) {
+	*_newEntity				= scene.Entity_CreateObject("");
+	ObjectComponent& object = *scene.objects.GetComponent(*_newEntity);
+	object.meshID			= scene.Entity_CreateMesh("");
 	MeshComponent* mesh = scene.meshes.GetComponent(object.meshID);
 	mesh->subsets.emplace_back();
-	mesh->subsets.back().materialID = materialID;
+	mesh->subsets.back().materialID	 = _material;
 	mesh->subsets.back().indexOffset = 0;
 	return mesh;
 }
-
 /*
 MeshComponent* meshGen::AddMesh(Scene& scene,int32_t x, int32_t y){
 	Entity entity = scene.Entity_CreateObject("editorTerrain");
