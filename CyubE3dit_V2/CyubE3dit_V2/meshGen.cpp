@@ -13,6 +13,7 @@ MeshComponent* meshGen::AddMesh(Scene& scene, wiECS::Entity _material, Entity* _
 	*_newEntity				= scene.Entity_CreateObject("");
 	ObjectComponent& object = *scene.objects.GetComponent(*_newEntity);
 	object.meshID			= scene.Entity_CreateMesh("");
+	//scene.impostors.Create(object.meshID);
 	MeshComponent* mesh = scene.meshes.GetComponent(object.meshID);
 	mesh->subsets.emplace_back();
 	mesh->subsets.back().materialID	 = _material;

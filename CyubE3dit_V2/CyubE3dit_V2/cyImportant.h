@@ -22,7 +22,7 @@ public:
 		chunkpos_t() :
 		  x(0),
 		  y(0){};
-		chunkpos_t(const int& _x, const int& _y) :
+		chunkpos_t(const int32_t& _x, const int32_t& _y) :
 		  x(_x),
 		  y(_y){};
 		chunkpos_t(const chunkpos_t& other) {

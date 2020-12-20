@@ -63,6 +63,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	mainComp.infoDisplay.resolution = true;
 	mainComp.infoDisplay.fpsinfo	= true;
 	mainComp.Initialize();
+	
 
 	// Reset all state that tests might have modified:
 	ofstream file;
@@ -81,9 +82,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	wiScene::GetCamera().SetDirty();
 	wiScene::GetCamera().TransformCamera(transform);
 	wiScene::GetCamera().UpdateCamera();
+	wiRenderer::SetTemporalAAEnabled(true);
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
-	wiRenderer::SetTemporalAAEnabled(true);
+	
 	// Scene scene;
 
 	// wiBackLog::save(ofstream & file)
@@ -96,72 +98,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     */
 	meshGen mGen;
 	Scene& scene2 = wiScene::GetScene();
-	/*
-	Entity materialID = scene2.Entity_CreateMaterial("terrainMaterial");
-	MaterialComponent* material = scene2.materials.GetComponent(materialID);
-	material->baseColorMap		= wiResourceManager::Load("images/glass.jpg");
-	material->baseColorMapName	= "images/2floor.jpg";
-	//material->SetEmissiveColor(XMFLOAT4(1, 1, 1, 0.1));
-	material->SetDirty();
-	wiScene::MeshComponent* mesh = mGen.AddMesh(wiScene::GetScene(),cyBlocks::m_regBlockMats[2][0]);
-	mGen.AddFaceTop(mesh, -0.5, 1, 1);
-	mGen.AddFaceBottom(mesh, -0.5, 1, 1);
-	mGen.AddFaceLeft(mesh, -0.5, 1, 1);
-	mGen.AddFaceRight(mesh, -0.5, 1, 1);
-	mGen.AddFaceFront(mesh, -0.5, 1, 1);
-	mGen.AddFaceBack(mesh, -0.5, 1, 1);
-	meshGen::newMaterial(mesh, cyBlocks::m_regBlockMats[1][0]);
-	mGen.AddFaceTop(mesh, 1, 0, 2);
-	meshGen::newMaterial(mesh, cyBlocks::m_regBlockMats[1][1]);
-	mGen.AddFaceBottom(mesh, 1, 0, 2);
-	meshGen::newMaterial(mesh, cyBlocks::m_regBlockMats[1][2]);
-	mGen.AddFaceLeft(mesh, 1, 0, 2);
-	mGen.AddFaceRight(mesh, 1, 0, 2);
-	mGen.AddFaceFront(mesh, 1, 0, 2);
-	mGen.AddFaceBack(mesh, 1, 0, 2);
-	//mesh->ComputeNormals(MeshComponent::COMPUTE_NORMALS_HARD);
-	mesh->SetDynamic(false);
-	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-	mesh->CreateRenderData();*/
-
-	/*
-	if (16 + world.getChunkID(world.m_playerpos.x / 100, world.m_playerpos.y / 100, &chunkID))
-		chunkL.loadChunk(db, chunkID, true);
-	if (-16 + world.getChunkID(world.m_playerpos.x / 100, world.m_playerpos.y / 100, &chunkID))
-		chunkR.loadChunk(db, chunkID, true);
-	if (world.getChunkID(world.m_playerpos.x / 100, 16 + world.m_playerpos.y / 100, &chunkID))
-		chunkU.loadChunk(db, chunkID, true);
-	if (world.getChunkID(world.m_playerpos.x / 100, -16 + world.m_playerpos.y / 100, &chunkID))
-		chunkD.loadChunk(db, chunkID,true);
-*/
-
-	/*MeshComponent* mesh;
-	mesh				  = meshGen::AddMesh(wiScene::GetScene(),cyBlocks::m_regBlockMats[0][0]);
-	for (float x = 0; x < 4; x = x + 0.5) {
-		for (float y= 0; y< 4; y = y+ 0.5) {
-			meshGen::AddFaceTop(mesh, y, x, 0, true);
-		}
-	}
-
-    meshGen::AddFaceBack(mesh, 0, 0, 0, false);
-	meshGen::AddFaceFront(mesh, 0, 0, 0, false);
-	meshGen::AddFaceLeft(mesh, 0, 0, 0, false);
-	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-	mesh->CreateRenderData();*/
-	wiRenderer::SetTemporalAAEnabled(true);
-
-	/*
-	std::stringstream ss("");
-	ss << "Simple loop took " << time << " milliseconds" << std::endl;
-	static wiSpriteFont font;
-	font				= wiSpriteFont(ss.str());
-	font.params.posX	= wiRenderer::GetDevice()->GetScreenWidth() / 2;
-	font.params.posY	= wiRenderer::GetDevice()->GetScreenHeight() / 2;
-	font.params.h_align = WIFALIGN_CENTER;
-	font.params.v_align = WIFALIGN_CENTER;
-	font.params.size	= 24;
-	mainComp.renderer.AddFont(&font);
-	*/
+	
 	MSG msg		= {0};
 	uint8_t ran = 0;
 	mainComp.Run();	 // run the update - render loop (mandatory)
@@ -169,15 +106,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	world->loadWorldInfo(L"My Great World - Kopie(cleaned)");
 	Sleep(1000);
 	chunkLoader loader;
-	loader.spawnThreads(wiJobSystem::GetThreadCount());
-
+	loader.spawnThreads(wiJobSystem::GetThreadCount()*2);
+	DWORD lasttick = 0;
 	while (msg.message != WM_QUIT)
 	{
 		if (wiInput::Press((wiInput::BUTTON)'T')) {
 			//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 			wiBackLog::Toggle();
 		}
-
+		
 		if (wiInput::Press((wiInput::BUTTON)'M')) {
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -187,6 +124,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			m.lock();
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
+			if (GetTickCount() - lasttick > 250) {
+				lasttick = GetTickCount();
+				mainComp.renderer.label.SetText(to_string(settings::numVisChunks) + " Chunks visible");
+			}
 		}
 	}
 

@@ -82,25 +82,27 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		
 		uint32_t noisev = (roundf((m_noise.fractal(5, (x + relx) / 32, (y + rely) / 32, z / 32) + 1) * 64) + 128);
-		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
-		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
-		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
-		mesh->vertex_colors.emplace_back(0xFFFF0000 | (noisev << 8) | 0xFF);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 		
 		if (antitile == false) {
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
+
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 		} else {
 			float uvx = x / (ANTITILE_FACT / 2);
-			uvx		  = uvx - floorf(uvx);
+			uvx		  = (uvx - floorf(uvx));
 			float uvy = y / (ANTITILE_FACT / 2);
-			uvy		  = uvy - floorf(uvy);
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, uvy));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, uvy));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, 1.0f / ANTITILE_FACT + uvy));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, 1.0f / ANTITILE_FACT + uvy));
+			uvy		  =  (uvy - floorf(uvy));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, 1.0f / ANTITILE_FACT + uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, 1.0f / ANTITILE_FACT + uvx));
+			
 		}
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start + 2);
@@ -133,20 +135,20 @@ public:
 		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
 		if (antitile == false) {
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
+			
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 		} else {
 			float uvx = x / (ANTITILE_FACT / 2);
 			uvx		  = uvx - floorf(uvx);
 			float uvy = y / (ANTITILE_FACT / 2);
 			uvy		  = uvy - floorf(uvy);
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, uvy));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, uvy));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, 1.0f / ANTITILE_FACT + uvy));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, 1.0f / ANTITILE_FACT + uvy));
-	
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, 1.0f / ANTITILE_FACT + uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, 1.0f / ANTITILE_FACT + uvx));
 		}
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start + 1);

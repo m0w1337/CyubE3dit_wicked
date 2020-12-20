@@ -28,7 +28,7 @@ void CyMainComponent::CreateScene(void) {
 	Scene& scene = wiScene::GetScene();
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetToDrawGridHelper(false);
-	wiRenderer::SetTemporalAAEnabled(false);
+	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::ClearWorld(wiScene::GetScene());
 	wiScene::GetScene().weather = WeatherComponent();
 	if (wiLua::GetLuaState() != nullptr) {
@@ -46,10 +46,10 @@ void CyMainComponent::CreateScene(void) {
 	weather.horizon		  = XMFLOAT3(0.4f, 0.4f, 0.9f);
 	weather.zenith		  = XMFLOAT3(0.5f, 0.7f, 0.9f);
 	weather.cloudiness	  = 0.2f;
-	weather.windSpeed	  = 0.3f;
-	weather.windRandomness	  = 1.0f;
-	weather.windWaveSize	  = 0.3f;
-	weather.windDirection	  = XMFLOAT3(0.5, 0, 0.5);
+	weather.windSpeed	  = 1.3f;
+	weather.windRandomness	  = 5.5f;
+	weather.windWaveSize	  = 0.05f;
+	weather.windDirection	  = XMFLOAT3(0.2, 0, 0.2);
 	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(1, 0.5, -1), XMFLOAT3(1.0, 1., 1.f), 20, 1000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
@@ -60,8 +60,8 @@ void CyMainComponent::CreateScene(void) {
 	light->SetCastShadow(true);
 	light->lensFlareRimTextures.resize(6);
 	light->lensFlareNames.resize(6);
-	//light->lensFlareRimTextures[0] = wiResourceManager::Load("images/flare0.jpg");
-	//light->lensFlareNames[0] = "flare0";
+	light->lensFlareRimTextures[0] = wiResourceManager::Load("images/flare0.jpg");
+	light->lensFlareNames[0] = "flare0";
 	light->lensFlareRimTextures[1] = wiResourceManager::Load("images/flare1.jpg");
 	light->lensFlareNames[1]	   = "flare1";
 	light->lensFlareRimTextures[2] = wiResourceManager::Load("images/flare2.jpg");
@@ -73,97 +73,6 @@ void CyMainComponent::CreateScene(void) {
 	light->lensFlareRimTextures[5] = wiResourceManager::Load("images/flare5.jpg");
 	light->lensFlareNames[5]	   = "flare5";
 	Entity fillLight			   = scene.Entity_CreateLight("filllight", XMFLOAT3(100, 300, -100), XMFLOAT3(1.0f, 1., 1.f), 10, 1000);
-	//LightComponent* lights;
-	//for (int i = -5;i < 5;i++) {
-	//	for (int y = -5; y < 5; y++) {
-	//		lights = scene.lights.GetComponent(scene.Entity_CreateLight("lights"+i+y, XMFLOAT3(i*3, 5, y*3), XMFLOAT3(wiRandom::getRandom(4) / 4.0f, wiRandom::getRandom(4) / 4.0f, wiRandom::getRandom(4) / 4.0f), 1.5, 100));
-	//		lights->SetType(LightComponent::LightType::SPOT);
-	//	}
-	//	//lights->SetVisualizerEnabled(true);
-	//}
-	meshGen mGen;
-
-	//wiScene::GetScene().Merge(scene); // add lodaded scene to global scene
-	/*
-	Scene& scene2 = wiScene::GetScene();
-
-	Entity materialID = scene2.Entity_CreateMaterial("terrainMaterial");
-
-
-	MaterialComponent* material = scene2.materials.GetComponent(materialID);
-	material->baseColorMap = wiResourceManager::Load("images/glass.jpg");
-	material->userBlendMode = BLENDMODE_ALPHA;
-	material->baseColorMapName = "images/glass.jpg";
-	material->SetRefractionIndex(0.07f);
-	material->SetBaseColor(XMFLOAT4(0, 0, 0, 0.01f));
-	material->SetMetalness(0.2f);
-	material->SetRoughness(0.03f);
-	material->SetCastShadow(false);
-	material->SetUVSet_DisplacementMap(0);
-	material->SetUVSet_NormalMap(0);
-	material->SetReflectance(0.0f);
-	material->SetOcclusionEnabled_Primary(false);
-	material->SetOcclusionEnabled_Secondary(false);
-	//material->SetEmissiveColor(XMFLOAT4(1, 1, 1, 0.1));
-	material->SetDirty();
-
-	Entity material2ID = scene2.Entity_CreateMaterial("terrainMaterial2");
-	material = scene2.materials.GetComponent(material2ID);
-	material->baseColorMapName = "images/grass.jpg";
-	material->normalMapName = "images/grass_n.jpg";
-	material->occlusionMapName  = "images/grass_o.jpg";
-	material->SetParallaxOcclusionMapping(2);
-	material->SetReflectance(0.0);
-	material->SetMetalness(0.2f);
-	material->SetRoughness(1.f);
-	material->SetNormalMapStrength(2.0);
-	material->SetDirty();
-
-
-	wiScene::MeshComponent* mesh = mGen.AddMesh(scene2, material2ID);
-	
-	wiJobSystem::context ctx;
-
-	for (float x = -50; x < 50; x = x + 0.5f) {
-		for (float y = -50; y < 50; y = y + 0.5f) {
-			mGen.AddFaceTop(mesh, x, y, 0);
-		}
-	}
-	mesh->SetDynamic(false);
-	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-	mesh->CreateRenderData();*/
-	/*
-	mGen.AddFaceTop(mesh, 0, 1, 1);
-	mGen.AddFaceBottom(mesh, 0, 1, 1);
-	mGen.AddFaceLeft(mesh, 0, 1, 1);
-	mGen.AddFaceRight(mesh, 0, 1, 1);
-	mGen.AddFaceFront(mesh, 0, 1, 1);
-	mGen.AddFaceBack(mesh, 0, 1, 1);
-
-	mGen.AddFaceTop(mesh, 2, 1, 2);
-	mGen.AddFaceBottom(mesh, 2, 1, 2);
-	mGen.AddFaceLeft(mesh, 2, 1, 2);
-	mGen.AddFaceRight(mesh, 2, 1, 2);
-	mGen.AddFaceFront(mesh, 2, 1, 2);
-	mGen.AddFaceBack(mesh, 2, 1, 2);
-	
-	mesh = mGen.AddMesh(scene2, materialID);
-	mGen.AddFaceTop(mesh, -0.5, 0, 1);
-	mGen.AddFaceBottom(mesh, -0.5, 0, 1);
-	mGen.AddFaceLeft(mesh, -0.5, 0, 1);
-	mGen.AddFaceRight(mesh, -0.5, 0, 1);
-	mGen.AddFaceFront(mesh, -0.5, 0, 1);
-	mGen.AddFaceBack(mesh, -0.5, 0, 1);
-
-	mGen.AddFaceTop(mesh, 0, 0, 2);
-	mGen.AddFaceBottom(mesh, 0, 0, 2);
-	mGen.AddFaceLeft(mesh, 0, 0, 2);
-	mGen.AddFaceRight(mesh, 0, 0, 2);
-	mGen.AddFaceFront(mesh, 0, 0, 2);
-	mGen.AddFaceBack(mesh, 0, 0, 2);
-	//mesh->ComputeNormals(MeshComponent::COMPUTE_NORMALS_HARD);
-	mesh->SetDynamic(false);
-	mesh->CreateRenderData();*/
 }
 
 void CyRender::ResizeLayout() {
@@ -171,22 +80,41 @@ void CyRender::ResizeLayout() {
 
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
+	worldSelector.SetPos(XMFLOAT2(screenW / 2.f - worldSelector.scale.x / 2.f, 10));
+	label.SetPos(XMFLOAT2(worldSelector.translation.x + worldSelector.scale.x + 10, 10));
 }
 
 void CyRender::Load() {
 	setSSREnabled(true);
-	setBloomEnabled(true);
+	setBloomEnabled(false);
 	setBloomThreshold(10);
-	setMotionBlurEnabled(true);
+	setMotionBlurEnabled(false);
 	setReflectionsEnabled(true);
 	setColorGradingEnabled(false);
 	wiPhysicsEngine::SetEnabled(true);
 	setLightShaftsEnabled(true);
 	setShadowsEnabled(true);
 	setVolumetricCloudsEnabled(true);
-	//setRaytracedReflectionsEnabled(true);
+	wiRenderer::SetTransparentShadowsEnabled(false);
+	wiRenderer::SetVoxelRadianceEnabled(false);
+	wiRenderer::SetVoxelRadianceNumCones(8);
+	wiRenderer::SetVoxelRadianceRayStepSize(0.25f);
+	wiRenderer::SetVoxelRadianceMaxDistance(20);
+	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
+	wiRenderer::SetOcclusionCullingEnabled(false);
+	wiProfiler::SetEnabled(true);
+	setAO(AO_MSAO);
+	setAOPower(1);
+	setAORange(400);
+	setAOSampleCount(2);
 	setFXAAEnabled(true);
 	setEyeAdaptionEnabled(false);
+
+	label.Create("Label1");
+	label.SetText("Wicked Engine Test Framework");
+	label.font.params.h_align = WIFALIGN_CENTER;
+	label.SetSize(XMFLOAT2(240, 20));
+	GetGUI().AddWidget(&label);
 
 	worldSelector.Create("TestSelector");
 	worldSelector.SetText("Current World: ");

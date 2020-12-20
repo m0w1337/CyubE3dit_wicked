@@ -139,7 +139,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				m_regBlockMats[id][ft] = m_regBlockMats[id][ft - 1];
 		}
 	} else {
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetAlphaRef(0.5);
+		m_scene.materials.GetComponent(m_regBlockMats[id][0])->userBlendMode = BLENDMODE_ALPHA;
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseWind(true);
 	}
 }
@@ -155,12 +155,22 @@ void cyBlocks::LoadCustomBlocks(void) {
 
 	wstring customPath = SteamApps + L"\\steamapps\\workshop\\content\\619500\\";
 	//&&entry.path().extension().wstring() == L".important"
+	addCustomBlocksPath(customPath);
+	//Add the local custom blocks to the list afterwards to overwrite possible with the local version
+	customPath = SteamApps + L"\\steamapps\\common\\cyubeVR\\cyubeVR\\Mods\\Blocks\\";
+	//&&entry.path().extension().wstring() == L".important"
+	addCustomBlocksPath(customPath);
+
+}
+
+void cyBlocks::addCustomBlocksPath(wstring customPath) {
 	for (const auto& entry : fs::directory_iterator(customPath)) {
 		if (entry.is_directory()) {
 			string tmpname;
 			string tmpcreator;
 			uint32_t tmpID	= 0;
 			uint8_t tmpMode = 0;
+			wiScene::MaterialComponent* material;
 			bool tmpNormals = false;
 			uint8_t ok		= 0;
 			ifstream file;
@@ -177,12 +187,12 @@ void cyBlocks::LoadCustomBlocks(void) {
 						tmpID = it.value();
 						ok |= 2;
 					} else if (iequals(it.key(), "textures")) {
-						for (json::iterator it2 = j_complete.begin(); it2 != j_complete.end(); ++it2) {
+						for (json::iterator it2 = it.value().begin(); it2 != it.value().end(); ++it2) {
 							if (iequals(it2.key(), "mode")) {
-								tmpMode = it.value();
+								tmpMode = it2.value();
 								ok |= 4;
 							} else if (iequals(it2.key(), "withnormals")) {
-								tmpNormals = it.value();
+								tmpNormals = it2.value();
 							}
 						}
 					}
@@ -192,8 +202,74 @@ void cyBlocks::LoadCustomBlocks(void) {
 				m_cBlockTypes[tmpID].name	 = tmpname;
 				m_cBlockTypes[tmpID].creator = tmpcreator;
 				for (const auto& texdir : fs::directory_iterator(entry.path().wstring() + L"\\Textures")) {
-					if (texdir.is_regular_file() && iequals(texdir.path().extension().string(), ".dds")) {
+					if (texdir.is_regular_file()) {
+						if (iequals(texdir.path().filename().string(), "all.dds") || iequals(texdir.path().filename().string(), "up.dds") || iequals(texdir.path().filename().string(), "updown.dds")) {
+							m_cBlockTypes[tmpID].material[0] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[0]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						} else if (iequals(texdir.path().filename().string(), "down.dds")) {
+							m_cBlockTypes[tmpID].material[1] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[1]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						} else if (iequals(texdir.path().filename().string(), "sides.dds")) {
+							m_cBlockTypes[tmpID].material[2] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						} else if (iequals(texdir.path().filename().string(), "left.dds")) {
+							m_cBlockTypes[tmpID].material[3] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[3]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						} else if (iequals(texdir.path().filename().string(), "right.dds")) {
+							m_cBlockTypes[tmpID].material[2] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						} else if (iequals(texdir.path().filename().string(), "front.dds")) {
+							m_cBlockTypes[tmpID].material[5] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[5]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						} else if (iequals(texdir.path().filename().string(), "back.dds")) {
+							m_cBlockTypes[tmpID].material[4] = m_scene.Entity_CreateMaterial("");
+							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[4]);
+							material->baseColorMapName		 = texdir.path().string();
+							material->SetReflectance(0.001f);
+							material->SetMetalness(0.001f);
+							material->SetEmissiveStrength(0.0f);
+							material->SetRoughness(0.9f);
+						}
+						
 					}
+				}
+				if (m_cBlockTypes[tmpID].material[0] == 0) {
+					m_cBlockTypes[tmpID].material[0] = m_scene.Entity_CreateMaterial("");
+				}
+
+				for (uint8_t ft = 1; ft < 6; ft++) {
+					if (m_cBlockTypes[tmpID].material[ft] == 0)
+						m_cBlockTypes[tmpID].material[ft] = m_cBlockTypes[tmpID].material[ft - 1];
 				}
 			}
 		}

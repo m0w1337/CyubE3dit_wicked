@@ -1,5 +1,5 @@
 #pragma once
-#include "wiECS.h";
+#include "wiECS.h"
 #include "json.hpp"
 #include <sstream>
 #include <string>
@@ -8,6 +8,7 @@
 #include <iostream>
 #include <wctype.h>
 #include <ctype.h>
+#include <shlobj_core.h>
 
 using json = nlohmann::json;
 
@@ -70,6 +71,6 @@ private:
 	};
 
 	bool iequals(std::string str1, std::string str2);
-	
+	void addCustomBlocksPath(std::wstring customPath);
 	void catchRegularBlockSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype);
 };

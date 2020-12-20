@@ -7,7 +7,7 @@ extern mutex m;
 
 void chunkLoader::spawnThreads(uint8_t numthreads) {
 	if (numthreads < 32) {
-		m_numthreads  = numthreads;
+		m_numthreads = numthreads;
 		for (uint8_t i = 0; i < m_numthreads; i++) {
 			m_threadstate[i] = 0;
 			m_thread[i]		 = thread(&chunkLoader::addChunks, this, i);
@@ -26,7 +26,9 @@ chunkLoader::~chunkLoader(void) {
 
 void chunkLoader::checkChunks(void) {
 	cyImportant::chunkpos_t ghostpos, coords, lastghostpos;
-	bool changed = false;
+	bool changed   = false;
+	lastghostpos.x = -1000;
+	lastghostpos.y = -1000;
 	while (m_threadstate[0] != 99) {
 		CameraComponent cam = wiScene::GetCamera();
 		XMFLOAT3 campos		= cam.Eye;
@@ -153,11 +155,11 @@ void chunkLoader::checkChunks(void) {
 							wiScene::GetScene().Entity_Remove(it->second);
 							m.unlock();
 						}
-						m_visibleChunks.erase(it);
-					}
+						auto pos = m_visibleChunks.erase(it);
+						it		 = pos;
+					} else
+						it++;
 				}
-				if (it != m_visibleChunks.end())
-					it++;
 			}
 			/*
 			for (auto& x : m_visibleChunks) {
@@ -177,12 +179,14 @@ void chunkLoader::checkChunks(void) {
 				}
 			}*/
 			Sleep(10);
+			settings::numVisChunks = m_visibleChunks.size();
 			if (changed == false) {
 				lastghostpos = ghostpos;
 			}
-				
-		}else
+
+		} else {
 			Sleep(200);
+		}
 	}
 }
 
@@ -214,9 +218,12 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 					if (world->getChunkID(coords.x + zero.x, coords.y + zero.y - 16, &chunkID))
 						chunkD.loadChunk(world->db[threadNum], chunkID, true);
 					m_visibleChunks[coords] = chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, coords.x, -coords.y);
-					//wiScene::GetScene().impostors.Create(m_visibleChunks[coords]).swapInDistance = 30;
+					if (m_visibleChunks.size() > 2) {
+						//wiScene::GetScene().impostors.Create(wiScene::GetScene().objects.GetComponent(m_visibleChunks[coords])->meshID).swapInDistance = 30;
+					}
+
 				} else {
-					wiBackLog::post("CHunk not found");
+					//wiBackLog::post("CHunk not found");
 					m_visibleChunks[coords] = wiECS::INVALID_ENTITY;
 				}
 			} else {
@@ -233,9 +240,20 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 	face_t tmpface;
 	wiECS::Entity entity = wiECS::INVALID_ENTITY;
 	vector<face_t> faces;
-	for (uint_fast8_t x = 0; x < 32; x++) {
-		for (uint_fast8_t y = 0; y < 32; y++) {
-			for (uint_fast16_t z = 0; z < 800; z++) {
+	uint16_t surfaceHeight = chunk.m_surfaceheight;
+	if (eastChunk.m_surfaceheight < surfaceHeight)
+		surfaceHeight = eastChunk.m_surfaceheight;
+	if (westChunk.m_surfaceheight < surfaceHeight)
+		surfaceHeight = westChunk.m_surfaceheight;
+	if (northChunk.m_surfaceheight < surfaceHeight)
+		surfaceHeight = northChunk.m_surfaceheight;
+	if (southChunk.m_surfaceheight < surfaceHeight)
+		surfaceHeight = southChunk.m_surfaceheight;
+	if (surfaceHeight > 25)
+		surfaceHeight -= 25;
+	for (int_fast16_t z = 799; z > surfaceHeight; z--) {
+		for (uint_fast8_t x = 0; x < 32; x++) {
+			for (uint_fast8_t y = 0; y < 32; y++) {
 				uint8_t blocktype = (uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * z);
 				if (cyBlocks::m_regBlockTypes[blocktype] < cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 					uint8_t upperB, lowerB, leftB, rightB, frontB, backB;
@@ -268,7 +286,6 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 						leftB = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 3 + x + 32 * y + 32 * 32 * z)];
 					else
 						leftB = cyBlocks::m_regBlockTypes[(uint8_t) * (westChunk.m_chunkdata + 4 + 31 + 32 * y + 32 * 32 * z)];
-
 					tmpface.x		 = x / 2.0f;
 					tmpface.y		 = 16 - y / 2.0f;
 					tmpface.z		 = z / 2.0f;
@@ -276,37 +293,76 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 					if (blocktype < 2 || blocktype == 13 || blocktype == 25)
 						antitile = 6;
 
-					if (upperB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.face	 = 0 + antitile;
-						tmpface.material = cyBlocks::m_regBlockMats[blocktype][0];
-						faces.emplace_back(tmpface);
-					}
-					if (blocktype == 1)
-						antitile = 0;
-					if (lowerB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.material = cyBlocks::m_regBlockMats[blocktype][1];
-						tmpface.face	 = 1 + antitile;
-						faces.emplace_back(tmpface);
-					}
-					if (leftB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.material = cyBlocks::m_regBlockMats[blocktype][2];
-						tmpface.face	 = 2 + antitile;
-						faces.emplace_back(tmpface);
-					}
-					if (rightB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.material = cyBlocks::m_regBlockMats[blocktype][3];
-						tmpface.face	 = 3 + antitile;
-						faces.emplace_back(tmpface);
-					}
-					if (frontB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.material = cyBlocks::m_regBlockMats[blocktype][4];
-						tmpface.face	 = 5 + antitile;
-						faces.emplace_back(tmpface);
-					}
-					if (backB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
-						tmpface.material = cyBlocks::m_regBlockMats[blocktype][5];
-						tmpface.face	 = 4 + antitile;
-						faces.emplace_back(tmpface);
+					if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_MOD) {
+						cyChunk::blockpos_t pos(x, y, z);
+						std::unordered_map<cyChunk::blockpos_t, uint32_t>::const_iterator cBlock = chunk.m_cBlocks.find(pos);
+						if (cBlock != chunk.m_cBlocks.end()) {
+							if (upperB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+								tmpface.face	 = 0 + antitile;
+								tmpface.material = cyBlocks::m_cBlockTypes[cBlock->second].material[0];
+								faces.emplace_back(tmpface);
+							}
+							if (blocktype == 1)
+								antitile = 0;
+							if (lowerB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+								tmpface.material = cyBlocks::m_cBlockTypes[cBlock->second].material[1];
+								tmpface.face	 = 1 + antitile;
+								faces.emplace_back(tmpface);
+							}
+							if (leftB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+								tmpface.material = cyBlocks::m_cBlockTypes[cBlock->second].material[2];
+								tmpface.face	 = 2 + antitile;
+								faces.emplace_back(tmpface);
+							}
+							if (rightB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+								tmpface.material = cyBlocks::m_cBlockTypes[cBlock->second].material[3];
+								tmpface.face	 = 3 + antitile;
+								faces.emplace_back(tmpface);
+							}
+							if (frontB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+								tmpface.material = cyBlocks::m_cBlockTypes[cBlock->second].material[4];
+								tmpface.face	 = 5 + antitile;
+								faces.emplace_back(tmpface);
+							}
+							if (backB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+								tmpface.material = cyBlocks::m_cBlockTypes[cBlock->second].material[5];
+								tmpface.face	 = 4 + antitile;
+								faces.emplace_back(tmpface);
+							}
+						}
+					} else {
+						if (upperB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+							tmpface.face	 = 0 + antitile;
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][0];
+							faces.emplace_back(tmpface);
+						}
+						if (blocktype == 1)
+							antitile = 0;
+						if (lowerB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][1];
+							tmpface.face	 = 1 + antitile;
+							faces.emplace_back(tmpface);
+						}
+						if (leftB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][2];
+							tmpface.face	 = 2 + antitile;
+							faces.emplace_back(tmpface);
+						}
+						if (rightB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][3];
+							tmpface.face	 = 3 + antitile;
+							faces.emplace_back(tmpface);
+						}
+						if (frontB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][4];
+							tmpface.face	 = 5 + antitile;
+							faces.emplace_back(tmpface);
+						}
+						if (backB > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][5];
+							tmpface.face	 = 4 + antitile;
+							faces.emplace_back(tmpface);
+						}
 					}
 				} else if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_BILLBOARD) {
 					tmpface.x		 = x / 2.0f;
@@ -320,7 +376,7 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 		}
 	}
 	if (faces.size()) {
-		
+
 		SimplexNoise noise;
 		sort(faces.begin(), faces.end());
 		MeshComponent* mesh;
@@ -391,7 +447,7 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 		m.lock();
 		wiScene::GetScene().Merge(tmpScene);
 		m.unlock();
-	}else
+	} else
 		wiBackLog::post("Chunk has no blocks");
 	return entity;
 }

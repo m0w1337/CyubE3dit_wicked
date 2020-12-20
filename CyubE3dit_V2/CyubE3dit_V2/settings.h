@@ -6,7 +6,7 @@ class settings {
 public:
 	static atomic<uint32_t> viewDist;
 	static cyImportant world;
-
+	static atomic <uint32_t> numVisChunks;
 
 static inline cyImportant* getWorld() {
 	return &world;
