@@ -46,6 +46,10 @@ void cyBlocks::LoadRegBlocks(void) {
 				for (size_t i = 0; i < it.value().size(); i++) {
 					catchRegularBlockSpecs(it, i, BLOCKTYPE_VOID);
 				}
+			} else if (it.key() == "Torch") {
+					for (size_t i = 0; i < it.value().size(); i++) {
+						catchRegularBlockSpecs(it, i, BLOCKTYPE_TORCH);
+					}
 			} else if (it.key() == "ModBlock") {
 				for (size_t i = 0; i < it.value().size(); i++) {
 					catchRegularBlockSpecs(it, i, BLOCKTYPE_MOD);
@@ -102,11 +106,22 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			if ((id == 1 && ft == 0) || (id == 0 && ft == 0)) {
 				material->SetUseVertexColors(true);
 			}
-
-			material->SetReflectance(0.001);
-			material->SetMetalness(0.001);
-			material->SetEmissiveStrength(0);
-			material->SetRoughness(0.9);
+			if (blocktype == BLOCKTYPE_ALPHA) {
+				material->SetReflectance(0.1);
+				material->userBlendMode = BLENDMODE_ALPHA;
+				material->SetRefractionIndex(0.001f);
+				material->SetBaseColor(XMFLOAT4(0, 0, 0, 0.02f));
+				material->SetMetalness(0.02f);
+				material->SetRoughness(0.01f);
+				material->SetCastShadow(false);
+			} else {
+				material->SetReflectance(0.001);
+				material->SetMetalness(0.001);
+				material->SetEmissiveStrength(0);
+				material->SetRoughness(0.9);
+				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+			}
+			
 
 			try {
 				tex						= it.value().at(i).at("normal" + std::to_string(ft));
@@ -270,6 +285,7 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 				for (uint8_t ft = 1; ft < 6; ft++) {
 					if (m_cBlockTypes[tmpID].material[ft] == 0)
 						m_cBlockTypes[tmpID].material[ft] = m_cBlockTypes[tmpID].material[ft - 1];
+
 				}
 			}
 		}

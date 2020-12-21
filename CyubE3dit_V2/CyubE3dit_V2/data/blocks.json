@@ -179,8 +179,8 @@
         "text": "Rainbow Flower"
       }
     ],
-	"AlphaBlock":[
-      {
+	"Torch":[
+	  {
         "id": 15,
         "textype": 6,
         "texture0": "torch.jpg",
@@ -207,17 +207,13 @@
         "texture0": "RedTorch.jpg",
         "mesh": "torch_obj.mesh",
         "text": "Red Torch"
-      },
-      {
-        "id": 53,
-        "textype": 6,
-        "texture0": "Arrow.png",
-        "text": "Arrow"
-      },
+      }
+	],
+	"AlphaBlock":[
 	  {
         "id": 89,
         "textype": 1,
-        "texture0": "Glass.material",
+        "texture0": "Glass.jpg",
         "text": "Glass"
       }
 	],
@@ -332,6 +328,12 @@
         "textype": 6,
         "texture0": "Chest1.png",
         "text": "Chest"
+      },
+      {
+        "id": 53,
+        "textype": 6,
+        "texture0": "Arrow.png",
+        "text": "Arrow"
       },
       {
         "id": 45,

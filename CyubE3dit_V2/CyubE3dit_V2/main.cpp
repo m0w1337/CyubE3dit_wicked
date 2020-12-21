@@ -75,16 +75,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	cyBlocks.LoadCustomBlocks();
 	// Reset camera position:
 	TransformComponent transform;
-	transform.Translate(XMFLOAT3(0.f, 500.f, 0.f));
+	world->loadWorldInfo(L"My Great World - Kopie(cleaned)");
+	transform.Translate(XMFLOAT3(0.f, world->m_playerpos.z / 100 + 10.0f, 0.f));
 	transform.RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
 	transform.SetDirty();
 	transform.UpdateTransform();
 	wiScene::GetCamera().SetDirty();
 	wiScene::GetCamera().TransformCamera(transform);
 	wiScene::GetCamera().UpdateCamera();
-	wiRenderer::SetTemporalAAEnabled(true);
+	//wiRenderer::
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
+	/*Entity entity					 = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(5.0f, world->m_playerpos.z / 100 + 50.0f, -15.0f));
+	EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(entity);
+	probe->SetRealTime(true);
+	probe->SetDirty();*/
 	
 	// Scene scene;
 
@@ -103,10 +108,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	uint8_t ran = 0;
 	mainComp.Run();	 // run the update - render loop (mandatory)
 	
-	world->loadWorldInfo(L"My Great World - Kopie(cleaned)");
+	
 	Sleep(1000);
 	chunkLoader loader;
-	loader.spawnThreads(wiJobSystem::GetThreadCount()*2);
+	loader.spawnThreads(wiJobSystem::GetThreadCount());
 	DWORD lasttick = 0;
 	while (msg.message != WM_QUIT)
 	{
@@ -124,10 +129,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			m.lock();
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
-			if (GetTickCount() - lasttick > 250) {
-				lasttick = GetTickCount();
-				mainComp.renderer.label.SetText(to_string(settings::numVisChunks) + " Chunks visible");
-			}
+			//if (GetTickCount() - lasttick > 250) {
+			//	lasttick = GetTickCount();
+			//	mainComp.renderer.label.SetText(to_string(settings::numVisChunks) + " Chunks visible");
+			//}
 		}
 	}
 

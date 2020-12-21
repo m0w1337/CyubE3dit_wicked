@@ -11,6 +11,7 @@ cyChunk::cyChunk(void) {
 void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 	int rc;
 	sqlite3_blob* pChunkBlob;
+	m_id			= chunkID;
 	m_isAirChunk	= true;
 	m_surfaceheight = 799;
 	rc				= sqlite3_blob_open(db, "main", "CHUNKDATA", "DATA", chunkID, 0, &pChunkBlob);

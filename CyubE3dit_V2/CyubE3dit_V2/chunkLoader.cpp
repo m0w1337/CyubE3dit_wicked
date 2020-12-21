@@ -255,7 +255,7 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 		for (uint_fast8_t x = 0; x < 32; x++) {
 			for (uint_fast8_t y = 0; y < 32; y++) {
 				uint8_t blocktype = (uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * z);
-				if (cyBlocks::m_regBlockTypes[blocktype] < cyBlocks::BLOCKTYPE_SOLID_THRESH) {
+				if (cyBlocks::m_regBlockTypes[blocktype] <= cyBlocks::BLOCKTYPE_ALPHA) {
 					uint8_t upperB, lowerB, leftB, rightB, frontB, backB;
 					if (z < 799)
 						upperB = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * (z + 1))];
@@ -382,7 +382,7 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 		MeshComponent* mesh;
 		wiScene::Scene tmpScene;
 		string meshname		  = to_string(relX) + to_string(relY);
-		mesh				  = meshGen::AddMesh(tmpScene, faces[0].material, &entity);
+		mesh				  = meshGen::AddMesh(tmpScene, chunk.m_id, faces[0].material, &entity);
 		wiECS::Entity currMat = faces[0].material;
 		mesh->SetDoubleSided(true);
 		for (unsigned i = 0; i < faces.size(); ++i)

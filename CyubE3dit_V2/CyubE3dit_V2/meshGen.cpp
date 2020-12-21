@@ -9,8 +9,8 @@ meshGen::meshGen() {
 
 }
 
-MeshComponent* meshGen::AddMesh(Scene& scene, wiECS::Entity _material, Entity* _newEntity) {
-	*_newEntity				= scene.Entity_CreateObject("");
+MeshComponent* meshGen::AddMesh(Scene& scene, uint32_t _chunkID , wiECS::Entity _material, Entity* _newEntity) {
+	*_newEntity				= scene.Entity_CreateObject(to_string(_chunkID));
 	ObjectComponent& object = *scene.objects.GetComponent(*_newEntity);
 	object.meshID			= scene.Entity_CreateMesh("");
 	//scene.impostors.Create(object.meshID);

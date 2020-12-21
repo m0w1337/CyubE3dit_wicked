@@ -22,6 +22,7 @@ public:
 		BLOCKTYPE_SOLID_THRESH,	 //make sure all solid blocks (completely covering the neighbour surface) are ABOVE this value, all blocks, leaving their neighbour visible will come below!!
 		BLOCKTYPE_ALPHA,
 		BLOCKTYPE_BILLBOARD,
+		BLOCKTYPE_TORCH,
 		BLOCKTYPE_VOID,
 		BLOCKTYPE_FUNCMESH,
 		BLOCKTYPE_DECOMESH
