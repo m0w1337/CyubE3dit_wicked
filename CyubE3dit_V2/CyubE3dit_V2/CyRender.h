@@ -28,6 +28,8 @@ class CyMainComponent : public MainComponent
 {
 	
 public:
+	static wiECS::Entity m_headLight;
+	static wiECS::Entity m_probe;
 	CyRender renderer;
 	//CyPathRender pathRenderer;
 	void Initialize() override;

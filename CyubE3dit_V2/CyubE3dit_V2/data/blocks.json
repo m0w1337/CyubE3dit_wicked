@@ -3,9 +3,9 @@
       {
         "id": 0,
         "textype": 1,
-        "texture0": "Rock029_overlay.jpg",
+        "texture0": "Rock.png",
 		"normal0": "Rock029_n.jpg",
-		"occlusion0": "Rock029_o.jpg",
+		"occlusion0": "Rock029_o2.jpg",
         "text": "Stone"
       },
       {
@@ -58,31 +58,36 @@
       {
         "id": 12,
         "textype": 1,
-        "texture0": "stone_albedo.png",
-		"normal0": "stone_normal.png",
-		"occlusion0": "stone_AO.png",
+        "texture0": "coal.png",
+		"normal0": "Rock029_n.jpg",
+		"surface0": "coal_s.png",
         "text": "Coal Ore"
       },
       {
         "id": 13,
         "textype": 1,
-        "texture0": "iron.png",
-		"normal0": "iron_n.png",
+        "texture0": "iron.dds",
+		"normal0": "iron_n.dds",
+		"glow0": "iron_g.png",
 		"surface0": "iron_s.png",
         "text": "Iron Ore"
       },
       {
         "id": 25,
         "textype": 1,
-        "texture0": "orecopper.jpg",
-		"normal0": "ore_n.jpg",
-		"surface0": "ore_s.jpg",
+        "texture0": "copper.png",
+		"normal0": "iron_n.dds",
+		"glow0": "copper_g.png",
+		"surface0": "iron_s.png",
         "#text": "Copper Ore"
       },
       {
         "id": 26,
         "textype": 1,
-        "texture0": "Gold_ore.png",
+        "texture0": "gold.png",
+		"normal0": "gold_n.png",
+		"glow0": "gold_g.png",
+		"surface0": "gold_s.png",
         "text": "Gold Ore"
       },
       {
@@ -131,7 +136,10 @@
       {
         "id": 67,
         "textype": 1,
-        "texture0": "Crystal_ore.png",
+        "texture0": "crystalore.png",
+		"normal0": "crystalore_n.png",
+		"glow0": "crystalore_g.png",
+		"surface0": "crystalore_s.png",
         "text": "Crystal Ore"
       }
     ],

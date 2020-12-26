@@ -11,6 +11,8 @@ using namespace std;
 using namespace wiECS;
 using namespace wiScene;
 using namespace wiGraphics;
+wiECS::Entity CyMainComponent::m_headLight = 0;
+wiECS::Entity CyMainComponent::m_probe = 0;
 
 void CyMainComponent::Initialize() {
 	MainComponent::Initialize();
@@ -50,7 +52,7 @@ void CyMainComponent::CreateScene(void) {
 	weather.windWaveSize	  = 0.05f;
 
 	weather.windDirection	  = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 0.8, 0.6f), 17, 1000);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 0.8, 0.6f), 10, 1000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -75,12 +77,20 @@ void CyMainComponent::CreateScene(void) {
 	light->lensFlareNames[4]	   = "flare4";
 	light->lensFlareRimTextures[5] = wiResourceManager::Load("images/flare5.jpg");
 	light->lensFlareNames[5]	   = "flare5";
-	//LightEnt				   = scene.Entity_CreateLight("filllight", XMFLOAT3(0, 400, 0), XMFLOAT3(1.0f, 1., 1.f), 1, 1000);
-	//light		   = scene.lights.GetComponent(LightEnt);
-	//light->SetStatic(true);
-	//light->SetType(LightComponent::LightType::DIRECTIONAL);
-	//light->SetCastShadow(true);
-	//light->SetVolumetricsEnabled(true);
+	m_headLight					   = wiScene::GetScene().Entity_CreateLight("filllight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0f, 1.f, 0.5f), 10, 5);
+	light		   = wiScene::GetScene().lights.GetComponent(m_headLight);
+	light->SetType(LightComponent::LightType::SPOT);
+	light->SetVolumetricsEnabled(true);
+	light->SetVisualizerEnabled(false);
+	light->SetCastShadow(true);
+	light->fov = 1.f;
+	wiScene::GetScene().springs.Create(m_headLight);
+	wiScene::GetScene().springs.GetComponent(m_headLight)->wind_affection = 1.0;
+
+	m_probe			 = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(m_probe);
+	probe->SetRealTime(true);
+	probe->SetDirty();
 }
 
 void CyMainComponent::Compose(CommandList cmd) {
@@ -222,9 +232,9 @@ void CyRender::ResizeLayout() {
 void CyRender::Load() {
 	hovered = wiScene::PickResult();
 	
-	setBloomEnabled(false);
-	setBloomThreshold(2);
-	setReflectionsEnabled(true);
+	setBloomEnabled(true);
+	setBloomThreshold(1);
+	setReflectionsEnabled(false);
 	setSSREnabled(false);
 	//setRaytracedReflectionsEnabled(true);
 	//wiRenderer::SetRaytracedShadowsEnabled(true);
@@ -247,7 +257,7 @@ void CyRender::Load() {
 	wiRenderer::SetTemporalAAEnabled(false);
 	
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
-	wiRenderer::SetToDrawGridHelper(true);
+	wiRenderer::SetToDrawGridHelper(false);
 	wiRenderer::SetToDrawDebugEnvProbes(false);
 	wiRenderer::SetVoxelRadianceEnabled(false);
 	wiRenderer::SetVoxelRadianceNumCones(2);
@@ -256,8 +266,8 @@ void CyRender::Load() {
 	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
 	wiRenderer::SetOcclusionCullingEnabled(false);
 	wiProfiler::SetEnabled(true);
-	setAO(AO_MSAO);
-	setAOPower(1);
+	setAO(AO_HBAO);
+	setAOPower(0.5);
 	setAORange(32);
 	setAOSampleCount(4);
 	setFXAAEnabled(true);
@@ -435,6 +445,23 @@ void CyRender::Update(float dt) {
 			camera.TransformCamera(camera_transform);
 			camera.UpdateCamera();
 			camera.SetDirty();
+
+
+			if (CyMainComponent::m_headLight != INVALID_ENTITY) {
+				TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
+				lightT->Translate(_move);
+				lightT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
+				lightT->SetDirty();
+				lightT->UpdateTransform();
+			}
+			if (CyMainComponent::m_probe != INVALID_ENTITY) {
+				TransformComponent* probeT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
+				probeT->Translate(_move);
+				//probeT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
+				probeT->SetDirty();
+				probeT->UpdateTransform();
+			}
+			
 			//camera.CreatePerspective((float)wiRenderer::GetInternalResolution().x, (float)wiRenderer::GetInternalResolution().y, 0.1f,200.0f);
 		}
 //	}

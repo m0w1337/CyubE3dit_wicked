@@ -21,6 +21,7 @@ chunkLoader::~chunkLoader(void) {
 		m_threadstate[i] = 99;
 		m_thread[i].join();
 	}
+	m_threadstate[0] = 99;
 	m_checkThread.join();
 }
 
@@ -290,7 +291,7 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 					tmpface.y		 = 16 - y / 2.0f;
 					tmpface.z		 = z / 2.0f;
 					uint8_t antitile = 0;
-					if (blocktype < 2 || blocktype == 13 || blocktype == 25)
+					if (blocktype < 2 || blocktype == 13 || blocktype == 12 || blocktype == 25 || blocktype == 26 || blocktype == 67)
 						antitile = 6;
 
 					if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_MOD) {

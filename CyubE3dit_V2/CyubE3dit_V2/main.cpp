@@ -83,13 +83,21 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	wiScene::GetCamera().SetDirty();
 	wiScene::GetCamera().TransformCamera(transform);
 	wiScene::GetCamera().UpdateCamera();
+	TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
+	lightT->ClearTransform();
+	lightT->Translate(XMFLOAT3(0.f, world->m_playerpos.z / 100 + 10.0f, 0.f));
+	//lightT->RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
+	lightT->SetDirty();
+	lightT->UpdateTransform();
+	lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
+	lightT->ClearTransform();
+	lightT->Translate(XMFLOAT3(0.f, world->m_playerpos.z / 100 + 10.0f, 0.f));
+	//lightT->RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
+	lightT->SetDirty();
+	lightT->UpdateTransform();
 	//wiRenderer::
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
-	/*Entity entity					 = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(5.0f, world->m_playerpos.z / 100 + 50.0f, -15.0f));
-	EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(entity);
-	probe->SetRealTime(true);
-	probe->SetDirty();*/
 	
 	// Scene scene;
 
@@ -119,7 +127,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 			wiBackLog::Toggle();
 		}
-		
+		if (wiInput::Press((wiInput::BUTTON)'F')) {
+			if (mainComp.m_headLight != INVALID_ENTITY) {
+				LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);
+				if (light->energy) {
+					light->energy = 0;
+					light->SetCastShadow(false);
+				} else {
+					light->energy = 15;
+					light->SetCastShadow(true);
+				}
+			}
+		}
 		if (wiInput::Press((wiInput::BUTTON)'M')) {
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -135,6 +154,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			//}
 		}
 	}
+	loader.m_threadstate[0] = 99;
 
 	return (int)msg.wParam;
 }

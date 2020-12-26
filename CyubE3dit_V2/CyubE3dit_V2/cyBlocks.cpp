@@ -96,14 +96,13 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	}
 	wiScene::MaterialComponent* material;
 	
-	
 	for (uint8_t ft = 0; ft < 6; ft++) {
 		try {
 			tex						   = it.value().at(i).at("texture" + std::to_string(ft));
 			m_regBlockMats[id][ft]	   = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
 			material				   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
 			material->baseColorMapName = "images/" + tex;
-			if ((id == 1 && ft == 0) || (id == 0 && ft == 0)) {
+			if ((id == 1 && ft == 0) || blocktype == 0 || blocktype == 13 || blocktype == 12 || blocktype == 25 || blocktype == 26 || blocktype == 67) {
 				material->SetUseVertexColors(true);
 			}
 			if (blocktype == BLOCKTYPE_ALPHA) {
@@ -115,10 +114,10 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->SetRoughness(0.01f);
 				material->SetCastShadow(false);
 			} else {
-				material->SetReflectance(0.001);
-				material->SetMetalness(0.001);
+				material->SetReflectance(0);
+				material->SetMetalness(0);
 				material->SetEmissiveStrength(0);
-				material->SetRoughness(0.9);
+				material->SetRoughness(1);
 				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 			}
 			
@@ -129,18 +128,30 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->SetNormalMapStrength(1.0);
 				tex						 = it.value().at(i).at("surface" + std::to_string(ft));
 				material->surfaceMapName = "images/" + tex;
-				material->SetMetalness(0.9);
-				material->SetRoughness(0.3);
-				material->SetReflectance(0.4);
+				
+				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
+				material->SetParallaxOcclusionMapping(4.0);
+				material->SetMetalness(1.0f);
+				material->SetRoughness(1.0f);
+				material->SetReflectance(1.0f);
+			}
+			catch (...) {	
+				
+			}
+			try {
+				tex						   = it.value().at(i).at("occlusion" + std::to_string(ft));
+				material->occlusionMapName = "images/" + tex;
+				material->SetParallaxOcclusionMapping(1.0);
+				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
 			}
 			catch (...) {
-				try {
-					tex						   = it.value().at(i).at("occlusion" + std::to_string(ft));
-					material->occlusionMapName = "images/" + tex;
-					material->SetParallaxOcclusionMapping(1.0);
-				}
-				catch (...) {
-				}
+			}
+			try {
+				tex						   = it.value().at(i).at("glow" + std::to_string(ft));
+				material->emissiveMapName = "images/" + tex;
+				material->SetEmissiveStrength(5.0f);
+			}
+			catch (...) {
 			}
 			material->SetDirty();
 		}
