@@ -68,16 +68,22 @@ public:
 	playerpos_t m_playerpos;
 	
 	bool m_valid;
+	atomic<bool> cleaned;
+	atomic<bool> m_stopped;
 	uint32_t m_seed;
 	uint32_t m_numChunks;
 	unordered_map<chunkpos_t, uint32_t, chunkpos_t> m_chunkMap;
 	sqlite3* db[32];
-	void loadWorldInfo(const std::wstring Worldname);
-	void loadData(const std::wstring filename);
+	void loadWorldInfo(const std::string Worldname);
 	bool isValid(void);
+	bool isStopped(void);
 	bool getChunkID(const double x, const double y, uint32_t* chunkID);
 
+	std::string utf8_encode(const std::wstring& wstr);
+	std::wstring utf8_decode(const std::string& str);
+
 protected:
+	void loadData(const std::string dbpath);
 	wstring find_importantFile(const std::wstring path);
 	wstring m_filename;
 };

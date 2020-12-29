@@ -61,6 +61,15 @@
     <ClInclude Include="json_simple.hpp">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="cyWorlds.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="RendererWindow.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="PostprocessWindow.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -97,6 +106,15 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="settings.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="cyWorlds.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="RendererWindow.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="PostprocessWindow.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

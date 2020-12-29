@@ -1,14 +1,30 @@
 #pragma once
 #include "RenderPath3D_PathTracing.h"
+#include "RendererWindow.h"
+#include "PostprocessWindow.h"
 #include "meshGen.h"
 #include "cyBlocks.h"
-class CyRender : public RenderPath3D
-{
-	
+
+
+class CyLoadingScreen : public LoadingScreen {
+private:
+	wiSprite sprite;
+	wiSpriteFont font;
 
 public:
+	void Load() override;
+	void Update(float dt) override;
+};
+class CyMainComponent;
+class CyRender : public RenderPath3D {
+public:
 	wiComboBox worldSelector;
+	RendererWindow rendererWnd;
+	PostprocessWindow postprocessWnd;
+	wiButton rendererWnd_Toggle;
+	wiButton postprocessWnd_Toggle;
 	wiLabel label;
+	CyMainComponent* main;
 	wiScene::PickResult hovered;
 	void Load() override;
 	void Update(float dt) override;
@@ -31,6 +47,7 @@ public:
 	static wiECS::Entity m_headLight;
 	static wiECS::Entity m_probe;
 	CyRender renderer;
+	CyLoadingScreen loader;
 	//CyPathRender pathRenderer;
 	void Initialize() override;
 	void CreateScene(void);

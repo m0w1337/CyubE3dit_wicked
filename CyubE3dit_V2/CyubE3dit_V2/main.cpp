@@ -12,7 +12,7 @@
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
-cyImportant* world = settings::getWorld();
+
 mutex m;
 
 #define MAX_LOADSTRING 100
@@ -58,46 +58,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TEMPLATEWINDOWS));
 
 	// just show some basic info:
-	mainComp.infoDisplay.active		= true;
-	mainComp.infoDisplay.watermark	= true;
-	mainComp.infoDisplay.resolution = true;
-	mainComp.infoDisplay.fpsinfo	= true;
-	mainComp.Initialize();
-	
 
+	mainComp.Initialize();
+
+
+	
 	// Reset all state that tests might have modified:
-	ofstream file;
 	//file.open("debug.log", ofstream::out);
 	//wiBackLog::save(file);
-	mainComp.CreateScene();
-	cyBlocks cyBlocks(wiScene::GetScene());
-	cyBlocks.LoadRegBlocks();
-	cyBlocks.LoadCustomBlocks();
+	//mainComp.CreateScene();
+	//cyBlocks cyBlocks(wiScene::GetScene());
+	//cyBlocks.LoadRegBlocks();
+	//cyBlocks.LoadCustomBlocks();
 	// Reset camera position:
-	TransformComponent transform;
-	world->loadWorldInfo(L"My Great World - Kopie(cleaned)");
-	transform.Translate(XMFLOAT3(0.f, world->m_playerpos.z / 100 + 10.0f, 0.f));
-	transform.RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
-	transform.SetDirty();
-	transform.UpdateTransform();
-	wiScene::GetCamera().SetDirty();
-	wiScene::GetCamera().TransformCamera(transform);
-	wiScene::GetCamera().UpdateCamera();
-	TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
-	lightT->ClearTransform();
-	lightT->Translate(XMFLOAT3(0.f, world->m_playerpos.z / 100 + 10.0f, 0.f));
-	//lightT->RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
-	lightT->SetDirty();
-	lightT->UpdateTransform();
-	lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
-	lightT->ClearTransform();
-	lightT->Translate(XMFLOAT3(0.f, world->m_playerpos.z / 100 + 10.0f, 0.f));
-	//lightT->RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
-	lightT->SetDirty();
-	lightT->UpdateTransform();
-	//wiRenderer::
-	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
-	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
+	
 	
 	// Scene scene;
 
@@ -109,36 +83,63 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
     wiJobSystem::Wait(ctx);
     */
-	meshGen mGen;
-	Scene& scene2 = wiScene::GetScene();
 	
 	MSG msg		= {0};
 	uint8_t ran = 0;
-	mainComp.Run();	 // run the update - render loop (mandatory)
 	
-	
-	Sleep(1000);
+
 	chunkLoader loader;
 	loader.spawnThreads(wiJobSystem::GetThreadCount());
 	DWORD lasttick = 0;
+	bool headlamp  = false;
+	bool loaded	   = false;
+	string thisWorld = settings::newWorld;
 	while (msg.message != WM_QUIT)
 	{
-		if (wiInput::Press((wiInput::BUTTON)'T')) {
-			//int msgboxID = MessageBox(NULL, L"test", L"", 0);
-			wiBackLog::Toggle();
+		if (mainComp.GetActivePath() == &mainComp.renderer && !loaded) {
+			loaded = true;
+			mainComp.infoDisplay.active		= true;
+			mainComp.infoDisplay.watermark	= true;
+			mainComp.infoDisplay.resolution = true;
+			mainComp.infoDisplay.fpsinfo	= true;
+			mainComp.m_probe			 = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
+			EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(mainComp.m_probe);
+			probe->SetRealTime(true);
+			probe->SetDirty();
+			cyImportant* world = settings::getWorld();
+			TransformComponent ctransform;
+			world->loadWorldInfo(settings::newWorld);
+			ctransform.Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 10.0f, 0.f));
+			ctransform.RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
+			ctransform.SetDirty();
+			ctransform.UpdateTransform();
+			wiScene::GetCamera().SetDirty();
+			wiScene::GetCamera().TransformCamera(ctransform);
+			wiScene::GetCamera().UpdateCamera();
+			TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
+			transform->ClearTransform();
+			transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 10.0f, 0.f));
+			//lightT->RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
+			transform->SetDirty();
+			transform->UpdateTransform();
+
+			transform = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
+			transform->ClearTransform();
+			transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 10.0f, 0.f));
+			transform->SetDirty();
+			transform->UpdateTransform();
+
+			float screenW = wiRenderer::GetDevice()->GetScreenWidth();
+			float screenH = wiRenderer::GetDevice()->GetScreenHeight();
+			mainComp.renderer.ResizeLayout();
 		}
-		if (wiInput::Press((wiInput::BUTTON)'F')) {
-			if (mainComp.m_headLight != INVALID_ENTITY) {
-				LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);
-				if (light->energy) {
-					light->energy = 0;
-					light->SetCastShadow(false);
-				} else {
-					light->energy = 15;
-					light->SetCastShadow(true);
-				}
-			}
+
+		if (settings::newWorld != thisWorld) {
+			cyImportant* world = settings::getWorld();
+			world->loadWorldInfo(settings::newWorld);
+			thisWorld = settings::newWorld;
 		}
+		
 		if (wiInput::Press((wiInput::BUTTON)'M')) {
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -148,6 +149,29 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			m.lock();
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
+
+			if (wiInput::Press((wiInput::BUTTON)'H')) {
+				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
+				wiBackLog::Toggle();
+			}
+			if (wiInput::Press((wiInput::BUTTON)'T')) {
+				if (mainComp.m_headLight != INVALID_ENTITY) {
+					LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);
+					if (headlamp == true) {
+						wiBackLog::post("Light off");
+						headlamp	  = false;
+						light->energy = 0.0f;
+						light->SetCastShadow(false);
+						light->SetVolumetricsEnabled(false);
+					} else {
+						wiBackLog::post("Light on");
+						headlamp	  = true;
+						light->energy = 15.0f;
+						light->SetCastShadow(true);
+						light->SetVolumetricsEnabled(true);
+					}
+				}
+			}
 			//if (GetTickCount() - lasttick > 250) {
 			//	lasttick = GetTickCount();
 			//	mainComp.renderer.label.SetText(to_string(settings::numVisChunks) + " Chunks visible");

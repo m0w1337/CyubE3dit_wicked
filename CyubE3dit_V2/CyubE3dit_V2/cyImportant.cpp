@@ -6,6 +6,8 @@
 namespace fs = std::filesystem;
 
 cyImportant::cyImportant(void) {
+	m_valid = false;
+	m_stopped = true;
 	for (uint8_t i = 0; i < 32; i++) {
 		db[i] = nullptr;
 	}
@@ -27,17 +29,19 @@ wstring cyImportant::find_importantFile(const std::wstring path)  // placing pat
 	return importantPath;
 }
 
-void cyImportant::loadWorldInfo(const std::wstring Worldname) {
-	PWSTR path = NULL;
+void cyImportant::loadWorldInfo(const std::string Worldname) {
+	PWSTR path	  = NULL;
+	string dbpath = "";
 	m_filename.clear();
 
 	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &path) == S_OK)
 	{
-		m_filename = wstring(path) + L"\\cyubeVR\\Saved\\WorldData\\" + Worldname;
+		m_filename = wstring(path) + L"\\cyubeVR\\Saved\\WorldData\\" + utf8_decode(Worldname);
 		m_filename = find_importantFile(m_filename);
+		dbpath	   = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";
 	}
 	if (m_filename.size() > 1) {
-		cyImportant::loadData(m_filename);
+		cyImportant::loadData(dbpath);
 	}
 }
 
@@ -56,15 +60,19 @@ bool cyImportant::getChunkID(const double x, const double y, uint32_t* chunkID) 
 	return true;
 }
 
-void cyImportant::loadData(const std::wstring filename) {
+void cyImportant::loadData(const std::string dbpath) {
 	ifstream file;
-	m_filename.clear();
+	m_stopped = true;
+	cleaned = false;
+	while (!cleaned) {
+		Sleep(10);
+	}
 	m_valid = false;
+	cleaned = false;
 	m_chunkMap.clear();
-	file.open(filename, fstream::in | ios::binary);
+	file.open(m_filename, fstream::in | ios::binary);
 	if (file.is_open()) {
 		uint32_t maplen;
-		m_filename = filename;
 		file.seekg(POS_WORLDSEED);
 		file.read(reinterpret_cast<char*>(&m_seed), sizeof(m_seed));
 		file.read(reinterpret_cast<char*>(&maplen), sizeof(maplen));
@@ -81,21 +89,53 @@ void cyImportant::loadData(const std::wstring filename) {
 		file.read(reinterpret_cast<char*>(&(m_playerpos.x)), sizeof(m_playerpos.x));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.y)), sizeof(m_playerpos.y));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.z)), sizeof(m_playerpos.z));
-		for (uint8_t i = 0; i < 32; i++) {
+		for (uint8_t i = 0; i < wiJobSystem::GetThreadCount(); i++) {
 			if (db[i] != nullptr) {
 				sqlite3_close(db[i]);
+				db[i] = nullptr;
 			}
-			if (sqlite3_open_v2("C:\\Users\\m0\\AppData\\Local\\cyubeVR\\Saved\\WorldData\\My Great World - Kopie(cleaned)\\chunkdata.sqlite", &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
-				if (sqlite3_open_v2("C:\\Users\\m0\\AppData\\Local\\cyubeVR\\Saved\\WorldData\\My Great World - Kopie(cleaned)\\chunkdata.sqlite", &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
-					MessageBox(NULL, L"ERROR", L"SQlite not opened", MB_ICONWARNING);
+			if (sqlite3_open_v2(dbpath.c_str(), &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
+				if (sqlite3_open_v2(dbpath.c_str(), &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
+					MessageBox(NULL, L"ERROR", L"World database not found.", MB_ICONWARNING);
 					db[i] = nullptr;
+					while (i < wiJobSystem::GetThreadCount()) {
+						if (db[i] != nullptr) {
+							sqlite3_close(db[i]);
+							db[i] = nullptr;
+						}
+						i++;
+					}
 				}
 			}
 		}
 		m_valid = true;
+		m_stopped = false;
 		file.close();
 	}
 }
 bool cyImportant::isValid(void) {
 	return m_valid;
+}
+
+bool cyImportant::isStopped(void) {
+	return m_stopped;
+}
+// Convert a wide Unicode string to an UTF8 string
+std::string cyImportant::utf8_encode(const std::wstring& wstr) {
+	if (wstr.empty())
+		return std::string();
+	int size_needed = WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), NULL, 0, NULL, NULL);
+	std::string strTo(size_needed, 0);
+	WideCharToMultiByte(CP_UTF8, 0, &wstr[0], (int)wstr.size(), &strTo[0], size_needed, NULL, NULL);
+	return strTo;
+}
+
+// Convert an UTF8 string to a wide Unicode String
+std::wstring cyImportant::utf8_decode(const std::string& str) {
+	if (str.empty())
+		return std::wstring();
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), NULL, 0);
+	std::wstring wstrTo(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &str[0], (int)str.size(), &wstrTo[0], size_needed);
+	return wstrTo;
 }

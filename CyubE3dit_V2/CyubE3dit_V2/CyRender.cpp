@@ -1,11 +1,13 @@
 #include "stdafx.h"
 #include "CyRender.h"
+#include "cyWorlds.h"
 #include "settings.h"
 #include <string>
 #include <sstream>
 #include <fstream>
 #include <thread>
 #include <cmath>
+
 
 using namespace std;
 using namespace wiECS;
@@ -22,14 +24,44 @@ void CyMainComponent::Initialize() {
 	infoDisplay.fpsinfo					= true;
 	infoDisplay.resolution				= true;
 	infoDisplay.heap_allocation_counter = true;
-	renderer.Load();
+	//renderer.Load();
 	//pathRenderer.Load();
-	ActivatePath(&renderer);
+	loader.Load();
+
+	renderer.main = this;
+	loader.addLoadingComponent(&renderer, this, 0.5f, 0xFFFFFFFF);
+	loader.addLoadingFunction([this](wiJobArgs) {cyBlocks::LoadRegBlocks();cyBlocks::LoadCustomBlocks(); });
+	//loader.addLoadingFunction([this](wiJobArgs) {  });
+	ActivatePath(&loader, 0.2f);
+}
+
+void CyLoadingScreen::Load() {
+	font = wiSpriteFont("Loading...", wiFontParams(wiRenderer::GetDevice()->GetScreenWidth() * 0.5f, wiRenderer::GetDevice()->GetScreenHeight() * 0.5f, 36,
+												   WIFALIGN_CENTER, WIFALIGN_CENTER));
+	AddFont(&font);
+
+	sprite					= wiSprite("images/logo_small.png");
+	sprite.anim.opa			= 1;
+	sprite.anim.repeatable	= true;
+	sprite.params.pos		= XMFLOAT3(wiRenderer::GetDevice()->GetScreenWidth() * 0.5f, wiRenderer::GetDevice()->GetScreenHeight() * 0.5f - font.textHeight(), 0);
+	sprite.params.siz		= XMFLOAT2(128, 128);
+	sprite.params.pivot		= XMFLOAT2(0.5f, 1.0f);
+	sprite.params.quality	= QUALITY_LINEAR;
+	sprite.params.blendFlag = BLENDMODE_ALPHA;
+	AddSprite(&sprite);
+
+	LoadingScreen::Load();
+}
+void CyLoadingScreen::Update(float dt) {
+	font.params.posX  = wiRenderer::GetDevice()->GetScreenWidth() * 0.5f;
+	font.params.posY  = wiRenderer::GetDevice()->GetScreenHeight() * 0.5f;
+	sprite.params.pos = XMFLOAT3(wiRenderer::GetDevice()->GetScreenWidth() * 0.5f, wiRenderer::GetDevice()->GetScreenHeight() * 0.5f - font.textHeight(), 0);
+
+	LoadingScreen::Update(dt);
 }
 
 void CyMainComponent::CreateScene(void) {
 	Scene& scene = wiScene::GetScene();
-	wiRenderer::ClearWorld(wiScene::GetScene());
 	wiScene::GetScene().weather = WeatherComponent();
 	if (wiLua::GetLuaState() != nullptr) {
 		wiLua::KillProcesses();
@@ -37,13 +69,12 @@ void CyMainComponent::CreateScene(void) {
 	// Add some nice weather, not just black:
 	auto& weather	  = scene.weathers.Create(CreateEntity());
 
-	weather.fogStart  = 200;
+	weather.fogStart  = 5;
 	weather.fogEnd	  = 2000;
 	weather.fogHeight = 0;
-	
 	weather.horizon = XMFLOAT3(0.4f, 0.4f, 0.9f);
 	weather.zenith	= XMFLOAT3(0.5f, 0.7f, 0.9f);
-	weather.ambient			  = XMFLOAT3(1.f, 1.f, 1.0f);
+	weather.ambient			  = XMFLOAT3(0.8f, 0.8f, 0.9f);
 	weather.SetRealisticSky(true);
 	weather.skyMapName		  = "images/sky.dds";
 	weather.cloudiness	  = 0.2f;
@@ -77,20 +108,26 @@ void CyMainComponent::CreateScene(void) {
 	light->lensFlareNames[4]	   = "flare4";
 	light->lensFlareRimTextures[5] = wiResourceManager::Load("images/flare5.jpg");
 	light->lensFlareNames[5]	   = "flare5";
-	m_headLight					   = wiScene::GetScene().Entity_CreateLight("filllight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0f, 1.f, 0.5f), 10, 5);
+
+	LightEnt					   = wiScene::GetScene().Entity_CreateLight("filllight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, 1.f), 2, 1000);
+	light						   = scene.lights.GetComponent(LightEnt);
+	light->SetType(LightComponent::LightType::DIRECTIONAL);
+	//light->SetStatic(true);
+	transform = *scene.transforms.GetComponent(LightEnt);
+	transform.RotateRollPitchYaw(XMFLOAT3(-0.47f, 0.579, -0.64f));
+	transform.SetDirty();
+	transform.UpdateTransform();
+	light->SetCastShadow(true);
+	m_headLight					   = wiScene::GetScene().Entity_CreateLight("Headlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0f, 1.f, 0.5f), 0, 10);
 	light		   = wiScene::GetScene().lights.GetComponent(m_headLight);
 	light->SetType(LightComponent::LightType::SPOT);
-	light->SetVolumetricsEnabled(true);
-	light->SetVisualizerEnabled(false);
-	light->SetCastShadow(true);
-	light->fov = 1.f;
+	light->SetVolumetricsEnabled(false);
+	light->SetCastShadow(false);
+	light->fov = 1.2f;
 	wiScene::GetScene().springs.Create(m_headLight);
 	wiScene::GetScene().springs.GetComponent(m_headLight)->wind_affection = 1.0;
 
-	m_probe			 = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
-	EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(m_probe);
-	probe->SetRealTime(true);
-	probe->SetDirty();
+	
 }
 
 void CyMainComponent::Compose(CommandList cmd) {
@@ -225,8 +262,10 @@ void CyRender::ResizeLayout() {
 
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
-	worldSelector.SetPos(XMFLOAT2(screenW / 2.f - worldSelector.scale.x / 2.f, 10));
-	label.SetPos(XMFLOAT2(worldSelector.translation.x + worldSelector.scale.x + 10, 10));
+	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 10));
+	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
+	postprocessWnd_Toggle.SetPos(XMFLOAT2(15, screenH - postprocessWnd_Toggle.scale.y - 15));
+	rendererWnd_Toggle.SetPos(XMFLOAT2(25 + postprocessWnd_Toggle.scale.x, screenH - postprocessWnd_Toggle.scale.y - 15));
 }
 
 void CyRender::Load() {
@@ -245,7 +284,7 @@ void CyRender::Load() {
 	setDepthOfFieldFocus(4.0f);
 	setDepthOfFieldAspect(1.0f);
 	setDepthOfFieldStrength(0.7f);
-	setMSAASampleCount(4);
+	setMSAASampleCount(2);
 	wiRenderer::SetShadowProps2D(2048, -1);
 	//wiRenderer::SetGamma(2.2);
 	wiPhysicsEngine::SetEnabled(true);
@@ -254,11 +293,9 @@ void CyRender::Load() {
 	wiRenderer::SetTransparentShadowsEnabled(false);
 	setVolumetricCloudsEnabled(true);
 	//setExposure(1.f);
-	wiRenderer::SetTemporalAAEnabled(false);
-	
+	wiRenderer::SetTemporalAAEnabled(true);
+	//wiRenderer::SetAdvancedLightCulling(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
-	wiRenderer::SetToDrawGridHelper(false);
-	wiRenderer::SetToDrawDebugEnvProbes(false);
 	wiRenderer::SetVoxelRadianceEnabled(false);
 	wiRenderer::SetVoxelRadianceNumCones(2);
 	wiRenderer::SetVoxelRadianceRayStepSize(0.75f);
@@ -266,45 +303,60 @@ void CyRender::Load() {
 	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
 	wiRenderer::SetOcclusionCullingEnabled(false);
 	wiProfiler::SetEnabled(true);
-	setAO(AO_HBAO);
-	setAOPower(0.5);
-	setAORange(32);
-	setAOSampleCount(4);
+	setAO(AO_MSAO);
+	setAOPower(0.2);
 	setFXAAEnabled(true);
 	setEyeAdaptionEnabled(true);
 	wiScene::GetCamera().zNearP = 0.1;
 	wiScene::GetCamera().zFarP = 2000;
 	label.Create("Label1");
-	label.SetText("Wicked Engine Test Framework");
+	label.SetText("CyubE3dit Wicked - sneak peek");
 	label.font.params.h_align = WIFALIGN_CENTER;
 	label.SetSize(XMFLOAT2(240, 20));
 	GetGUI().AddWidget(&label);
-
+	cyWorlds::getWorlds();
 	worldSelector.Create("TestSelector");
 	worldSelector.SetText("Current World: ");
 	worldSelector.SetSize(XMFLOAT2(250, 30));
 	worldSelector.SetPos(XMFLOAT2(300, 20));
-	worldSelector.SetColor(wiColor(100, 100, 100, 50), wiWidget::WIDGETSTATE::IDLE);
-	worldSelector.SetColor(wiColor(100, 100, 100, 255), wiWidget::WIDGETSTATE::FOCUS);
-	worldSelector.AddItem("HelloWorld");
-	worldSelector.AddItem("Model");
-	worldSelector.AddItem("EmittedParticle 1");
-	worldSelector.SetMaxVisibleItemCount(10);
-	worldSelector.OnSelect([=](wiEventArgs args) {
-		switch (args.iValue)
-		{
-			case 0:
-			{
-				break;
-			}
-			default:
-				break;
-		}
-	});
+	worldSelector.SetColor(wiColor(100, 100, 100, 30), wiWidget::WIDGETSTATE::IDLE);
+	worldSelector.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	worldSelector.SetColor(wiColor(100, 130, 130, 150), wiWidget::WIDGETSTATE::ACTIVE);
+	for (const auto& world : cyWorlds::worlds) {
+		worldSelector.AddItem(world);
+	}
 	worldSelector.SetSelected(0);
-	GetGUI().AddWidget(&worldSelector);
-	RenderPath3D::Load();
+	worldSelector.SetMaxVisibleItemCount(15);
+	worldSelector.OnSelect([=](wiEventArgs args) {
+		settings::newWorld = worldSelector.GetItemText(args.iValue);
+	});
 	
+	GetGUI().AddWidget(&worldSelector);
+
+	rendererWnd = RendererWindow();
+	rendererWnd.Create(this);
+	GetGUI().AddWidget(&rendererWnd);
+
+	postprocessWnd = PostprocessWindow();
+	postprocessWnd.Create(this);
+	GetGUI().AddWidget(&postprocessWnd);
+
+	rendererWnd_Toggle.Create("Renderer");
+	rendererWnd_Toggle.SetTooltip("Renderer settings");
+	rendererWnd_Toggle.OnClick([&](wiEventArgs args) {
+		rendererWnd.SetVisible(!rendererWnd.IsVisible());
+	});
+	GetGUI().AddWidget(&rendererWnd_Toggle);
+
+	postprocessWnd_Toggle.Create("PostProcess");
+	postprocessWnd_Toggle.SetTooltip("Postprocess settings");
+	postprocessWnd_Toggle.OnClick([&](wiEventArgs args) {
+		postprocessWnd.SetVisible(!postprocessWnd.IsVisible());
+	});
+	GetGUI().AddWidget(&postprocessWnd_Toggle);
+
+	RenderPath3D::Load();
+	main->CreateScene();
 }
 
 void CyRender::Update(float dt) {
@@ -322,8 +374,9 @@ void CyRender::Update(float dt) {
 	XMFLOAT4 currentMouse = wiInput::GetPointer();
 	float xDif = 0, yDif = 0;
 
-	if (wiInput::Down(wiInput::MOUSE_BUTTON_LEFT))
+	if (wiInput::Down(wiInput::MOUSE_BUTTON_LEFT) && !GetGUI().GetActiveWidget())
 	{
+		hovered.entity	= wiECS::INVALID_ENTITY;
 		camControlStart = false;
 #if 1
 		// Mouse delta from previous frame:
@@ -338,20 +391,23 @@ void CyRender::Update(float dt) {
 		yDif = 0.1f * yDif * (1.0f / 60.0f);
 		wiInput::SetPointer(originalMouse);
 		wiInput::HidePointer(true);
-	} else
-	{
+	} else {
 		camControlStart = true;
 		wiInput::HidePointer(false);
-		RAY pickRay					  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
-		hovered						  = wiScene::Pick(pickRay);
-	}
-	if (hovered.entity != wiECS::INVALID_ENTITY)
-	{
-		const ObjectComponent* object = wiScene::GetScene().objects.GetComponent(hovered.entity);
-		const AABB& aabb = *wiScene::GetScene().aabb_objects.GetComponent(hovered.entity);
-		XMFLOAT4X4 hoverBox;
-		XMStoreFloat4x4(&hoverBox, aabb.getAsBoxMatrix());
-		wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 0.2f, 5.f, 3.0f));
+		if (rendererWnd.GetPickType() == PICK_CHUNK) {
+			RAY pickRay = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+			hovered		= wiScene::Pick(pickRay);
+		} else {
+			hovered.entity = wiECS::INVALID_ENTITY;
+		}
+		if (hovered.entity != wiECS::INVALID_ENTITY)
+		{
+			const ObjectComponent* object = wiScene::GetScene().objects.GetComponent(hovered.entity);
+			const AABB& aabb			  = *wiScene::GetScene().aabb_objects.GetComponent(hovered.entity);
+			XMFLOAT4X4 hoverBox;
+			XMStoreFloat4x4(&hoverBox, aabb.getAsBoxMatrix());
+			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 0.2f, 5.f, 3.0f));
+		}
 	}
 
 	const float buttonrotSpeed = 2.0f / 60.0f;
@@ -465,8 +521,10 @@ void CyRender::Update(float dt) {
 			//camera.CreatePerspective((float)wiRenderer::GetInternalResolution().x, (float)wiRenderer::GetInternalResolution().y, 0.1f,200.0f);
 		}
 //	}
+		
+		RenderPath3D::Update(dt);
 
-	RenderPath3D::Update(dt);
+		
 }
 /*
 void CyPathRender::ResizeLayout()

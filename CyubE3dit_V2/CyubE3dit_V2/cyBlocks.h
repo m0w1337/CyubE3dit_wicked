@@ -15,6 +15,15 @@ using json = nlohmann::json;
 class cyBlocks {
 
 public:
+	static constexpr uint8_t FACE_TOP = 0;
+	static constexpr uint8_t FACE_BOTTOM = 1;
+	static constexpr uint8_t FACE_LEFT = 2;
+	static constexpr uint8_t FACE_RIGHT = 3;
+	static constexpr uint8_t FACE_BACK	 = 4;
+	static constexpr uint8_t FACE_FRONT = 5;
+	static constexpr uint8_t FACE_BILLBOARD = 6;
+	
+
 	enum blocktype_t {
 		BLOCKTYPE_UNKNOWN = 0,	// Unknown must stay at 0 because of array initializations
 		BLOCKTYPE_SOLID,
@@ -33,21 +42,30 @@ public:
 		std::string creator;
 		std::string name;
 	};
+	enum blockflags_t {
+		BLOCKFLAG_REGULAR	= 0,
+		BLOCKFLAG_MISC0		= 2,  //unuseable
+		BLOCKFLAG_MISC1		= 4,  //unuseable
+		BLOCKFLAG_ANTITILE	= 8  //must be greater than 5 to prevent ovewrlap with the 6 face IDs
+	};
+	
+
 
 	static uint8_t m_regBlockTypes[256];
+	static uint8_t m_regBlockFlags[256][6];
 	static wiECS::Entity m_regBlockMats[256][6];
 	static std::unordered_map<uint32_t, cBlock_t> m_cBlockTypes;
 	static wiECS::Entity m_variationMat;
 	static uint8_t m_voidID;
-	std::string m_regBlockNames[256];
-	wiScene::Scene& m_scene;
-	cyBlocks(wiScene::Scene& scene);
-	void LoadRegBlocks(void);
-	bool GetStringRegKey(const std::wstring& key, const std::wstring& strValueName, std::wstring& strValue);
-	void LoadCustomBlocks(void);
-	
+	static  std::string m_regBlockNames[256];
+	static wiECS::Entity m_fallbackMat;
+
+	static void LoadRegBlocks(void);
+	static void LoadCustomBlocks(void);
 
 private:
+	static wiScene::Scene& m_scene;
+
 	struct block_t {
 		uint8_t id;
 		//uint8_t type;
@@ -71,7 +89,8 @@ private:
 		BLOCKMAT_MESHBLOCK		  = 6
 	};
 
-	bool iequals(std::string str1, std::string str2);
-	void addCustomBlocksPath(std::wstring customPath);
-	void catchRegularBlockSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype);
+	static bool GetStringRegKey(const std::wstring& key, const std::wstring& strValueName, std::wstring& strValue);
+	static bool iequals(std::string str1, std::string str2);
+	static void addCustomBlocksPath(std::wstring customPath);
+	static void catchRegularBlockSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype);
 };
