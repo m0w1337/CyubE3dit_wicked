@@ -146,13 +146,13 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->SetUseVertexColors(true);
 			}*/
 			if (blocktype == BLOCKTYPE_ALPHA) {
-				material->SetReflectance(0.5);
+				material->SetReflectance(0.09);
 				//material->userBlendMode = BLENDMODE_ALPHA;
-				material->SetTransmissionAmount(0.9);
-				material->SetRefractionAmount(0.2f);
-				material->SetBaseColor(XMFLOAT4(0.5, 0.5, 0.5, 0.3f));
-				material->SetMetalness(0.2f);
-				material->SetRoughness(0.1f);
+				material->SetTransmissionAmount(0.99);
+				material->SetRefractionAmount(0.01f);
+				material->SetBaseColor(XMFLOAT4(1., 1., 1., 1.f));
+				material->SetMetalness(0.03f);
+				material->SetRoughness(0.05f);
 				material->SetCastShadow(true);
 			} else {
 				material->SetReflectance(0);
