@@ -262,7 +262,7 @@ void RendererWindow::Create(CyRender* renderer)
 		switch (args.iValue)
 		{
 		case 0:
-			wiRenderer::SetShadowProps2D(128, -1);
+			wiRenderer::SetShadowProps2D(0, -1);
 			renderer->setShadowsEnabled(false);
 			break;
 		case 1:

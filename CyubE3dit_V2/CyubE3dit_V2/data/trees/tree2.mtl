@@ -10,8 +10,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 1
-map_Bump .\\data\\trees\\bark2_nmp.tga
-map_Kd .\\data\\trees\\bark2.tga
+map_Bump bark2_nmp.dds
+map_Kd bark2.dds
 
 newmtl leaves
 Ns 15.707038
@@ -22,5 +22,5 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 1
-map_Kd .\\data\\trees\\leafs2.tga
-map_d .\\data\\trees\\leafs2.tga
+map_Kd leafs2.dds
+map_d leafs2.dds

@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "chunkLoader.h"
-
 using namespace std;
 using namespace wiScene;
 extern mutex m;
@@ -331,18 +330,53 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 					tmpface.face	 = cyBlocks::FACE_BILLBOARD;
 					faces.emplace_back(tmpface);
 				} else if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_TORCH) {
-					auto it = cyBlocks::m_regMeshes.find(blocktype);
-					if (it != cyBlocks::m_regMeshes.end()) {
+					cyChunk::blockpos_t pos(x, y, z);
+					auto it = chunk.m_Torches.find(pos);
+					if (it != chunk.m_Torches.end()) {
 						wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
 						ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
 						LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-						TransformComponent* tf;
+						TransformComponent* tf = tmpScene.transforms.GetComponent(objEnt);
 						layer.layerMask = LAYER_TORCH;
-						object.meshID	= it->second.mesh;
-						tf			  = tmpScene.transforms.GetComponent(objEnt);
-						tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f, relY + 16 - y / 2.0f));
-						tf->UpdateTransform();
 						ret.trees.push_back(objEnt);
+						try {
+							
+							switch (it->second) {
+								case 0:
+									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									tf->Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f, relY + 16 - y / 2.0f));
+									tf->RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
+									break;
+								case 1:
+									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									tf->Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f, relY + 16 - y / 2.0f));
+									tf->RotateRollPitchYaw(XMFLOAT3(0, -PI/2, 0));
+									break;
+								case 2:
+									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f, relY + 16 - y / 2.0f + 0.248));
+									
+									break;
+								case 3:
+									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f, relY + 16 - y / 2.0f - 0.248));
+									tf->RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
+									break;
+								case 4:
+									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
+									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.135f, relY + 16 - y / 2.0f));
+									break;
+								case 5:
+									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
+									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f +0.135f, relY + 16 - y / 2.0f));
+									tf->RotateRollPitchYaw(XMFLOAT3(PI,0,0));
+									break;
+							}
+							
+							tf->UpdateTransform();
+						}
+						catch (...) {
+						}
 					}
 					
 

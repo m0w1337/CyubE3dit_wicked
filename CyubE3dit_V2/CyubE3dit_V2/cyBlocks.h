@@ -45,8 +45,8 @@ public:
 	};
 	struct mesh_t {
 		blocktype_t type;
-		wiECS::Entity material;
-		wiECS::Entity mesh;
+		wiECS::Entity material[2];
+		wiECS::Entity mesh[2];
 		std::string name;
 	};
 	enum blockflags_t {

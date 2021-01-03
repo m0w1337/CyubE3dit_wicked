@@ -72,6 +72,7 @@ public:
 	uint32_t m_id;
 	uint16_t m_surfaceheight;
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
+	unordered_map<blockpos_t, uint8_t, blockpos_t> m_Torches;
 	std::vector<meshLoc> meshObjects;
 	bool m_isAirChunk;
 	char* m_chunkdata;

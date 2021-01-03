@@ -114,7 +114,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			//material.emissiveColor.y = obj_material.emission[1];
 			//material.emissiveColor.z = obj_material.emission[2];
 			//material.emissiveColor.w = max(obj_material.emission[0], max(obj_material.emission[1], obj_material.emission[2]));
-			material.refractionIndex = obj_material.ior;
+			material.refraction = obj_material.ior;
 			material.metalness		 = 0.01f;  //obj_material.metallic;
 			material.normalMapName	 = obj_material.normal_texname;
 			material.surfaceMapName	 = obj_material.specular_texname;
@@ -122,7 +122,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			material.reflectance	 = 0.0f;
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
-				material.SetAlphaRef(0.2f);
+				material.SetAlphaRef(0.5f);
 				material.SetUseWind(true);
 			}
 
@@ -138,28 +138,34 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			if (!material.surfaceMapName.empty())
 			{
 				material.surfaceMap = wiResourceManager::Load(directory + material.surfaceMapName);
+				material.surfaceMapName.clear();
 			}
 			if (!material.baseColorMapName.empty())
 			{
 				material.baseColorMap = wiResourceManager::Load(directory + material.baseColorMapName);
+				material.baseColorMapName.clear();
 			}
 			if (!material.normalMapName.empty())
 			{
 				material.normalMap = wiResourceManager::Load(directory + material.normalMapName);
+				material.normalMapName.clear();
 			}
 			if (!material.displacementMapName.empty())
 			{
 				material.displacementMap = wiResourceManager::Load(directory + material.displacementMapName);
+				material.displacementMapName.clear();
 			}
 			if (!material.occlusionMapName.empty())
 			{
 				material.occlusionMap = wiResourceManager::Load(directory + material.occlusionMapName);
+				material.occlusionMapName.clear();
 				material.SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
 				material.SetParallaxOcclusionMapping(1.0f);
 			}
 			if (!material.emissiveMapName.empty())
 			{
 				material.emissiveMap = wiResourceManager::Load(directory + material.emissiveMapName);
+				material.emissiveMapName.clear();
 				material.SetEmissiveStrength(15.0);
 			}
 
@@ -289,7 +295,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 					}
 				}
 				//mesh.ComputeNormals(MeshComponent::COMPUTE_NORMALS_SMOOTH);
-				scene.impostors.Create(meshEntity);
+				//scene.impostors.Create(meshEntity);
 				mesh.CreateRenderData();
 			}
 		}

@@ -67,7 +67,7 @@ void cyBlocks::LoadRegBlocks(void) {
 void cyBlocks::loadMeshes(void) {
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(),2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree_mango_var01.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.obj", wiScene::GetScene(), 0));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\grass.obj", wiScene::GetScene(), 1));
@@ -91,9 +91,12 @@ void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, c
 	catch (...) {
 	}
 	try {
-		meshObj				  = it.value().at(i).at("mesh");
-		mesh.mesh = ImportModel_OBJ("data\\torches\\standtorch.obj", wiScene::GetScene(), 0);
-		mesh.material		  = mesh.mesh - 1;
+		meshObj				  = it.value().at(i).at("mesh0");
+		mesh.mesh[0]		  = ImportModel_OBJ("data\\torches\\" + meshObj, wiScene::GetScene(), 0);
+		mesh.material[0]		  = mesh.mesh[0] - 1;
+		meshObj				  = it.value().at(i).at("mesh1");
+		mesh.mesh[1]		  = ImportModel_OBJ("data\\torches\\" + meshObj, wiScene::GetScene(), 0);
+		mesh.material[1]		  = mesh.mesh[1] - 1;
 	}
 	catch (...) {
 	}
@@ -143,12 +146,13 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->SetUseVertexColors(true);
 			}*/
 			if (blocktype == BLOCKTYPE_ALPHA) {
-				material->SetReflectance(0.08);
-				material->userBlendMode = BLENDMODE_ALPHA;
-				material->SetRefractionIndex(0.001f);
-				material->SetBaseColor(XMFLOAT4(0, 0, 0, 0.03f));
-				material->SetMetalness(0.02f);
-				material->SetRoughness(0.03f);
+				material->SetReflectance(0.5);
+				//material->userBlendMode = BLENDMODE_ALPHA;
+				material->SetTransmissionAmount(0.9);
+				material->SetRefractionAmount(0.2f);
+				material->SetBaseColor(XMFLOAT4(0.5, 0.5, 0.5, 0.3f));
+				material->SetMetalness(0.2f);
+				material->SetRoughness(0.1f);
 				material->SetCastShadow(true);
 			} else {
 				material->SetReflectance(0);
@@ -290,63 +294,63 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						} else if (iequals(texdir.path().filename().string(), "down.dds")) {
 							m_cBlockTypes[tmpID].material[1] = m_scene.Entity_CreateMaterial("");
 							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[1]);
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						} else if (iequals(texdir.path().filename().string(), "sides.dds")) {
 							m_cBlockTypes[tmpID].material[2] = m_scene.Entity_CreateMaterial("");
 							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						} else if (iequals(texdir.path().filename().string(), "left.dds")) {
 							m_cBlockTypes[tmpID].material[3] = m_scene.Entity_CreateMaterial("");
 							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[3]);
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						} else if (iequals(texdir.path().filename().string(), "right.dds")) {
 							m_cBlockTypes[tmpID].material[2] = m_scene.Entity_CreateMaterial("");
 							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						} else if (iequals(texdir.path().filename().string(), "front.dds")) {
 							m_cBlockTypes[tmpID].material[5] = m_scene.Entity_CreateMaterial("");
 							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[5]);
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						} else if (iequals(texdir.path().filename().string(), "back.dds")) {
 							m_cBlockTypes[tmpID].material[4] = m_scene.Entity_CreateMaterial("");
 							material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[4]);
 							material->baseColorMapName		 = texdir.path().string();
 							material->baseColorMap			 = wiResourceManager::Load(material->baseColorMapName);
 							material->SetReflectance(0.0f);
-							material->SetMetalness(0.1f);
+							material->SetMetalness(0.0f);
 							material->SetEmissiveStrength(0.0f);
-							material->SetRoughness(0.9f);
+							material->SetRoughness(1.0f);
 						}
 					}
 				}

@@ -247,13 +247,16 @@ void CyMainComponent::Compose(CommandList cmd) {
 		{
 			ss << "Warning: Graphics is in [debugdevice] mode, performance will be slow!" << endl;
 		}
-		ss << "Entity pool usage: " + to_string((((float)wiECS::next * 100.0f) / UINT32_MAX)) << endl;
+		ss << "Entity pool usage: " + to_string((((float)wiECS::next * 100.0f) / UINT32_MAX)) + "%" << endl;
 		static int64_t id			= -1;
 		static wiECS::Entity oldMat = 0;
 		static string blockname		= "";
 		wiScene::Scene& scene					  = wiScene::GetScene();
 		static wiScene::MaterialComponent* highlightComp = scene.materials.GetComponent(scene.materials.GetIndex(0));
-		wiECS::Entity mat								 = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID)->subsets[renderer.hovered.subsetIndex].materialID;
+		wiECS::Entity mat = 0;
+		if (renderer.hovered.entity)
+			mat								 = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID)->subsets[renderer.hovered.subsetIndex].materialID;
+		
 		if (oldMat != mat) {
 			oldMat = renderer.hovered.entity;
 			id	   = -1;
@@ -263,20 +266,21 @@ void CyMainComponent::Compose(CommandList cmd) {
 						if (cyBlocks::m_regBlockMats[i][ii] == mat) {
 							blockname = cyBlocks::m_regBlockNames[i];
 							id		  = i;
-							for (uint8_t iii = 0; iii < 6; iii++) {
+							break;
+							/*for (uint8_t iii = 0; iii < 6; iii++) {
 								if (cyBlocks::m_regBlockMats[i][iii]) {
 									highlightComp = scene.materials.GetComponent(cyBlocks::m_regBlockMats[i][iii]);
 								}
-							}
+							}*/
 						}
 					}
-					if (i != id) {
+					/*if (i != id) {
 						for (uint8_t iii = 0; iii < 6; iii++) {
 							if (cyBlocks::m_regBlockMats[i][iii]) {
 								scene.materials.GetComponent(cyBlocks::m_regBlockMats[i][iii])->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
 							}
 						}
-					}
+					}*/
 				}
 				if (id == -1) {
 					for (auto& it : cyBlocks::m_cBlockTypes) {
@@ -288,23 +292,24 @@ void CyMainComponent::Compose(CommandList cmd) {
 									blockname = it.second.name + "( by " + it.second.creator + ")";
 								}
 								id = it.first;
-								for (uint8_t iii = 0; iii < 6; iii++) {
+								break;
+								/*for (uint8_t iii = 0; iii < 6; iii++) {
 									if (it.second.material[iii]) {
 										highlightComp = scene.materials.GetComponent(it.second.material[iii]);
 									}
-								}
+								}*/
 							}
 						}
-						if (it.first != id) {
+						/*if (it.first != id) {
 							for (uint8_t iii = 0; iii < 6; iii++) {
 								if (it.second.material[iii]) {
 									scene.materials.GetComponent(it.second.material[iii])->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
 								}
 							}
-						}
+						}*/
 					}
 				}
-			} else {
+			} /*else {
 				for (uint32_t i = 0; i < 256; i++) {
 					for (uint8_t iii = 0; iii < 6; iii++) {
 						if (cyBlocks::m_regBlockMats[i][iii]) {
@@ -319,11 +324,11 @@ void CyMainComponent::Compose(CommandList cmd) {
 						}
 					}
 				}
-			}
+			}*/
 		}
 		if (renderer.hovered.entity != wiECS::INVALID_ENTITY) {
 			ss << "Hovered Chunk: " + scene.names.GetComponent(renderer.hovered.entity)->name << endl;
-			highlightComp->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 1.0f, 0.1f * renderer.sinepulse));
+			//highlightComp->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 1.0f, 0.1f * renderer.sinepulse));
 			ss << "Hovered Block: " + blockname + "(ID " + to_string(id) + ")";
 		}
 
@@ -361,11 +366,12 @@ void CyRender::Load() {
 	wiPhysicsEngine::SetEnabled(true);
 	setLightShaftsEnabled(true);
 	setShadowsEnabled(true);
-	setMSAASampleCount(2);
+	setMSAASampleCount(4);
 	wiRenderer::SetTransparentShadowsEnabled(false);
+	wiRenderer::SetShadowProps2D(2048, 4);
 	setVolumetricCloudsEnabled(false);
 	setExposure(1.f);
-	wiRenderer::SetTemporalAAEnabled(false);
+	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetVoxelRadianceEnabled(false);
 	wiRenderer::SetVoxelRadianceNumCones(2);

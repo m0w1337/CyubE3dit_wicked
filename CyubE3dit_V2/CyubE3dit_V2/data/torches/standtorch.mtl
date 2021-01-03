@@ -10,9 +10,9 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Ke .\\data\\torches\\material_emissive.png
-map_Ka .\\data\\torches\\material_diffuse.png
-map_Kd .\\data\\torches\\material_diffuse.png
-map_Ks .\\data\\torches\\material_specularGlossiness.png
-map_d .\\data\\torches\\material_diffuse.png
-map_bump .\\data\\torches\\material_normal.png
+map_Ke material_emissive.png
+map_Ka material_diffuse.png
+map_Kd material_diffuse.png
+map_Ks material_specularGlossiness.png
+map_d material_diffuse.png
+map_bump material_normal.png

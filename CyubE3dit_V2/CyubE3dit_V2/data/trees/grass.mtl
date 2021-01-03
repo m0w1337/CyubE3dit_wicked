@@ -10,7 +10,7 @@ Ke 0.0 0.0 0.0
 Ni 1.000000
 d 1.000000
 illum 2
-map_Ka .\\data\\trees\\Foliage01_col.png
-map_Kd .\\data\\trees\\Foliage01_col.png
-map_d .\\data\\trees\\Foliage01_col.png
-map_bump .\\data\\trees\\Foliage01_nrm.jpg
+map_Ka Foliage01_col.dds
+map_Kd Foliage01_col.dds
+map_d Foliage01_col.dds
+map_bump Foliage01_nrm.dds

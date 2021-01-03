@@ -12,10 +12,10 @@ newmtl tree_mango_trunk_mat
 	Kd 0.8000 0.8000 0.8000
 	Ks 0.5000 0.5000 0.5000
 	Ke 0.0000 0.0000 0.0000
-	map_Ka .\\data\\trees\\tree_mangoBark_DIF.tga
-	map_Kd .\\data\\trees\\tree_mangoBark_DIF.tga
-	map_Ks .\\data\\trees\\tree_mangoBark_SPC.tga
-	map_bump .\\data\\trees\\tree_mangoBark_NMM.tga
+	map_Ka tree_mangoBark_DIF.dds
+	map_Kd tree_mangoBark_DIF.dds
+	map_Ks tree_mangoBark_SPC.dds
+	map_bump tree_mangoBark_NMM.dds
 
 newmtl tree_mango_leaves_mat
 	Ns 43.2193
@@ -28,8 +28,8 @@ newmtl tree_mango_leaves_mat
 	Kd 0.6000 0.5000 0.4000
 	Ks 0.3000 0.3000 0.3000
 	Ke 0.0000 0.0000 0.0000
-	map_Ka .\\data\\trees\\tree_mangoLeaves_DIF.tga
-	map_Kd .\\data\\trees\\tree_mangoLeaves_DIF.tga
-	map_Ks .\\data\\trees\\tree_mangoLeaves_SPC.tga
-	map_d .\\data\\trees\\tree_mangoLeaves_MSK.tga
-	map_bump .\\data\\trees\\tree_mangoLeaves_NMM.tga
+	map_Ka tree_mangoLeaves_DIF.dds
+	map_Kd tree_mangoLeaves_DIF.dds
+	map_Ks tree_mangoLeaves_SPC.dds
+	map_d tree_mangoLeaves_MSK.dds
+	map_bump tree_mangoLeaves_NMM.dds

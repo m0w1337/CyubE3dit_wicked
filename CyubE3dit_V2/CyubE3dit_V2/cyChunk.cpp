@@ -82,7 +82,20 @@ void cyChunk::solidChunk(void) {
 void cyChunk::loadCustomBlocks(void) {
 	if (_msize(m_chunkdata) > 0x190000) {
 		uint32_t dSize	= 0;
-		uint64_t offset = skipCdataArray(4 + 32 * 32 * 800 * 2, 5);	 //Torch rotations ---> TBD
+		uint64_t offset = 4 + 32 * 32 * 800 * 2;	 //Torch rotations ---> TBD
+		memcpy(&dSize, m_chunkdata + offset, 4);
+		offset += 4;
+		blockpos_t pos;
+		uint8_t rot = 0;
+		while (dSize) {
+			memcpy(&(pos.x), m_chunkdata + offset, 1);
+			memcpy(&(pos.y), m_chunkdata + offset + 1, 1);
+			memcpy(&(pos.z), m_chunkdata + offset + 2, 2);
+			memcpy(&(rot), m_chunkdata + offset + 4, 1);
+			offset += 5;
+			m_Torches[pos] = rot;
+			dSize--;
+		}
 		offset			= skipCdataArray(offset, 5);
 		memcpy(&m_lowestZ, m_chunkdata + offset, 2);
 		offset += 2;

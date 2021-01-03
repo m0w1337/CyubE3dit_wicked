@@ -218,7 +218,8 @@
 	  {
         "id": 15,
         "textype": 6,
-        "mesh": "walltorch.obj",
+        "mesh0": "walltorch.obj",
+		"mesh1": "standtorch2.obj",
         "text": "Torch"
       },
       {
