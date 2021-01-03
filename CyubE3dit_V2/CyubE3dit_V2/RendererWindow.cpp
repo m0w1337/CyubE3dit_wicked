@@ -262,25 +262,32 @@ void RendererWindow::Create(CyRender* renderer)
 		switch (args.iValue)
 		{
 		case 0:
-			wiRenderer::SetShadowProps2D(0, -1);
+			wiRenderer::SetShadowProps2D(128, -1);
+			renderer->setShadowsEnabled(false);
 			break;
 		case 1:
 			wiRenderer::SetShadowProps2D(128, -1);
+			renderer->setShadowsEnabled(true);
 			break;
 		case 2:
 			wiRenderer::SetShadowProps2D(256, -1);
+			renderer->setShadowsEnabled(true);
 			break;
 		case 3:
 			wiRenderer::SetShadowProps2D(512, -1);
+			renderer->setShadowsEnabled(true);
 			break;
 		case 4:
 			wiRenderer::SetShadowProps2D(1024, -1);
+			renderer->setShadowsEnabled(true);
 			break;
 		case 5:
 			wiRenderer::SetShadowProps2D(2048, -1);
+			renderer->setShadowsEnabled(true);
 			break;
 		case 6:
 			wiRenderer::SetShadowProps2D(4096, -1);
+			renderer->setShadowsEnabled(true);
 			break;
 		default:
 			break;
@@ -460,7 +467,7 @@ void RendererWindow::Create(CyRender* renderer)
 
 	// Visualizer toggles:
 	x = 540, y = 5;
-
+	/*
 	partitionBoxesCheckBox.Create("SPTree visualizer: ");
 	partitionBoxesCheckBox.SetTooltip("Visualize the world space partitioning tree as boxes");
 	partitionBoxesCheckBox.SetScriptTip("SetDebugPartitionTreeEnabled(bool enabled)");
@@ -544,13 +551,13 @@ void RendererWindow::Create(CyRender* renderer)
 	});
 	gridHelperCheckBox.SetCheck(wiRenderer::GetToDrawGridHelper());
 	AddWidget(&gridHelperCheckBox);
-
+	*/
 
 	pickTypeObjectCheckBox.Create("hover chunks: ");
 	pickTypeObjectCheckBox.SetTooltip("Enable if you want to display chunk IDs and bounding box on hovering");
 	pickTypeObjectCheckBox.SetPos(XMFLOAT2(x, y += step * 2));
 	pickTypeObjectCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
-	pickTypeObjectCheckBox.SetCheck(true);
+	pickTypeObjectCheckBox.SetCheck(false);
 	AddWidget(&pickTypeObjectCheckBox);
 	/*
 	pickTypeEnvProbeCheckBox.Create("Pick EnvProbes: ");
@@ -642,7 +649,7 @@ void RendererWindow::Create(CyRender* renderer)
 
 
 
-	Translate(XMFLOAT3(100, 50, 0));
+	Translate(XMFLOAT3(300, 50, 0));
 	SetVisible(false);
 }
 

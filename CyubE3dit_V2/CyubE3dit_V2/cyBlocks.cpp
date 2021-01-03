@@ -6,13 +6,15 @@ using namespace std;
 using namespace wiECS;
 using namespace wiScene;
 
-uint8_t cyBlocks::m_regBlockTypes[256]	   = {0};
-uint8_t cyBlocks::m_regBlockFlags[256][6]  = {{0}};
-Entity cyBlocks::m_regBlockMats[256][6]	   = {{0}};
-Entity cyBlocks::m_variationMat			   = 0;
+uint8_t cyBlocks::m_regBlockTypes[256]	   = {wiECS::INVALID_ENTITY};
+uint8_t cyBlocks::m_regBlockFlags[256][6]  = {{wiECS::INVALID_ENTITY}};
+Entity cyBlocks::m_regBlockMats[256][6]	   = {{wiECS::INVALID_ENTITY}};
+std::unordered_map<uint32_t, cyBlocks::mesh_t> cyBlocks::m_regMeshes;
 uint8_t cyBlocks::m_voidID				   = 255;
-Entity cyBlocks::m_fallbackMat			   = 0;
-	std::string cyBlocks::m_regBlockNames[256] = {""};
+Entity cyBlocks::m_fallbackMat			   = wiECS::INVALID_ENTITY;
+bool cyBlocks::m_loaded					   = false;
+std::vector<Entity> cyBlocks::m_treeMeshes;
+std::string cyBlocks::m_regBlockNames[256] = {""};
 wiScene::Scene& cyBlocks::m_scene		   = wiScene::GetScene();
 std::unordered_map<uint32_t, cyBlocks::cBlock_t> cyBlocks::m_cBlockTypes;
 
@@ -42,7 +44,7 @@ void cyBlocks::LoadRegBlocks(void) {
 				}
 			} else if (it.key() == "Torch") {
 				for (size_t i = 0; i < it.value().size(); i++) {
-					catchRegularBlockSpecs(it, i, BLOCKTYPE_TORCH);
+					catchRegularMeshSpecs(it, i, BLOCKTYPE_TORCH);
 				}
 			} else if (it.key() == "ModBlock") {
 				for (size_t i = 0; i < it.value().size(); i++) {
@@ -58,6 +60,45 @@ void cyBlocks::LoadRegBlocks(void) {
 				}
 			}
 		}
+	}
+	m_loaded = true;
+}
+
+void cyBlocks::loadMeshes(void) {
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(),2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree_mango_var01.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.obj", wiScene::GetScene(), 0));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\grass.obj", wiScene::GetScene(), 1));
+}
+
+void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype) {
+	string meshObj = "";
+	mesh_t mesh;
+	uint8_t id	= 0;
+	try {
+		id = (matType_t)it.value().at(i).at("id");
+	}
+	catch (...) {
+		return;
+	}
+	m_regBlockTypes[id] = blocktype;
+	mesh.type = blocktype;
+	try {
+		mesh.name = it.value().at(i).at("text");
+	}
+	catch (...) {
+	}
+	try {
+		meshObj				  = it.value().at(i).at("mesh");
+		mesh.mesh = ImportModel_OBJ("data\\torches\\standtorch.obj", wiScene::GetScene(), 0);
+		mesh.material		  = mesh.mesh - 1;
+	}
+	catch (...) {
+	}
+	if (mesh.mesh) {
+		m_regMeshes[id] = mesh;
 	}
 }
 
@@ -102,13 +143,13 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->SetUseVertexColors(true);
 			}*/
 			if (blocktype == BLOCKTYPE_ALPHA) {
-				material->SetReflectance(0.07);
+				material->SetReflectance(0.08);
 				material->userBlendMode = BLENDMODE_ALPHA;
 				material->SetRefractionIndex(0.001f);
 				material->SetBaseColor(XMFLOAT4(0, 0, 0, 0.03f));
 				material->SetMetalness(0.02f);
 				material->SetRoughness(0.03f);
-				material->SetCastShadow(false);
+				material->SetCastShadow(true);
 			} else {
 				material->SetReflectance(0);
 				material->SetMetalness(0);
@@ -137,7 +178,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->surfaceMapName = "images/" + tex;
 				material->surfaceMap	 = wiResourceManager::Load(material->surfaceMapName);
 				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
-				material->SetParallaxOcclusionMapping(4.0);
+				material->SetParallaxOcclusionMapping(1.0);
 				material->SetMetalness(1.0f);
 				material->SetRoughness(1.0f);
 				material->SetReflectance(1.0f);
@@ -175,9 +216,13 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			}
 		}
 	} else {
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->userBlendMode = BLENDMODE_ALPHA;
+		//m_scene.materials.GetComponent(m_regBlockMats[id][0])->userBlendMode = BLENDMODE_ALPHA;
+		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetAlphaRef(0.2f);
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseWind(true);
+		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetCastShadow(false);
+		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseVertexColors(false);
 	}
+
 }
 
 void cyBlocks::LoadCustomBlocks(void) {

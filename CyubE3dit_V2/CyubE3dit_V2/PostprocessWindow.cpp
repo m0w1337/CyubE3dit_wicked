@@ -10,7 +10,7 @@ using namespace wiGraphics;
 
 void PostprocessWindow::Create(CyRender* renderer) {
 	wiWindow::Create("PostProcess Window");
-	SetSize(XMFLOAT2(420, 500));
+	SetSize(XMFLOAT2(450, 500));
 
 	float x = 150;
 	float y = 10;
@@ -154,6 +154,20 @@ void PostprocessWindow::Create(CyRender* renderer) {
 		});
 	AddWidget(&raytracedReflectionsCheckBox);
 	raytracedReflectionsCheckBox.SetEnabled(wiRenderer::GetDevice()->CheckCapability(GRAPHICSDEVICE_CAPABILITY_RAYTRACING));
+
+	rtrCheckBox.Create("RTR: ");
+	rtrCheckBox.SetTooltip("Enable real time Reflections (expensive).");
+	rtrCheckBox.SetScriptTip("");
+	rtrCheckBox.SetSize(XMFLOAT2(hei, hei));
+	rtrCheckBox.SetPos(XMFLOAT2(x, y += step));
+	rtrCheckBox.OnClick([=](wiEventArgs args) {
+		if (CyMainComponent::m_probe != 0) {
+			wiScene::EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(CyMainComponent::m_probe);
+			probe->SetRealTime(args.bValue);
+			probe->SetDirty();
+		}
+	});
+	AddWidget(&rtrCheckBox);
 
 	eyeAdaptionCheckBox.Create("EyeAdaption: ");
 	eyeAdaptionCheckBox.SetTooltip("Enable eye adaption for the overall screen luminance");

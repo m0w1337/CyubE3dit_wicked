@@ -1,0 +1,26 @@
+# Blender MTL File: 'None'
+# Material Count: 2
+
+newmtl Default_OBJ
+Ns 323.999994
+Ka 0.200000 0.200000 0.200000
+Kd 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 0
+map_Bump .\\data\\trees\\bark3_nmp.tga
+map_Kd .\\data\\trees\\bark3.tga
+
+newmtl Material
+Ns 323.999994
+Ka 0.200000 0.200000 0.200000
+Kd 0.400000 0.300000 0.200000
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 0
+map_Kd .\\data\\trees\\leafs3.tga
+map_d .\\data\\trees\\leafs3.tga

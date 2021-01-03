@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "meshGen.h"
+#include "cyRender.h"
 
 using namespace std;
 using namespace wiECS;
@@ -13,6 +14,8 @@ MeshComponent* meshGen::AddMesh(Scene& scene, uint32_t _chunkID , wiECS::Entity 
 	*_newEntity				= scene.Entity_CreateObject(to_string(_chunkID));
 	ObjectComponent& object = *scene.objects.GetComponent(*_newEntity);
 	object.meshID			= scene.Entity_CreateMesh("");
+	LayerComponent& layer = *scene.layers.GetComponent(*_newEntity);
+	layer.layerMask			= LAYER_CHUNKMESH;
 	//scene.impostors.Create(object.meshID);
 	MeshComponent* mesh = scene.meshes.GetComponent(object.meshID);
 	mesh->subsets.emplace_back();

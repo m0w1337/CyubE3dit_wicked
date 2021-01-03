@@ -54,7 +54,6 @@
         "texture0": "flagstone.dds",
 		"normal0": "flagstone_n.dds",
 		"occlusion0": "flagstone_o.dds",
-		"rough0": "flagstone_r.dds",
         "text": "Cobblestone"
       },
       {
@@ -155,7 +154,9 @@
       {
         "id": 52,
         "textype": 1,
-        "texture0": "Scaffolding.dds",
+        "texture0": "scaffolding.dds",
+		"normal0": "scaffolding_n.dds",
+		"occlusion0": "scaffolding_o.dds",
         "text": "Wood Scaffolding"
       },
       {
@@ -217,8 +218,7 @@
 	  {
         "id": 15,
         "textype": 6,
-        "texture0": "torch.jpg",
-        "mesh": "torch_obj.mesh",
+        "mesh": "walltorch.obj",
         "text": "Torch"
       },
       {

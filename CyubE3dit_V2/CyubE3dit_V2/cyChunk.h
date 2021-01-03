@@ -61,12 +61,18 @@ public:
 			return ((((uint64_t)pointToHash.x) << 24) | (((uint64_t)pointToHash.y) << 16) | ((uint64_t)pointToHash.z));
 		};
 	};
-
+	struct meshLoc {
+		XMFLOAT3 scale;
+		uint8_t type;
+		float Yaw;
+		blockpos_t pos;
+	};
 	uint16_t m_lowestZ;
 	uint16_t m_highestZ;
 	uint32_t m_id;
 	uint16_t m_surfaceheight;
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
+	std::vector<meshLoc> meshObjects;
 	bool m_isAirChunk;
 	char* m_chunkdata;
 	explicit cyChunk(void);
@@ -80,5 +86,5 @@ protected:
 	uint64_t skipCdataArray(uint64_t startpos, uint8_t elementsize);
 	void loadCblockTmap(uint64_t startpos);
 	void loadCustomBlocks(void);
-	//static void loadChunk(sqlite3* db, uint32_t chunkID, uint32_t neightbourIDs[4]);
+	void loadMeshes(sqlite3* db);
 };

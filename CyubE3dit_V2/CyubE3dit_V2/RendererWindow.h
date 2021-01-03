@@ -1,26 +1,25 @@
 #pragma once
 #include "WickedEngine.h"
 
-
 class CyRender;
 
-enum PICKTYPE
-{
-	PICK_VOID				= 0,
-	PICK_CHUNK				= RENDERTYPE_OPAQUE | RENDERTYPE_TRANSPARENT,
-	PICK_LIGHT				= 8,
-	PICK_DECAL				= 16,
-	PICK_ENVPROBE			= 32,
-	PICK_FORCEFIELD			= 64,
-	PICK_EMITTER			= 128,
-	PICK_HAIR				= 256,
-	PICK_CAMERA				= 512,
-	PICK_ARMATURE			= 1024,
-	PICK_SOUND				= 2048,
+enum PICKTYPE {
+	PICK_VOID		= 0,
+	PICK_CHUNK		= RENDERTYPE_OPAQUE | RENDERTYPE_TRANSPARENT,
+	PICK_LIGHT		= 8,
+	PICK_DECAL		= 16,
+	PICK_ENVPROBE	= 32,
+	PICK_FORCEFIELD = 64,
+	PICK_EMITTER	= 128,
+	PICK_HAIR		= 256,
+	PICK_CAMERA		= 512,
+	PICK_ARMATURE	= 1024,
+	PICK_SOUND		= 2048,
 };
 
-class RendererWindow : public wiWindow
-{
+
+
+class RendererWindow : public wiWindow {
 public:
 	void Create(CyRender* renderer);
 
@@ -76,6 +75,5 @@ public:
 	wiCheckBox freezeCullingCameraCheckBox;
 	wiCheckBox disableAlbedoMapsCheckBox;
 
-    uint32_t GetPickType() const;
+	uint32_t GetPickType() const;
 };
-

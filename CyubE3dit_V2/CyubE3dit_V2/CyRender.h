@@ -18,12 +18,16 @@ public:
 class CyMainComponent;
 class CyRender : public RenderPath3D {
 public:
+	float lasttime;
+	float sinepulse;
 	wiComboBox worldSelector;
 	RendererWindow rendererWnd;
 	PostprocessWindow postprocessWnd;
 	wiButton rendererWnd_Toggle;
 	wiButton postprocessWnd_Toggle;
+	wiSlider viewDist;
 	wiLabel label;
+	
 	CyMainComponent* main;
 	wiScene::PickResult hovered;
 	void Load() override;

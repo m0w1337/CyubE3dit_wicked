@@ -4,10 +4,13 @@
 
 class settings {
 public:
+	static constexpr uint8_t VIEWDIST_MIN = 8;
+	static constexpr uint8_t VIEWDIST_MAX = 64;
 	static atomic<uint32_t> viewDist;
 	static cyImportant world;
 	static atomic <size_t> numVisChunks;
 	static string newWorld;
+	static string thisWorld;
 
 static inline cyImportant* getWorld() {
 	return &world;
@@ -16,8 +19,9 @@ static inline cyImportant* getWorld() {
 static inline uint32_t getViewDist() {
 	return viewDist;
 }
-static inline uint32_t setViewDist(uint32_t _viewDist) {
-	viewDist = _viewDist;
+static inline void setViewDist(uint32_t _viewDist) {
+	if (_viewDist >= VIEWDIST_MIN && _viewDist <= VIEWDIST_MAX *3)	 //leave some space at the upper limit for the brave users ;)
+		viewDist = _viewDist;
 }
 
 };

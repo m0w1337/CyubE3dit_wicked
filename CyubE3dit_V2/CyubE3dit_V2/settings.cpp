@@ -4,4 +4,5 @@
 atomic<uint32_t> settings::viewDist = 32;  //64;
 cyImportant settings::world;
 atomic<size_t> settings::numVisChunks = 0;
-string settings::newWorld = "My Great World - Kopie(cleaned)";
+string settings::newWorld			  = "";
+string settings::thisWorld			  = "";

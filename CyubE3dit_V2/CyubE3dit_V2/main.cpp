@@ -8,12 +8,44 @@
 #include <thread>
 #include "cyImportant.h"
 #include "sqlite3.h"
+#include <dbghelp.h>
 
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
 
+
+
+
+LONG WINAPI MyUnhandledExceptionFilter(EXCEPTION_POINTERS* ExceptionInfo) {
+	HANDLE hFile = CreateFile(
+		L"CrashDump.dmp",
+		GENERIC_READ | GENERIC_WRITE,
+		FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+		NULL,
+		CREATE_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+	MINIDUMP_EXCEPTION_INFORMATION mei;
+	mei.ThreadId		  = GetCurrentThreadId();
+	mei.ClientPointers	  = TRUE;
+	mei.ExceptionPointers = ExceptionInfo;
+	MiniDumpWriteDump(
+		GetCurrentProcess(),
+		GetCurrentProcessId(),
+		hFile,
+		MiniDumpNormal,
+		&mei,
+		NULL,
+		NULL);
+
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+
 mutex m;
+
+
 
 #define MAX_LOADSTRING 100
 
@@ -37,7 +69,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	// TODO: Place code here.
+	SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
 
 	BOOL dpi_success = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	assert(dpi_success);
@@ -58,9 +90,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TEMPLATEWINDOWS));
 
 	// just show some basic info:
-
+	
 	mainComp.Initialize();
-
 
 	
 	// Reset all state that tests might have modified:
@@ -89,56 +120,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	
 
 	chunkLoader loader;
-	loader.spawnThreads(wiJobSystem::GetThreadCount());
+	loader.spawnThreads(wiJobSystem::GetThreadCount() - 1);
 	DWORD lasttick = 0;
-	bool headlamp  = false;
-	bool loaded	   = false;
-	string thisWorld = settings::newWorld;
 	while (msg.message != WM_QUIT)
 	{
-		if (mainComp.GetActivePath() == &mainComp.renderer && !loaded) {
-			loaded = true;
-			mainComp.infoDisplay.active		= true;
-			mainComp.infoDisplay.watermark	= true;
-			mainComp.infoDisplay.resolution = true;
-			mainComp.infoDisplay.fpsinfo	= true;
-			mainComp.m_probe			 = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
-			EnvironmentProbeComponent* probe = wiScene::GetScene().probes.GetComponent(mainComp.m_probe);
-			probe->SetRealTime(true);
-			probe->SetDirty();
-			cyImportant* world = settings::getWorld();
-			TransformComponent ctransform;
-			world->loadWorldInfo(settings::newWorld);
-			ctransform.Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 10.0f, 0.f));
-			ctransform.RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
-			ctransform.SetDirty();
-			ctransform.UpdateTransform();
-			wiScene::GetCamera().SetDirty();
-			wiScene::GetCamera().TransformCamera(ctransform);
-			wiScene::GetCamera().UpdateCamera();
-			TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
-			transform->ClearTransform();
-			transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 10.0f, 0.f));
-			//lightT->RotateRollPitchYaw(XMFLOAT3(1.5, 0, 0));
-			transform->SetDirty();
-			transform->UpdateTransform();
-
-			transform = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
-			transform->ClearTransform();
-			transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 10.0f, 0.f));
-			transform->SetDirty();
-			transform->UpdateTransform();
-
-			float screenW = wiRenderer::GetDevice()->GetScreenWidth();
-			float screenH = wiRenderer::GetDevice()->GetScreenHeight();
-			mainComp.renderer.ResizeLayout();
-		}
-
-		if (settings::newWorld != thisWorld) {
-			cyImportant* world = settings::getWorld();
-			world->loadWorldInfo(settings::newWorld);
-			thisWorld = settings::newWorld;
-		}
+		
 		
 		if (wiInput::Press((wiInput::BUTTON)'M')) {
 		}
@@ -152,34 +138,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 			if (wiInput::Press((wiInput::BUTTON)'H')) {
 				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
-				wiBackLog::Toggle();
+				//wiBackLog::Toggle();
 			}
-			if (wiInput::Press((wiInput::BUTTON)'T')) {
+			if (wiInput::Press((wiInput::BUTTON)'F')) {
 				if (mainComp.m_headLight != INVALID_ENTITY) {
 					LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);
-					if (headlamp == true) {
-						wiBackLog::post("Light off");
-						headlamp	  = false;
+					if (light->energy > 0.5f) {
+						//wiBackLog::post("Light off");
 						light->energy = 0.0f;
 						light->SetCastShadow(false);
 						light->SetVolumetricsEnabled(false);
 					} else {
-						wiBackLog::post("Light on");
-						headlamp	  = true;
-						light->energy = 15.0f;
+						//wiBackLog::post("Light on");
+						light->energy = 7.0f;
 						light->SetCastShadow(true);
 						light->SetVolumetricsEnabled(true);
 					}
 				}
 			}
-			//if (GetTickCount() - lasttick > 250) {
-			//	lasttick = GetTickCount();
-			//	mainComp.renderer.label.SetText(to_string(settings::numVisChunks) + " Chunks visible");
-			//}
+			if (settings::newWorld != settings::thisWorld && mainComp.GetActivePath() == &mainComp.renderer) {
+				cyImportant* world = settings::getWorld();
+				world->loadWorldInfo(settings::newWorld);
+				settings::thisWorld = settings::newWorld;
+				TransformComponent ctransform;
+				ctransform.Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
+				ctransform.RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+				ctransform.SetDirty();
+				ctransform.UpdateTransform();
+				wiScene::GetCamera().SetDirty();
+				wiScene::GetCamera().TransformCamera(ctransform);
+				wiScene::GetCamera().UpdateCamera();
+				TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_headLight);
+				transform->ClearTransform();
+				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
+				transform->RotateRollPitchYaw(XMFLOAT3(-1.5, 0, 0));
+				transform->SetDirty();
+				transform->UpdateTransform();
+				if (CyMainComponent::m_probe != wiECS::INVALID_ENTITY) {
+					transform = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
+					transform->ClearTransform();
+					transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
+					transform->SetDirty();
+					transform->UpdateTransform();
+				}
+			}
+			
 		}
 	}
-	loader.m_threadstate[0] = 99;
-
+	loader.shutdown();
+	loader.m_shutdown = 2;
 	return (int)msg.wParam;
 }
 

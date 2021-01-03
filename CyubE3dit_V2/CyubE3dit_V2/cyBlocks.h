@@ -9,6 +9,7 @@
 #include <wctype.h>
 #include <ctype.h>
 #include <shlobj_core.h>
+#include "ModelImporter.h"
 
 using json = nlohmann::json;
 
@@ -42,6 +43,12 @@ public:
 		std::string creator;
 		std::string name;
 	};
+	struct mesh_t {
+		blocktype_t type;
+		wiECS::Entity material;
+		wiECS::Entity mesh;
+		std::string name;
+	};
 	enum blockflags_t {
 		BLOCKFLAG_REGULAR	= 0,
 		BLOCKFLAG_MISC0		= 2,  //unuseable
@@ -55,12 +62,15 @@ public:
 	static uint8_t m_regBlockFlags[256][6];
 	static wiECS::Entity m_regBlockMats[256][6];
 	static std::unordered_map<uint32_t, cBlock_t> m_cBlockTypes;
-	static wiECS::Entity m_variationMat;
+	static std::unordered_map<uint32_t, cyBlocks::mesh_t> m_regMeshes;
 	static uint8_t m_voidID;
 	static  std::string m_regBlockNames[256];
 	static wiECS::Entity m_fallbackMat;
+	static std::vector<wiECS::Entity> m_treeMeshes;
+	static bool m_loaded;
 
 	static void LoadRegBlocks(void);
+	static void loadMeshes(void);
 	static void LoadCustomBlocks(void);
 
 private:
@@ -92,5 +102,6 @@ private:
 	static bool GetStringRegKey(const std::wstring& key, const std::wstring& strValueName, std::wstring& strValue);
 	static bool iequals(std::string str1, std::string str2);
 	static void addCustomBlocksPath(std::wstring customPath);
+	static void catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype); 
 	static void catchRegularBlockSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype);
 };

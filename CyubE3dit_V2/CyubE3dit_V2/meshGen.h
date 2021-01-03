@@ -2,9 +2,17 @@
 #include "WickedEngine.h"
 #include "SimplexNoise.h"
 #define ANTITILE_FACT 8
+
+enum LAYERMASKS {
+	LAYER_CHUNKMESH = 1,
+	LAYER_TREE		= 2,
+	LAYER_TORCH = 4
+};
+
 class meshGen {
 
 public:
+	
 	static SimplexNoise m_noise;
 	meshGen();
 	static wiScene::MeshComponent* AddMesh(wiScene::Scene& scene, uint32_t _chunkID, wiECS::Entity _material, wiECS::Entity* _newEntity);
@@ -70,13 +78,14 @@ public:
 
 	}
 
-	static void inline AddFaceTop(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
-		z			   = z + 0.25f;
+	static void inline AddFaceTop(wiScene::MeshComponent* mesh, float x, float y, float z, uint8_t size, bool antitile = false) {
+		float offs	   = 0.25f * size;
+		z			   = z + offs;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y + 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y + 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z, y + offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z, y + offs));
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
@@ -121,13 +130,14 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
 	}
 
-	static void inline AddFaceBottom(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
-		z			   = z - 0.25f;
+	static void inline AddFaceBottom(wiScene::MeshComponent* mesh, float x, float y, float z, uint8_t size, bool antitile = false) {
+		float offs	   = 0.25f * size;
+		z			   = z - offs;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z, y + 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z, y + 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z, y + offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z, y + offs));
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
@@ -167,13 +177,14 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(0, -1, 0));
 	}
 
-	static void inline AddFaceRight(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
-		x			   = x + 0.25f;
+	static void inline AddFaceRight(wiScene::MeshComponent* mesh, float x, float y, float z, uint8_t size, bool antitile = false) {
+		float offs	   = 0.25f * size;
+		x			   = x + offs;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y + 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y + 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - offs, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + offs, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + offs, y + offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - offs, y + offs));
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
@@ -217,13 +228,14 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
 	}
 
-	static void inline AddFaceLeft(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
-		x			   = x - 0.25f;
+	static void inline AddFaceLeft(wiScene::MeshComponent* mesh, float x, float y, float z, uint8_t size, bool antitile = false) {
+		float offs	   = 0.25f * size;
+		x			   = x - offs;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y - 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + 0.25f, y + 0.25f));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y + 0.25f));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - offs, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + offs, y - offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + offs, y + offs));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - offs, y + offs));
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
@@ -269,13 +281,14 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(-1, 0, 0));
 	}
 
-	static void inline AddFaceFront(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
-		y			   = y + 0.25f;
+	static void inline AddFaceFront(wiScene::MeshComponent* mesh, float x, float y, float z, uint8_t size, bool antitile = false) {
+		float offs	   = 0.25f * size;
+		y			   = y + offs;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z - 0.25f, y));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z + 0.25f, y));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z + 0.25f, y));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z - 0.25f, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z - offs, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z + offs, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z + offs, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z - offs, y));
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
@@ -318,13 +331,14 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
 	}
 
-	static void inline AddFaceBack(wiScene::MeshComponent* mesh, float x, float y, float z, bool antitile = false) {
-		y			   = y - 0.25f;
+	static void inline AddFaceBack(wiScene::MeshComponent* mesh, float x, float y, float z, uint8_t size, bool antitile = false) {
+		float offs	   = 0.25f * size;
+		y			   = y - offs;
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z - 0.25f, y));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x - 0.25f, z + 0.25f, y));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z + 0.25f, y));
-		mesh->vertex_positions.emplace_back(XMFLOAT3(x + 0.25f, z - 0.25f, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z - offs, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x - offs, z + offs, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z + offs, y));
+		mesh->vertex_positions.emplace_back(XMFLOAT3(x + offs, z - offs, y));
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);

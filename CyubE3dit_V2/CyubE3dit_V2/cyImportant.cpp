@@ -29,7 +29,7 @@ wstring cyImportant::find_importantFile(const std::wstring path)  // placing pat
 	return importantPath;
 }
 
-void cyImportant::loadWorldInfo(const std::string Worldname) {
+void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 	PWSTR path	  = NULL;
 	string dbpath = "";
 	m_filename.clear();
@@ -41,7 +41,7 @@ void cyImportant::loadWorldInfo(const std::string Worldname) {
 		dbpath	   = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";
 	}
 	if (m_filename.size() > 1) {
-		cyImportant::loadData(dbpath);
+		cyImportant::loadData(dbpath, cleanWorld);
 	}
 }
 
@@ -60,11 +60,11 @@ bool cyImportant::getChunkID(const double x, const double y, uint32_t* chunkID) 
 	return true;
 }
 
-void cyImportant::loadData(const std::string dbpath) {
+void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 	ifstream file;
 	m_stopped = true;
 	cleaned = false;
-	while (!cleaned) {
+	while (!cleaned && cleanWorld) {
 		Sleep(10);
 	}
 	m_valid = false;

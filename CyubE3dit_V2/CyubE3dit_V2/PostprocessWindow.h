@@ -17,6 +17,7 @@ public:
 	wiSlider aoRangeSlider;
 	wiSlider aoSampleCountSlider;
 	wiCheckBox ssrCheckBox;
+	wiCheckBox rtrCheckBox;
 	wiCheckBox raytracedReflectionsCheckBox;
 	wiCheckBox eyeAdaptionCheckBox;
 	wiCheckBox motionBlurCheckBox;
