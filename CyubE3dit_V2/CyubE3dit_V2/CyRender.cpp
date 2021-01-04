@@ -7,6 +7,8 @@
 #include <fstream>
 #include <thread>
 #include <cmath>
+#include "windows.h"
+#include "psapi.h"
 
 using namespace std;
 using namespace wiECS;
@@ -329,14 +331,17 @@ void CyMainComponent::Compose(CommandList cmd) {
 		if (renderer.hovered.entity != wiECS::INVALID_ENTITY) {
 			ss << "Hovered Chunk: " + scene.names.GetComponent(renderer.hovered.entity)->name << endl;
 			//highlightComp->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 1.0f, 0.1f * renderer.sinepulse));
-			ss << "Hovered Block: " + blockname + "(ID " + to_string(id) + ")";
+			ss << "Hovered Block: " + blockname + "(ID " + to_string(id) + ")" << endl;
 		}
-
+		PROCESS_MEMORY_COUNTERS_EX pmc;
+		GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+		ss << "Physical RAM used: " + to_string(pmc.WorkingSetSize / 1000000) + " MB" << endl;
+		ss << "Virtual RAM used: " + to_string(pmc.PrivateUsage / 1000000) + " MB" << endl;
 		ss.precision(2);
 		wiFont::Draw(ss.str(), wiFontParams(4, 4, infoDisplay.size, WIFALIGN_LEFT, WIFALIGN_TOP, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
 	}
 
-	wiProfiler::DrawData(4, 150, cmd);
+	wiProfiler::DrawData(4, 180, cmd);
 
 	wiBackLog::Draw(cmd);
 

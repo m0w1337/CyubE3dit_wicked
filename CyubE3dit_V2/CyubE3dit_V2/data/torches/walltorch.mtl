@@ -11,8 +11,8 @@ Ni 1.000000
 d 1.000000
 illum 2
 map_Ke material_emissive.png
-map_Ka material_diffuse.png
-map_Kd material_diffuse.png
-map_Ks material_specularGlossiness.png
-map_d material_diffuse.png
-map_bump material_normal.png
+map_Ka material_diffuse.dds
+map_Kd material_diffuse.dds
+map_Ks material_specularGlossiness.dds
+map_d material_diffuse.dds
+map_bump material_normal.dds

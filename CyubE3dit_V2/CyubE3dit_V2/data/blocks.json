@@ -204,7 +204,6 @@
       {
         "id": 56,
         "textype": 5,
-        "texture0": "desertgrass.png",
         "text": "Desert Grass"
       },
       {
@@ -248,7 +247,6 @@
 	  {
         "id": 89,
         "textype": 1,
-        "texture0": "Glass.jpg",
         "text": "Glass"
       }
 	],
@@ -263,7 +261,6 @@
 	  {
         "id": 66,
         "textype": 66,
-        "texture0": "Modblock.png",
         "text": "Custom Block"
       }
 	],

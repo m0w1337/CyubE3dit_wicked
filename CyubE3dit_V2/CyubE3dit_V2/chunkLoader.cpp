@@ -344,22 +344,22 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 							switch (it->second) {
 								case 0:
 									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f, relY + 16 - y / 2.0f));
+									tf->Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
 									tf->RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
 									break;
 								case 1:
 									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f, relY + 16 - y / 2.0f));
+									tf->Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
 									tf->RotateRollPitchYaw(XMFLOAT3(0, -PI/2, 0));
 									break;
 								case 2:
 									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f, relY + 16 - y / 2.0f + 0.248));
+									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f -0.14, relY + 16 - y / 2.0f + 0.248));
 									
 									break;
 								case 3:
 									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f, relY + 16 - y / 2.0f - 0.248));
+									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f - 0.248));
 									tf->RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
 									break;
 								case 4:

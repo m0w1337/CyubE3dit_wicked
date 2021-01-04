@@ -67,7 +67,7 @@ void cyBlocks::LoadRegBlocks(void) {
 void cyBlocks::loadMeshes(void) {
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(),2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree_mango_var01.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.obj", wiScene::GetScene(), 0));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\grass.obj", wiScene::GetScene(), 1));
@@ -209,6 +209,26 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			material->SetDirty();
 		}
 		catch (...) {
+			if (ft == 0) {	//Support blocks without texture at all
+				m_regBlockMats[id][ft]	   = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
+				material				   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
+				if (blocktype == BLOCKTYPE_ALPHA) {
+					material->SetReflectance(0.09);
+					material->SetTransmissionAmount(0.99);
+					material->SetRefractionAmount(0.01f);
+					material->SetBaseColor(XMFLOAT4(1., 1., 1., 1.f));
+					material->SetMetalness(0.03f);
+					material->SetRoughness(0.05f);
+					material->SetCastShadow(true);
+				} else {
+					material->SetReflectance(0);
+					material->SetMetalness(0);
+					material->SetEmissiveStrength(0);
+					material->SetRoughness(1);
+					material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+				}
+			}
+			
 		}
 	}
 
@@ -228,6 +248,8 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	}
 
 }
+
+
 
 void cyBlocks::LoadCustomBlocks(void) {
 	fs::file_time_type filetime;
