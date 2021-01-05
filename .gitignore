@@ -16,6 +16,9 @@
 # Mono auto generated files
 mono_crash.*
 
+
+!trees/*.obj
+
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
@@ -27,9 +30,10 @@ x86/
 [Ww][Ii][Nn]32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
+[Oo]bj/
 bld/
 [Bb]in/
-[Oo]bj/
+
 [Ll]og/
 [Ll]ogs/
 
@@ -75,7 +79,7 @@ StyleCopReport.xml
 *_h.h
 *.ilk
 *.meta
-*.obj
+*.objs
 *.iobj
 *.pch
 *.pdb
