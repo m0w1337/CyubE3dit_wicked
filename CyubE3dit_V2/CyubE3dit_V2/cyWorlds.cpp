@@ -15,10 +15,13 @@ void cyWorlds::getWorlds(void) {
 	{
 		worldpath = wstring(path) + L"\\cyubeVR\\Saved\\WorldData\\";
 	}
-	
-	for (const auto& entry : fs::directory_iterator(worldpath)) {
-		if (entry.is_directory()) {
-			worlds.push_back(entry.path().filename().string());
+	try {
+		for (const auto& entry : fs::directory_iterator(worldpath)) {
+			if (entry.is_directory()) {
+				worlds.push_back(entry.path().filename().string());
+			}
 		}
+	}
+	catch (...) {
 	}
 }
