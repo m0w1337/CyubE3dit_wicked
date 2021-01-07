@@ -9,6 +9,7 @@
 #include "cyImportant.h"
 #include "sqlite3.h"
 #include <dbghelp.h>
+#include "cyVersion.h"
 
 using namespace std;
 using namespace wiECS;
@@ -135,7 +136,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			m.lock();
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
-
+			wiScene::Scene& scn = wiScene::GetScene();
+			if (GetTickCount() - lasttick > 50 && settings::torchlights == true) {
+				lasttick = GetTickCount();
+				for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
+					if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
+						scn.lights[i].energy = 6 + ((float)rand() / RAND_MAX) * 4;
+					}
+				}
+			}
+			
 			if (wiInput::Press((wiInput::BUTTON)'H')) {
 				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 				//wiBackLog::Toggle();
@@ -264,7 +274,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			switch (wmId)
 			{
 				case IDM_ABOUT:
+					
 					DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+
 					break;
 				case IDM_EXIT:
 					DestroyWindow(hWnd);
@@ -319,9 +331,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 // Message handler for about box.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 	UNREFERENCED_PARAMETER(lParam);
+	string version = string("CyubE3dit - CyubeVR swiss army knife Version ") + cyVersion::GetVersionString();
+	HBRUSH brush   = CreateSolidBrush(RGB(255, 255, 255));
+	HDC hdc		   = (HDC)wParam;
 	switch (message)
 	{
 		case WM_INITDIALOG:
+			SetDlgItemTextA(hDlg, MY_ABOUT_TEXT, version.c_str());
+			SetClassLongPtr(hDlg, GCLP_HBRBACKGROUND, (LONG_PTR)brush);
 			return (INT_PTR)TRUE;
 
 		case WM_COMMAND:
@@ -331,6 +348,19 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 				return (INT_PTR)TRUE;
 			}
 			break;
+		case WM_ERASEBKGND:
+			RECT rc;
+			GetClientRect(hDlg, &rc);
+			FillRect(hdc, &rc, brush); 
+			return 1L;
+			break;
+		case WM_CTLCOLORSTATIC:
+		{
+			SetTextColor(hdc, RGB(0, 0, 0));
+			SetBkColor(hdc, RGB(255, 255, 255));
+			return (INT_PTR)brush;
+			break;
+		}
 	}
 	return (INT_PTR)FALSE;
 }

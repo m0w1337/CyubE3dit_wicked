@@ -218,22 +218,31 @@
         "id": 15,
         "textype": 6,
         "mesh0": "walltorch.obj",
-		"mesh1": "standtorch2.obj",
-        "text": "Torch"
+		"mesh1": "standtorch.obj",
+        "text": "Torch",
+		"LightR": 255,
+		"LightG": 128,
+		"LightB": 0
       },
       {
         "id": 37,
         "textype": 6,
-        "texture0": "BlueTorch.jpg",
-        "mesh": "torch_obj.mesh",
+		"mesh0": "walltorch_b.obj",
+		"mesh1": "standtorch_b.obj",
+        "LightR": 0,
+		"LightG": 0,
+		"LightB": 255,
         "text": "Blue Torch"
       },
 	  {
         "id": 40,
         "textype": 6,
-        "texture0": "GreenTorch.jpg",
-        "mesh": "torch_obj.mesh",
-        "text": "Green Torch"
+        "mesh0": "walltorch_g.obj",
+		"mesh1": "standtorch_g.obj",
+        "text": "Green Torch",
+		"LightR": 0,
+		"LightG": 255,
+		"LightB": 0
       },
       {
         "id": 49,
@@ -463,109 +472,92 @@
 	  {
         "id": 50,
         "textype": 6,
-        "texture0": "Chair.png",
         "text": "Chair"
       },
       {
         "id": 51,
         "textype": 6,
-        "texture0": "BirchChair.png",
         "text": "Birch Chair"
       },
       {
         "id": 54,
         "textype": 6,
-        "texture0": "CopperWallMount.png",
         "text": "Copper Wallmount"
       },
       {
         "id": 55,
         "textype": 6,
-        "texture0": "Cactus.png",
         "text": "Cactus"
       },
       {
         "id": 57,
         "textype": 6,
-        "texture0": "WoodFrame.png",
         "text": "Wood Frame"
       },
       {
         "id": 58,
         "textype": 6,
-        "texture0": "GoldFrame.png",
         "text": "Gold Frame"
       },
       {
         "id": 59,
         "textype": 6,
-        "texture0": "CopperFrame.png",
         "text": "Copper Frame"
       },
 	  {
         "id": 78,
         "textype": 6,
-        "texture0": "WoodStool.png",
         "text": "Wood Stool"
       },
       {
         "id": 79,
         "textype": 6,
-        "texture0": "WoodTable1.png",
         "text": "Woodden Table 1"
       },
       {
         "id": 80,
         "textype": 6,
-        "texture0": "WoodTable2.png",
         "text": "Woodden Table 2"
       },
       {
         "id": 81,
         "textype": 6,
-        "texture0": "WoodCarafe.png",
         "text": "Woodden Carafe"
       },
       {
         "id": 82,
         "textype": 6,
-        "texture0": "WoodBench1.png",
         "text": "Woodden Bench 1"
       },
       {
         "id": 83,
         "textype": 6,
-        "texture0": "WoodBarrel.png",
         "text": "Woodden Barrel"
       },
       {
         "id": 84,
         "textype": 6,
-        "texture0": "WoodFence.png",
+        "mesh0": "fence.obj",
         "text": "Woodden Fence"
       },
       {
         "id": 85,
         "textype": 6,
-        "texture0": "MetalPod.png",
         "text": "Metal Pod"
       },
       {
         "id": 86,
         "textype": 6,
-        "texture0": "WoodBench2.png",
         "text": "Woodden Bench 2"
       },
       {
         "id": 87,
         "textype": 6,
-        "texture0": "WoodBench3.png",
         "text": "Woodden Bench 3"
       },
       {
         "id": 88,
         "textype": 6,
-        "texture0": "Sandbags.png",
         "text": "Pile of Sandbags"
       }
 	]

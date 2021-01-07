@@ -63,8 +63,14 @@ public:
 	};
 	struct meshLoc {
 		XMFLOAT3 scale;
+		XMFLOAT4 qRot;
 		uint8_t type;
-		float Yaw;
+		XMFLOAT3 pos;
+	};
+	struct treeLoc {
+		XMFLOAT3 scale;
+		float yaw;
+		uint8_t type;
 		blockpos_t pos;
 	};
 	uint16_t m_lowestZ;
@@ -74,6 +80,7 @@ public:
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
 	unordered_map<blockpos_t, uint8_t, blockpos_t> m_Torches;
 	std::vector<meshLoc> meshObjects;
+	std::vector<treeLoc> trees;
 	bool m_isAirChunk;
 	char* m_chunkdata;
 	explicit cyChunk(void);
@@ -84,7 +91,7 @@ public:
 
 protected:
 	sqlite3* m_db;
-	uint64_t skipCdataArray(uint64_t startpos, uint8_t elementsize);
+	uint64_t skipCdataArray(char* memory, uint64_t startpos, uint8_t elementsize);
 	void loadCblockTmap(uint64_t startpos);
 	void loadCustomBlocks(void);
 	void loadMeshes(sqlite3* db);

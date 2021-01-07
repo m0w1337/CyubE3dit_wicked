@@ -24,7 +24,7 @@ public:
 	};
 	struct chunkobjects_t {
 		wiECS::Entity chunkObj;
-		std::vector<wiECS::Entity> trees;
+		std::vector<wiECS::Entity> meshes;
 	};
 	struct point2d_t {
 		int32_t x;

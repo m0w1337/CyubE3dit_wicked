@@ -49,8 +49,8 @@ public:
 	wiCheckBox envProbesCheckBox;
 	wiCheckBox gridHelperCheckBox;
 	wiCheckBox cameraVisCheckBox;
-	wiCheckBox pickTypeObjectCheckBox;
-	wiCheckBox pickTypeEnvProbeCheckBox;
+	wiCheckBox pickTypeChunkCheckBox;
+	wiCheckBox TorchlightsCheckBox;
 	wiCheckBox pickTypeLightCheckBox;
 	wiCheckBox pickTypeDecalCheckBox;
 	wiCheckBox pickTypeForceFieldCheckBox;

@@ -1,0 +1,18 @@
+# Blender MTL File: 'None'
+# Material Count: 1
+
+newmtl material
+Ns 323.999994
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.000000
+d 1.000000
+illum 2
+map_Ke material_emissive_b.png
+map_Ka material_diffuse.dds
+map_Kd material_diffuse.dds
+map_Ks material_specularGlossiness.dds
+map_d material_diffuse.dds
+map_bump material_normal.dds

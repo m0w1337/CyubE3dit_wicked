@@ -2,7 +2,7 @@
 #include "RendererWindow.h"
 #include "RenderPath3D.h"
 #include "CyRender.h"
-
+#include "settings.h"
 
 
 void RendererWindow::Create(CyRender* renderer)
@@ -553,12 +553,28 @@ void RendererWindow::Create(CyRender* renderer)
 	AddWidget(&gridHelperCheckBox);
 	*/
 
-	pickTypeObjectCheckBox.Create("hover chunks: ");
-	pickTypeObjectCheckBox.SetTooltip("Enable if you want to display chunk IDs and bounding box on hovering");
-	pickTypeObjectCheckBox.SetPos(XMFLOAT2(x, y += step * 2));
-	pickTypeObjectCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
-	pickTypeObjectCheckBox.SetCheck(false);
-	AddWidget(&pickTypeObjectCheckBox);
+	pickTypeChunkCheckBox.Create("hover chunks: ");
+	pickTypeChunkCheckBox.SetTooltip("Enable if you want to display chunk IDs and bounding box on hovering");
+	pickTypeChunkCheckBox.SetPos(XMFLOAT2(x, y += step * 2));
+	pickTypeChunkCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
+	pickTypeChunkCheckBox.SetCheck(false);
+	AddWidget(&pickTypeChunkCheckBox);
+
+	TorchlightsCheckBox.Create("torchlights: ");
+	TorchlightsCheckBox.SetTooltip("Enable if you want to render all torches as real lights (might result in frame drop)");
+	TorchlightsCheckBox.SetPos(XMFLOAT2(x, y += step * 2));
+	TorchlightsCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
+	TorchlightsCheckBox.SetCheck(settings::torchlights);
+	TorchlightsCheckBox.OnClick([](wiEventArgs args) {
+		settings::torchlights = args.bValue;
+		wiScene::Scene& scn = wiScene::GetScene();
+		for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
+			if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
+				scn.lights[i].SetStatic(!args.bValue);
+			}
+		}
+	});
+	AddWidget(&TorchlightsCheckBox);
 	/*
 	pickTypeEnvProbeCheckBox.Create("Pick EnvProbes: ");
 	pickTypeEnvProbeCheckBox.SetTooltip("Enable if you want to pick environment probes with the pointer");
@@ -656,13 +672,9 @@ void RendererWindow::Create(CyRender* renderer)
 uint32_t RendererWindow::GetPickType() const
 {
     uint32_t pickType = PICK_VOID;
-	if (pickTypeObjectCheckBox.GetCheck())
+	if (pickTypeChunkCheckBox.GetCheck())
 	{
 		pickType |= PICK_CHUNK;
-	}
-	if (pickTypeEnvProbeCheckBox.GetCheck())
-	{
-		pickType |= PICK_ENVPROBE;
 	}
 	if (pickTypeLightCheckBox.GetCheck())
 	{

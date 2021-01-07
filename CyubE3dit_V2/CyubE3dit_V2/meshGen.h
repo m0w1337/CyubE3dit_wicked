@@ -90,8 +90,6 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		
-		
 		uint32_t color = 0xFFFFFFFF;
 		
 		if (antitile == false) {
@@ -142,11 +140,7 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		uint32_t noisev = ((uint32_t)((m_noise.fractal(5, x / 32, y / 32, z / 32) + 1) * 64) + 128);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		uint32_t color = 0xFFFFFFFF;
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 			
@@ -154,6 +148,8 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 		} else {
+			float noisev = m_noise.fractal(5, x / 32, y / 32, z / 32);
+			color		 = 255 | (uint32_t)(255 - 64 + noisev * 64) << 8 | (uint32_t)(255 - 64 + noisev * 64) << 16 | 0xFF000000;
 			float uvx = x / (ANTITILE_FACT / 2);
 			uvx		  = uvx - floorf(uvx);
 			float uvy = y / (ANTITILE_FACT / 2);
@@ -163,6 +159,10 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, uvx));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, 1.0f / ANTITILE_FACT + uvx));
 		}
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start + 1);
 		mesh->indices.emplace_back(start);
@@ -189,12 +189,7 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		uint32_t noisev = ((uint32_t)((m_noise.fractal(5, x / 32, y / 32, z / 32) + 1) * 64) + 128);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-
+		uint32_t color	= 0xFFFFFFFF;
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
@@ -202,6 +197,8 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 			
 		} else {
+			float noisev = m_noise.fractal(5, x / 32, y / 32, z / 32);
+			color		 = 255 | (uint32_t)(255 - 64 + noisev * 64) << 8 | (uint32_t)(255 - 64 + noisev * 64) << 16 | 0xFF000000;
 			float uvx = y / (ANTITILE_FACT / 2);
 			uvx		  = uvx - floorf(uvx);
 			float uvy = z / (ANTITILE_FACT / 2);
@@ -213,7 +210,10 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, 1.0f / ANTITILE_FACT + uvy));
 			
 		}
-
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start + 2);
 		mesh->indices.emplace_back(start + 1);
@@ -240,12 +240,7 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		uint32_t noisev = ((uint32_t)((m_noise.fractal(5, x / 32, y / 32, z / 32) + 1) * 64) + 128);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-
+		uint32_t color = 0xFFFFFFFF;
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
@@ -254,6 +249,8 @@ public:
 			
 			
 		} else {
+			float noisev = m_noise.fractal(5, x / 32, y / 32, z / 32);
+			color		 = 255 | (uint32_t)(255 - 64 + noisev * 64) << 8 | (uint32_t)(255 - 64 + noisev * 64) << 16 | 0xFF000000;
 			float uvx = y / (ANTITILE_FACT / 2);
 			uvx		  = uvx - floorf(uvx);
 			uvx		  = 1 - uvx;
@@ -264,9 +261,11 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, uvy));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, uvy));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, 1.0f / ANTITILE_FACT + uvy));
-			
-			
 		}
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start);
 		mesh->indices.emplace_back(start + 1);
@@ -293,11 +292,7 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		uint32_t noisev = ((uint32_t)((m_noise.fractal(5, x / 32, y / 32, z / 32) + 1) * 64) + 128);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
+		uint32_t color = 0xFFFFFFFF;
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
@@ -306,6 +301,8 @@ public:
 			
 			
 		} else {
+			float noisev = m_noise.fractal(5, x / 32, y / 32, z / 32);
+			color		 = 255 | (uint32_t)(255 - 64 + noisev * 64) << 8 | (uint32_t)(255 - 64 + noisev * 64) << 16 | 0xFF000000;
 			float uvx = x / (ANTITILE_FACT / 2);
 			uvx		  = uvx - floorf(uvx);
 			uvx		  = 1 - uvx;
@@ -317,6 +314,10 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, uvy));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvx, 1.0f / ANTITILE_FACT + uvy));
 		}
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start);
 		mesh->indices.emplace_back(start + 1);
@@ -343,18 +344,15 @@ public:
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		uint32_t noisev = ((uint32_t)((m_noise.fractal(5, x / 32, y / 32, z / 32) + 1) * 64) + 128);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		mesh->vertex_colors.emplace_back(0xFF0000 | (noisev << 16) | (noisev << 8) | noisev);
-		
+		uint32_t color = 0xFFFFFFFF;
 		if (antitile == false) {
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
 		} else {
+			float noisev = m_noise.fractal(5, x / 32, y / 32, z / 32);
+			color		 = 255 | (uint32_t)(255 - 64 + noisev * 64) << 8 | (uint32_t)(255 - 64 + noisev * 64) << 16 | 0xFF000000;
 			float uvx = x / (ANTITILE_FACT / 2);
 			uvx		  = uvx - floorf(uvx);
 			float uvy = z / (ANTITILE_FACT / 2);
@@ -365,6 +363,10 @@ public:
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, uvy));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvx, 1.0f / ANTITILE_FACT + uvy));
 		}
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
+		mesh->vertex_colors.emplace_back(color);
 		//uvSet1 -- vertexAtlas
 		mesh->indices.emplace_back(start+2);
 		mesh->indices.emplace_back(start+1);

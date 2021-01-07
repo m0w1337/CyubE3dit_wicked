@@ -96,7 +96,7 @@ void cyChunk::loadCustomBlocks(void) {
 			m_Torches[pos] = rot;
 			dSize--;
 		}
-		offset			= skipCdataArray(offset, 5);
+		offset = skipCdataArray(m_chunkdata, offset, 5);
 		memcpy(&m_lowestZ, m_chunkdata + offset, 2);
 		offset += 2;
 		memcpy(&m_highestZ, m_chunkdata + offset, 2);
@@ -105,17 +105,17 @@ void cyChunk::loadCustomBlocks(void) {
 		offset += 4;
 		while (dSize) {
 			offset += 4;  //skip TMap key
-			offset = skipCdataArray(offset, 1);
-			offset = skipCdataArray(offset, 4);
+			offset = skipCdataArray(m_chunkdata, offset, 1);
+			offset = skipCdataArray(m_chunkdata, offset, 4);
 			dSize--;
 		}
 		offset += 8 * 4;  //4 bools to samity-check in the future (must be 0 or 1)
 		offset += 5;	  //unknown
-		offset = skipCdataArray(offset, 8);
+		offset = skipCdataArray(m_chunkdata, offset, 8);
 		offset += 8;
-		offset = skipCdataArray(offset, 5);
-		offset = skipCdataArray(offset, 1);	 //length here must be 1024
-		offset = skipCdataArray(offset, 4);
+		offset = skipCdataArray(m_chunkdata, offset, 5);
+		offset = skipCdataArray(m_chunkdata, offset, 1);	//length here must be 1024
+		offset = skipCdataArray(m_chunkdata, offset, 4);
 		loadCblockTmap(offset);
 	}
 }
@@ -140,36 +140,55 @@ void cyChunk::loadMeshes(sqlite3* db) {
 	sqlite3_blob_close(pChunkBlob);
 	uint32_t dSize = 0, treetypes = 0, offset = 4;
 	if (size > 32) {
+		meshLoc mesh;
 		memcpy(&dSize, meshData + offset, 4);
 		offset += 4;
+		while (dSize) {
+			memcpy(&(mesh.type), meshData + offset, 1);
+			memcpy(&(mesh.qRot.x), meshData + 1 + offset, 4);
+			memcpy(&(mesh.qRot.y), meshData + 5 + offset, 4);
+			memcpy(&(mesh.qRot.z), meshData + 9 + offset, 4);
+			memcpy(&(mesh.qRot.w), meshData + 13 + offset, 4);
+			memcpy(&(mesh.pos.x), meshData + 17 + offset, 4);
+			memcpy(&(mesh.pos.y), meshData + 21 + offset, 4);
+			memcpy(&(mesh.pos.z), meshData + 25 + offset, 4);
+			memcpy(&(mesh.scale.x), meshData + 29 + offset, 4);
+			memcpy(&(mesh.scale.y), meshData + 33 + offset, 4);
+			memcpy(&(mesh.scale.z), meshData + 37 + offset, 4);
+			mesh.pos.x /= 100.0f;
+			mesh.pos.y /= 100.0f;
+			mesh.pos.z /= 100.0f;
+			meshObjects.push_back(mesh);
+			offset += 41;
+			offset = skipCdataArray(meshData, offset, 1);
+			dSize--;
+		}
 		memcpy(&treetypes, meshData + offset, 4);
 		offset += 4;
-		if (dSize == 0) {  //currently no meshes except trees are allowed
+		treeLoc tree;
 			for (uint32_t ttype = 0; ttype < treetypes; ttype++) {
 				memcpy(&dSize, meshData + offset, 4);
 				offset += 4;
-				meshLoc tree;
 				tree.type = ttype;
 				for (uint32_t i = 0; i < dSize && (offset + 20) < size; i++) {
 					memcpy(&(tree.pos.x), meshData + offset, 1);
 					memcpy(&(tree.pos.y), meshData + 1 + offset, 1);
 					memcpy(&(tree.pos.z), meshData + 2 + offset, 2);
-					memcpy(&(tree.Yaw), meshData + 4 +offset, 4);
+					memcpy(&(tree.yaw), meshData + 4 + offset, 4);
 					memcpy(&(tree.scale.x), meshData + 8 + offset, 4);
 					memcpy(&(tree.scale.y), meshData + 12 + offset, 4);
 					memcpy(&(tree.scale.z), meshData + 16 + offset, 4);
-					meshObjects.push_back(tree);
+					trees.push_back(tree);
 					offset += 20;
 				}
 			}
-		}
 	}
 	free(meshData);
 }
 
-uint64_t cyChunk::skipCdataArray(const uint64_t startpos, const uint8_t elementsize) {
+uint64_t cyChunk::skipCdataArray(char* memory, const uint64_t startpos, const uint8_t elementsize) {
 	uint32_t size = 0;
-	memcpy(&size, m_chunkdata + startpos, 4);
+	memcpy(&size, memory + startpos, 4);
 	return startpos + 4 + elementsize * size;
 }
 

@@ -1,0 +1,26 @@
+# Blender MTL File: 'None'
+# Material Count: 2
+
+newmtl bark
+Ns 0.727340
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.800000 0.800000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Bump bark2_nmp.tga
+map_Kd bark2.tga
+
+newmtl leaves
+Ns 15.707038
+Ka 0.200000 0.200000 0.200000
+Kd 0.200000 0.200000 0.100000
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 1
+map_Kd leafs2.tga
+map_d leafs2.tga

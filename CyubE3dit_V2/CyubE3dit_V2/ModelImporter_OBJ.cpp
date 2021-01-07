@@ -107,6 +107,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			Entity materialEntity		= scene.Entity_CreateMaterial(obj_material.name);
 			MaterialComponent& material = *scene.materials.GetComponent(materialEntity);
 			material.emissiveMapName	= obj_material.emissive_texname;
+			material.emissiveColor		= XMFLOAT4(obj_material.emission[0], obj_material.emission[1], obj_material.emission[2], 1);
 			material.baseColor		  = XMFLOAT4(obj_material.diffuse[0], obj_material.diffuse[1], obj_material.diffuse[2], 1);
 			material.baseColorMapName = obj_material.diffuse_texname;
 			material.occlusionMapName = obj_material.displacement_texname;
@@ -123,9 +124,8 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
 				material.SetAlphaRef(0.5f);
-				material.SetUseWind(true);
 			}
-
+			material.SetUseWind(true);
 			if (material.normalMapName.empty())
 			{
 				material.normalMapName = obj_material.bump_texname;
@@ -274,11 +274,11 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 									}
 									break;
 								case 2:
-									if (pos.y > 1.0f && abs(pos.x) > 0.75f && abs(pos.z) > 0.75f) {
-										if (abs(pos.x) > abs(pos.z)) {
-											mesh.vertex_windweights.push_back(10 * pos.z);
+									if (pos.y > 1.0f && abs(pos.x) > 0.5f && abs(pos.z) > 0.5f) {
+										if (obj_materials[materialIndex].alpha_texname != "") {
+											mesh.vertex_windweights.push_back(100);// * pos.z);
 										} else {
-											mesh.vertex_windweights.push_back(10 * pos.x);
+											mesh.vertex_windweights.push_back(20);// * pos.x);
 										}
 
 									} else {

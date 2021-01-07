@@ -18,6 +18,42 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
+// German (Germany) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_DEU)
+LANGUAGE LANG_GERMAN, SUBLANG_GERMAN
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_ICON1               ICON                    "images\\logo_wt.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_PNG1                PNG                     "images\\logo_wt.png"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_BITMAP1             BITMAP                  "images\\logo_wt.bmp"
+
+#endif    // German (Germany) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
 // English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
@@ -31,7 +67,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_TEMPLATEWINDOWS     ICON                    "logo_alpha.ico"
+IDI_TEMPLATEWINDOWS     ICON                    "C:\\Users\\m0\\Documents\\GitHub\\CyubE3dit_wicked\\CyubE3dit_V2\\CyubE3dit_V2\\logo_alpha.ico"
 
 IDI_SMALL               ICON                    "logo_alpha.ico"
 
@@ -71,15 +107,16 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 170, 62
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About Cyub3Edit"
-FONT 8, "MS Shell Dlg", 0, 0, 0x1
+IDD_ABOUTBOX DIALOGEX 0, 0, 237, 122
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About CyubE3dit"
+FONT 10, "Microsoft Sans Serif", 400, 0, 0x0
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,14,14,20,20
-    LTEXT           "Cyub3Edit - CybeVR swiss army knife",IDC_STATIC,42,14,114,8,SS_NOPREFIX
-    LTEXT           "Created by: m0w1337 (Moritz Wagner)",IDC_STATIC,42,26,114,8
-    DEFPUSHBUTTON   "OK",IDOK,113,41,50,14,WS_GROUP
+    CTEXT           "CyubE3dit - CybeVR swiss army knife",MY_ABOUT_TEXT,7,58,223,8,SS_NOPREFIX | SS_REALSIZECONTROL
+    LTEXT           "Created by: m0w1337 (Moritz Wagner)",IDC_STATIC,7,107,116,8,0,WS_EX_TRANSPARENT
+    DEFPUSHBUTTON   "OK",IDOK,180,101,50,14,WS_GROUP
+    CONTROL         IDB_BITMAP1,IDC_STATIC,"Static",SS_BITMAP,85,7,59,48
+    CTEXT           "Graphics powered by Wicked Engine",IDC_STATIC,7,71,223,8,SS_NOPREFIX,WS_EX_TRANSPARENT
 END
 
 
@@ -94,9 +131,9 @@ BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 163
+        RIGHTMARGIN, 230
         TOPMARGIN, 7
-        BOTTOMMARGIN, 55
+        BOTTOMMARGIN, 115
     END
 END
 #endif    // APSTUDIO_INVOKED

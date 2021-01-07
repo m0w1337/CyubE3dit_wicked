@@ -76,6 +76,9 @@
     <ClInclude Include="tiny_obj_loader.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="cyVersion.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -126,6 +129,9 @@
     <ClCompile Include="ModelImporter_OBJ.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="cyVersion.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TemplateWindows.rc">
@@ -137,6 +143,18 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="TemplateWindows.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="images\logo_wt.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="images\logo_wt.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="images\logo_wt.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="logo_alpha.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

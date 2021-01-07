@@ -50,13 +50,13 @@ void cyBlocks::LoadRegBlocks(void) {
 				for (size_t i = 0; i < it.value().size(); i++) {
 					catchRegularBlockSpecs(it, i, BLOCKTYPE_MOD);
 				}
-			} else if (it.key() == "FunktionalMesh") {
+			} else if (it.key() == "FunctionalMesh") {
+				//for (size_t i = 0; i < it.value().size(); i++) {
+					//catchRegularBlockSpecs(it, i, BLOCKTYPE_FUNCMESH);
+				//}
+			} else if (it.key() == "DecoMesh") {
 				for (size_t i = 0; i < it.value().size(); i++) {
-					catchRegularBlockSpecs(it, i, BLOCKTYPE_FUNCMESH);
-				}
-			} else if (it.key() == "DecorationalMesh") {
-				for (size_t i = 0; i < it.value().size(); i++) {
-					catchRegularBlockSpecs(it, i, BLOCKTYPE_DECOMESH);
+					catchRegularMeshSpecs(it, i, BLOCKTYPE_DECOMESH);
 				}
 			}
 		}
@@ -67,10 +67,10 @@ void cyBlocks::LoadRegBlocks(void) {
 void cyBlocks::loadMeshes(void) {
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(),2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree_mango_var01.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b_lod0.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.obj", wiScene::GetScene(), 0));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\grass.obj", wiScene::GetScene(), 1));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.obj", wiScene::GetScene(), 1));
 }
 
 void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype) {
@@ -85,6 +85,8 @@ void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, c
 	}
 	m_regBlockTypes[id] = blocktype;
 	mesh.type = blocktype;
+	mesh.mesh[0]		= 0;
+	mesh.mesh[1]		= 0;
 	try {
 		mesh.name = it.value().at(i).at("text");
 	}
@@ -92,15 +94,18 @@ void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, c
 	}
 	try {
 		meshObj				  = it.value().at(i).at("mesh0");
-		mesh.mesh[0]		  = ImportModel_OBJ("data\\torches\\" + meshObj, wiScene::GetScene(), 0);
+		mesh.mesh[0]		  = ImportModel_OBJ("data\\meshes\\" + meshObj, wiScene::GetScene(), 0);
 		mesh.material[0]		  = mesh.mesh[0] - 1;
 		meshObj				  = it.value().at(i).at("mesh1");
-		mesh.mesh[1]		  = ImportModel_OBJ("data\\torches\\" + meshObj, wiScene::GetScene(), 0);
+		mesh.mesh[1]		  = ImportModel_OBJ("data\\meshes\\" + meshObj, wiScene::GetScene(), 0);
 		mesh.material[1]		  = mesh.mesh[1] - 1;
+		m_regBlockFlags[id][0] = it.value().at(i).at("LightR");
+		m_regBlockFlags[id][1] = it.value().at(i).at("LightG");
+		m_regBlockFlags[id][2] = it.value().at(i).at("LightB");
 	}
 	catch (...) {
 	}
-	if (mesh.mesh) {
+	if (mesh.mesh[0]) {
 		m_regMeshes[id] = mesh;
 	}
 }
@@ -202,7 +207,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				tex						  = it.value().at(i).at("glow" + std::to_string(ft));
 				material->emissiveMapName = "images/" + tex;
 				material->emissiveMap	  = wiResourceManager::Load(material->emissiveMapName);
-				material->SetEmissiveStrength(5.0f);
+				material->SetEmissiveStrength(15.0f);
 			}
 			catch (...) {
 			}

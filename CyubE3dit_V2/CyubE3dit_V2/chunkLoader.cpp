@@ -46,7 +46,7 @@ void chunkLoader::checkChunks(void) {
 			CameraComponent cam = wiScene::GetCamera();
 			XMFLOAT3 campos		= cam.Eye;
 			XMFLOAT3 camlook	= cam.At;
-			ghostpos.x			= (int32_t)(campos.x);  //move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
+			ghostpos.x			= (int32_t)(campos.x);	//move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
 			ghostpos.y			= -(int32_t)(campos.z);
 			ghostpos.x &= 0xFFFFFFE0;
 			ghostpos.y &= 0xFFFFFFE0;
@@ -55,9 +55,9 @@ void chunkLoader::checkChunks(void) {
 				if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
 					for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 						if (m_threadstate[thread] == 0) {
-							m_threadChunkX[thread]	= coords.x;
-							m_threadChunkY[thread]	= coords.y;
-							m_threadstate[thread]	= 1;
+							m_threadChunkX[thread]			 = coords.x;
+							m_threadChunkY[thread]			 = coords.y;
+							m_threadstate[thread]			 = 1;
 							m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
 							break;
 						}
@@ -74,9 +74,9 @@ void chunkLoader::checkChunks(void) {
 										changed = true;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]	= coords.x;
-												m_threadChunkY[thread]	= coords.y;
-												m_threadstate[thread]	= 1;
+												m_threadChunkX[thread]			 = coords.x;
+												m_threadChunkY[thread]			 = coords.y;
+												m_threadstate[thread]			 = 1;
 												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
 												break;
 											}
@@ -88,9 +88,9 @@ void chunkLoader::checkChunks(void) {
 										changed = true;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]	= coords.x;
-												m_threadChunkY[thread]	= coords.y;
-												m_threadstate[thread]	= 1;
+												m_threadChunkX[thread]			 = coords.x;
+												m_threadChunkY[thread]			 = coords.y;
+												m_threadstate[thread]			 = 1;
 												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
 												break;
 											}
@@ -104,9 +104,9 @@ void chunkLoader::checkChunks(void) {
 										changed = true;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]	= coords.x;
-												m_threadChunkY[thread]	= coords.y;
-												m_threadstate[thread]	= 1;
+												m_threadChunkX[thread]			 = coords.x;
+												m_threadChunkY[thread]			 = coords.y;
+												m_threadstate[thread]			 = 1;
 												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
 												break;
 											}
@@ -118,9 +118,9 @@ void chunkLoader::checkChunks(void) {
 										changed = true;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]	= coords.x;
-												m_threadChunkY[thread]	= coords.y;
-												m_threadstate[thread]	= 1;
+												m_threadChunkX[thread]			 = coords.x;
+												m_threadChunkY[thread]			 = coords.y;
+												m_threadstate[thread]			 = 1;
 												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
 												break;
 											}
@@ -143,8 +143,8 @@ void chunkLoader::checkChunks(void) {
 								m.lock();
 								scene.Entity_Remove(meshEnt);
 								scene.Entity_Remove(it->second.chunkObj);
-								for (size_t i = 0; i < it->second.trees.size(); i++) {
-									scene.Entity_Remove(it->second.trees[i]);
+								for (size_t i = 0; i < it->second.meshes.size(); i++) {
+									scene.Entity_Remove(it->second.meshes[i]);
 								}
 								m.unlock();
 							}
@@ -177,8 +177,8 @@ void chunkLoader::checkChunks(void) {
 						m.lock();
 						scene.Entity_Remove(meshEnt);
 						scene.Entity_Remove(it->second.chunkObj);
-						for (size_t i = 0; i < it->second.trees.size(); i++) {
-							scene.Entity_Remove(it->second.trees[i]);
+						for (size_t i = 0; i < it->second.meshes.size(); i++) {
+							scene.Entity_Remove(it->second.meshes[i]);
 						}
 						m.unlock();
 					}
@@ -230,7 +230,7 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 			if (m_threadstate[threadNum] != 99) {
 				m_threadstate[threadNum] = 0;
 			}
-			
+
 		} else {
 			Sleep(10);
 		}
@@ -244,18 +244,27 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 	vector<face_t> faces;
 	uint8_t stepsize	   = 1;
 	uint16_t surfaceHeight = chunk.m_surfaceheight;
-	if (eastChunk.m_surfaceheight < surfaceHeight)
-		surfaceHeight = eastChunk.m_surfaceheight;
-	if (westChunk.m_surfaceheight < surfaceHeight)
-		surfaceHeight = westChunk.m_surfaceheight;
-	if (northChunk.m_surfaceheight < surfaceHeight)
-		surfaceHeight = northChunk.m_surfaceheight;
-	if (southChunk.m_surfaceheight < surfaceHeight)
-		surfaceHeight = southChunk.m_surfaceheight;
-	if (surfaceHeight > 25)
-		surfaceHeight -= 25;
+	if (settings::clipUnderground == true) {
+		if (eastChunk.m_surfaceheight < surfaceHeight)
+			surfaceHeight = eastChunk.m_surfaceheight;
+		if (westChunk.m_surfaceheight < surfaceHeight)
+			surfaceHeight = westChunk.m_surfaceheight;
+		if (northChunk.m_surfaceheight < surfaceHeight)
+			surfaceHeight = northChunk.m_surfaceheight;
+		if (southChunk.m_surfaceheight < surfaceHeight)
+			surfaceHeight = southChunk.m_surfaceheight;
+		if (surfaceHeight > 25)
+			surfaceHeight -= 25;
+	} else {
+
+			if (chunk.m_lowestZ > 2)
+				surfaceHeight = chunk.m_lowestZ - 2;
+			else
+				surfaceHeight = chunk.m_lowestZ;
+	}
+	
 	wiScene::Scene tmpScene;
-	for (int_fast16_t z = 799; z > surfaceHeight; z -= stepsize) {
+	for (int_fast16_t z = chunk.m_highestZ + 2; z > surfaceHeight; z -= stepsize) {
 		for (uint_fast8_t x = 0; x < 32; x += stepsize) {
 			for (uint_fast8_t y = 0; y < 32; y += stepsize) {
 				uint8_t blocktype = (uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * z);
@@ -333,81 +342,79 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 					cyChunk::blockpos_t pos(x, y, z);
 					auto it = chunk.m_Torches.find(pos);
 					if (it != chunk.m_Torches.end()) {
-						wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
-						ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-						LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-						TransformComponent* tf = tmpScene.transforms.GetComponent(objEnt);
-						layer.layerMask = LAYER_TORCH;
-						ret.trees.push_back(objEnt);
+						wiECS::Entity lightEnt;
+						LightComponent* light = nullptr;
+						//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
+						//light->SetStatic(true);
+						//light->SetVolumetricsEnabled(true);
+						wiECS::Entity meshID=0;
+						TransformComponent transform;
+						XMFLOAT3 color((float)cyBlocks::m_regBlockFlags[blocktype][0] / 255.f, (float)cyBlocks::m_regBlockFlags[blocktype][1] / 255.f, (float)cyBlocks::m_regBlockFlags[blocktype][2] / 255.f);
 						try {
-							
 							switch (it->second) {
 								case 0:
-									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
-									tf->RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
+									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									transform.Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
+									transform.RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
+									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f + 0.1, z / 2.0f + 0.02, relY + 16 - y / 2.0f), color, 5, 4);
+									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 1:
-									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
-									tf->RotateRollPitchYaw(XMFLOAT3(0, -PI/2, 0));
+									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									transform.Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
+									transform.RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
+									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f - 0.1, z / 2.0f + 0.02, relY + 16 - y / 2.0f), color, 5, 4);
+									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 2:
-									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f -0.14, relY + 16 - y / 2.0f + 0.248));
-									
+									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f + 0.248));
+									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.02, relY + 16 - y / 2.0f + 0.1), color, 5, 4);
+									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 3:
-									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f - 0.248));
-									tf->RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
+									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f - 0.248));
+									transform.RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
+									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.02, relY + 16 - y / 2.0f - 0.1), color, 5, 4);
+									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 4:
-									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.135f, relY + 16 - y / 2.0f));
+									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
+									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.135f, relY + 16 - y / 2.0f));
+									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.08, relY + 16 - y / 2.0f), color, 5, 4);
+									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
-								case 5:
-									object.meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
-									tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f +0.135f, relY + 16 - y / 2.0f));
-									tf->RotateRollPitchYaw(XMFLOAT3(PI,0,0));
+								default:
+									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
+									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.135f, relY + 16 - y / 2.0f));
+									transform.RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
+									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.08, relY + 16 - y / 2.0f), XMFLOAT3(1.0, 0.3, 0.0f), 5, 4);
+									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 							}
-							
-							tf->UpdateTransform();
+							if (light != nullptr) {
+								light->SetCastShadow(true);
+								light->SetVolumetricsEnabled(true);
+								if (settings::torchlights == false) {
+									light->SetStatic(true);
+								}
+								ret.meshes.push_back(lightEnt);
+
+								wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
+								ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+								LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
+								TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
+								object.meshID			= meshID;
+								layer.layerMask			= LAYER_TORCH;
+								ret.meshes.push_back(objEnt);
+								*tf = transform;
+								tf->UpdateTransform();
+							}
 						}
 						catch (...) {
 						}
 					}
-					
-
-					/*
-					wiECS::Entity entity	= tmpScene.Entity_CreateEmitter("torchEmitter");
-					wiScene::wiEmittedParticle* emitter = tmpScene.emitters.GetComponent(entity);
-					wiScene::MaterialComponent* emitterMat = tmpScene.materials.GetComponent(entity);
-					tf									   = tmpScene.transforms.GetComponent(entity);
-					tf->Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f, relY + 16 - y / 2.0f));
-					tf->UpdateTransform();
-					emitter->SetSPHEnabled(true);
-					emitter->SetMaxParticleCount(100);
-					emitter->count			= 80.0f;
-					emitter->normal_factor = 4.4f;
-					emitter->scaleX		   = 2.5;
-					emitter->life			= 2.5;
-					emitter->size			= 0.17f;
-					emitter->shaderType		= wiEmittedParticle::SOFT;
-					emitter->scaleY		   = 2.5;
-					emitter->random_factor = 0.3f;
-					emitter->random_life = 0.01f;
-					emitter->FIXED_TIMESTEP = 0.005f;
-					emitter->SPH_e			= 26.5f;
-					emitter->SPH_h			= 0.1f;
-					emitter->SPH_K			= 0.1f;
-					emitter->SPH_p0			= 14.0f;
-					emitter->mass			= 0.1f;
-					emitter->SetPaused(false);
-					emitterMat->SetBaseColor(XMFLOAT4(1.0f,0.8f,0.0f,1.0f));
-					emitterMat->baseColorMap = wiResourceManager::Load("images/fire.jpg");
-					emitterMat->userBlendMode = BLENDMODE_ADDITIVE;*/
 				}
 			}
 		}
@@ -422,129 +429,167 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 		} else {
 			mesh = meshGen::AddMesh(tmpScene, chunk.m_id, cyBlocks::m_fallbackMat, &entity);
 		}
-			wiECS::Entity currMat = faces[0].material;
-			mesh->SetDoubleSided(true);
-			for (unsigned i = 0; i < faces.size(); ++i)
-			{
-				if (faces[i].material != currMat) {
-					if (wiScene::GetScene().materials.GetComponent(faces[i].material) != nullptr) {
-						meshGen::newMaterial(mesh, faces[i].material);
-					}
-					currMat = faces[i].material;
+		wiECS::Entity currMat = faces[0].material;
+		mesh->SetDoubleSided(true);
+		for (unsigned i = 0; i < faces.size(); ++i)
+		{
+			if (faces[i].material != currMat) {
+				if (wiScene::GetScene().materials.GetComponent(faces[i].material) != nullptr) {
+					meshGen::newMaterial(mesh, faces[i].material);
 				}
-				switch (faces[i].face) {
-					case cyBlocks::FACE_TOP:
-						meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
-						break;
-					case cyBlocks::FACE_BOTTOM:
-						meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
-						break;
-					case cyBlocks::FACE_LEFT:
-						meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
-						break;
-					case cyBlocks::FACE_RIGHT:
-						meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
-						break;
-					case cyBlocks::FACE_BACK:
-						meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
-						break;
-					case cyBlocks::FACE_FRONT:
-						meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
-						break;
-					case cyBlocks::FACE_BILLBOARD:
-						if (stepsize == 1) {
-							meshGen::AddBillboard(mesh, faces[i].x, faces[i].y, faces[i].z);
-						}
-						break;
-				}
+				currMat = faces[i].material;
 			}
-			mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-
-			mesh->SetDynamic(false);
-			mesh->CreateRenderData();
-
-			for (size_t i = 0; i != chunk.meshObjects.size(); i++) {
-
-				if (chunk.meshObjects[i].scale.x > 2 || chunk.meshObjects[i].scale.y > 2 || chunk.meshObjects[i].scale.z > 2) {
-					wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
-					uint32_t chID = chunk.m_id;
-					wiBackLog::post("Weird tree data: ChunkID: ");
-					wiBackLog::post(to_string(chID).c_str());
-				} else {
-					wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("tree");
-					ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-					layer.layerMask			= LAYER_TREE;
-					switch (chunk.meshObjects[i].type) {
-						case 0:		//leaf trees (light wood)
-							object.meshID = cyBlocks::m_treeMeshes[((chunk.meshObjects[i].pos.x + chunk.meshObjects[i].pos.y + chunk.meshObjects[i].pos.z) % 3)];
-							break;
-						case 1:		//needle trees (dark wood)
-							object.meshID = cyBlocks::m_treeMeshes[3];
-							break;
-						case 2:	 //cactus
-						case 3:
-						case 4:
-						case 5:
-							object.meshID = cyBlocks::m_treeMeshes[4];
-							break;
-						case 6:	//desert grass
-						case 7:
-							object.meshID = cyBlocks::m_treeMeshes[5];
-							break;
+			switch (faces[i].face) {
+				case cyBlocks::FACE_TOP:
+					meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					break;
+				case cyBlocks::FACE_BOTTOM:
+					meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					break;
+				case cyBlocks::FACE_LEFT:
+					meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					break;
+				case cyBlocks::FACE_RIGHT:
+					meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					break;
+				case cyBlocks::FACE_BACK:
+					meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					break;
+				case cyBlocks::FACE_FRONT:
+					meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					break;
+				case cyBlocks::FACE_BILLBOARD:
+					if (stepsize == 1) {
+						meshGen::AddBillboard(mesh, faces[i].x, faces[i].y, faces[i].z);
 					}
-					TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
-					tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x * 0.8, chunk.meshObjects[i].scale.z * 0.8, chunk.meshObjects[i].scale.y * 0.8));
-					tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.meshObjects[i].Yaw, 0));
-					tf.Translate(XMFLOAT3(relX + chunk.meshObjects[i].pos.x / 2.0f, chunk.meshObjects[i].pos.z / 2.0f - 0.3f, relY + 16 - chunk.meshObjects[i].pos.y / 2.0f));
-					tf.UpdateTransform();
-					ret.trees.push_back(objEnt);
-				}
+					break;
 			}
-			m.lock();
-			wiScene::GetScene().Merge(tmpScene);
-			m.unlock();
-		}  //else	wiBackLog::post("Chunk has no blocks");
-		ret.chunkObj = entity;
-		return ret;
-	}
-
-	void chunkLoader::updateDisplayedChunks(void) {
-		for (uint_fast16_t mesh = 0; mesh < VIEWDISTANCE; mesh++) {
 		}
+		mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
+
+		mesh->SetDynamic(false);
+		mesh->CreateRenderData();
+
+		for (size_t i = 0; i < chunk.trees.size(); i++) {
+			if (chunk.trees[i].scale.x > 2 || chunk.trees[i].scale.y > 2 || chunk.trees[i].scale.z > 2) {
+				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
+				uint32_t chID = chunk.m_id;
+				wiBackLog::post("Weird tree data: ChunkID: ");
+				wiBackLog::post(to_string(chID).c_str());
+			} else {
+				wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("tree");
+				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
+				layer.layerMask			= LAYER_TREE;
+				TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
+				switch (chunk.trees[i].type) {
+					case 0:	 //leaf trees (light wood)
+						object.meshID = cyBlocks::m_treeMeshes[((chunk.trees[i].pos.x + chunk.trees[i].pos.y + chunk.trees[i].pos.z) % 3)];
+						break;
+					case 1:	 //needle trees (dark wood)
+						object.meshID = cyBlocks::m_treeMeshes[3];
+						break;
+					case 2:	 //cactus
+					case 3:
+					case 4:
+					case 5:
+						object.meshID = cyBlocks::m_treeMeshes[4];
+						break;
+					default:  //desert grass 6,7
+						object.meshID = cyBlocks::m_treeMeshes[5];
+						break;
+				}
+				tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2, chunk.trees[i].pos.z / 2 - 0.25, relY + 16 - chunk.trees[i].pos.y / 2));
+				tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
+				tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
+				tf.UpdateTransform();
+				ret.meshes.push_back(objEnt);
+			}
+		}
+		/*
+		for (size_t i = 0; i < chunk.meshObjects.size(); i++) {
+			if (chunk.meshObjects[i].scale.x > 2 || chunk.meshObjects[i].scale.y > 2 || chunk.meshObjects[i].scale.z > 2) {
+				wiHelper::messageBox("Mesh scaling out of bounds!", "Error!");
+				uint32_t chID = chunk.m_id;
+				wiBackLog::post("Weird mesh data: ChunkID: ");
+				wiBackLog::post(to_string(chID).c_str());
+			} else {
+				try {
+					wiECS::Entity mesh = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0];
+					if (mesh) {
+						wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("mesh");
+						ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+						object.meshID			= mesh;
+						LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
+						layer.layerMask			= LAYER_TREE;
+						TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
+						tf.Translate(XMFLOAT3(relX + 8 + chunk.meshObjects[i].pos.x, chunk.meshObjects[i].pos.z, relY + 8 - chunk.meshObjects[i].pos.y));
+						tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x, chunk.meshObjects[i].scale.z, chunk.meshObjects[i].scale.y));
+						tf.Rotate(XMFLOAT4(chunk.meshObjects[i].qRot.x, chunk.meshObjects[i].qRot.z, chunk.meshObjects[i].qRot.y, chunk.meshObjects[i].qRot.w));
+						tf.UpdateTransform();
+						ret.meshes.push_back(objEnt);
+					}
+				}
+				catch (...) {
+				}
+			}
+		}
+		*/
+
+		/*
+				try {
+					object.meshID = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0];
+					tf.Translate(XMFLOAT3(relX + 8 + chunk.meshObjects[i].pos.x, chunk.meshObjects[i].pos.z - 0.3f, relY + 8 - chunk.meshObjects[i].pos.y));
+					tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x, chunk.meshObjects[i].scale.z, chunk.meshObjects[i].scale.y));
+				}
+				catch (...) {
+				}
+				*/
+
+		m.lock();
+		wiScene::GetScene().Merge(tmpScene);
+		m.unlock();
+	}  //else	wiBackLog::post("Chunk has no blocks");
+	ret.chunkObj = entity;
+	return ret;
+}
+
+void chunkLoader::updateDisplayedChunks(void) {
+	for (uint_fast16_t mesh = 0; mesh < VIEWDISTANCE; mesh++) {
 	}
+}
 
-	cyImportant::chunkpos_t chunkLoader::spiral(const int32_t iteration) {
-		cyImportant::chunkpos_t ret;
-		double temp = (sqrt(iteration) - 1.0) / 2.0;
-		int32_t k	= ceil(temp);
-		int32_t t	= 2 * k + 1;
-		int32_t m	= t * t;
-		t--;
+cyImportant::chunkpos_t chunkLoader::spiral(const int32_t iteration) {
+	cyImportant::chunkpos_t ret;
+	double temp = (sqrt(iteration) - 1.0) / 2.0;
+	int32_t k	= ceil(temp);
+	int32_t t	= 2 * k + 1;
+	int32_t m	= t * t;
+	t--;
 
+	if (iteration >= (m - t)) {
+		ret.x = k - (m - iteration);
+		ret.y = -k;
+	} else {
+		m = m - t;
 		if (iteration >= (m - t)) {
-			ret.x = k - (m - iteration);
-			ret.y = -k;
+			ret.x = -k;
+			ret.y = -k + (m - iteration);
 		} else {
 			m = m - t;
 			if (iteration >= (m - t)) {
-				ret.x = -k;
-				ret.y = -k + (m - iteration);
+				ret.x = -k + (m - iteration);
+				ret.y = k;
 			} else {
-				m = m - t;
-				if (iteration >= (m - t)) {
-					ret.x = -k + (m - iteration);
-					ret.y = k;
-				} else {
-					ret.x = k;
-					ret.y = k - (m - iteration - t);
-				}
+				ret.x = k;
+				ret.y = k - (m - iteration - t);
 			}
 		}
-		ret.x *= 16;
-		ret.y *= 16;
-		return ret;
 	}
+	ret.x *= 16;
+	ret.y *= 16;
+	return ret;
+}
 
-	void chunkLoader::loadWorld(void) {
-	}
+void chunkLoader::loadWorld(void) {
+}

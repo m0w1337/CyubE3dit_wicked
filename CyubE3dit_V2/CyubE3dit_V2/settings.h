@@ -11,6 +11,8 @@ public:
 	static atomic <size_t> numVisChunks;
 	static string newWorld;
 	static string thisWorld;
+	static bool torchlights;
+	static bool clipUnderground;
 
 static inline cyImportant* getWorld() {
 	return &world;
