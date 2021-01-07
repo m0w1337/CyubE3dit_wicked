@@ -7,4 +7,4 @@ atomic<size_t> settings::numVisChunks = 0;
 string settings::newWorld			  = "";
 string settings::thisWorld			  = "";
 bool settings::torchlights			  = false;
-bool settings::clipUnderground		  = false;
+bool settings::clipUnderground		  = true;

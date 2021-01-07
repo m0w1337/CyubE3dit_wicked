@@ -6,14 +6,15 @@ extern mutex m;
 
 void chunkLoader::spawnThreads(uint8_t numthreads) {
 	m_shutdown = 0;
-	if (numthreads <= MAX_THREADS) {
-		m_numthreads = numthreads;
-		for (uint8_t i = 0; i < m_numthreads; i++) {
-			m_threadstate[i] = 0;
-			m_thread[i]		 = thread(&chunkLoader::addChunks, this, i);
-		}
-		m_checkThread = thread(&chunkLoader::checkChunks, this);
+	if (numthreads > MAX_THREADS) {
+		numthreads = MAX_THREADS;
 	}
+	m_numthreads = numthreads;
+	for (uint8_t i = 0; i < m_numthreads; i++) {
+		m_threadstate[i] = 0;
+		m_thread[i]		 = thread(&chunkLoader::addChunks, this, i);
+	}
+	m_checkThread = thread(&chunkLoader::checkChunks, this);
 }
 
 chunkLoader::~chunkLoader(void) {
@@ -36,11 +37,12 @@ void chunkLoader::shutdown(void) {
 void chunkLoader::checkChunks(void) {
 	cyImportant::chunkpos_t ghostpos, coords, lastghostpos;
 	cyImportant* world = settings::getWorld();
-	bool changed	   = false;
+	uint32_t changed	   = 0;
 	lastghostpos.x	   = -1000;
 	lastghostpos.y	   = -1000;
+	wiScene::Scene& scene  = wiScene::GetScene();
 	while (m_shutdown == 0) {
-		Sleep(10);
+		Sleep(5);
 		uint32_t viewDist = settings::getViewDist();
 		if (!world->isStopped()) {
 			CameraComponent cam = wiScene::GetCamera();
@@ -50,9 +52,11 @@ void chunkLoader::checkChunks(void) {
 			ghostpos.y			= -(int32_t)(campos.z);
 			ghostpos.x &= 0xFFFFFFE0;
 			ghostpos.y &= 0xFFFFFFE0;
+			changed = 0;
 			if (lastghostpos.x != ghostpos.x || lastghostpos.y != ghostpos.y) {
 				coords = ghostpos;
 				if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+					changed++;
 					for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 						if (m_threadstate[thread] == 0) {
 							m_threadChunkX[thread]			 = coords.x;
@@ -63,6 +67,7 @@ void chunkLoader::checkChunks(void) {
 						}
 					}
 				}
+				
 				for (uint32_t r = 4; r <= viewDist; r = r + 4) {
 					for (uint32_t i = 0; i < r; i = i + 1) {
 						for (uint32_t ii = ((r - 4) > i) ? (1 + r - 4 - i) : 0; ii <= r - i; ii++) {
@@ -71,7 +76,7 @@ void chunkLoader::checkChunks(void) {
 									coords.x = ghostpos.x + i * 16;
 									coords.y = ghostpos.y + ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed = true;
+										changed++;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
 												m_threadChunkX[thread]			 = coords.x;
@@ -85,7 +90,7 @@ void chunkLoader::checkChunks(void) {
 									coords.x = ghostpos.x - i * 16;
 									coords.y = ghostpos.y - ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed = true;
+										changed++;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
 												m_threadChunkX[thread]			 = coords.x;
@@ -101,7 +106,7 @@ void chunkLoader::checkChunks(void) {
 									coords.x = ghostpos.x - i * 16;
 									coords.y = ghostpos.y + ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed = true;
+										changed++;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
 												m_threadChunkX[thread]			 = coords.x;
@@ -115,7 +120,7 @@ void chunkLoader::checkChunks(void) {
 									coords.x = ghostpos.x + i * 16;
 									coords.y = ghostpos.y - ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed = true;
+										changed++;
 										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 											if (m_threadstate[thread] == 0) {
 												m_threadChunkX[thread]			 = coords.x;
@@ -130,49 +135,60 @@ void chunkLoader::checkChunks(void) {
 							}
 						}
 					}
+					if (changed > 100) {
+						break;
+					}	
 				}
-
 				for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
 					if (it->second.chunkObj != 0xFFFFFFFE) {
 						cyImportant::chunkpos_t diff = it->first;
 						diff						 = diff - ghostpos;
 						if ((diff.x * diff.x + diff.y * diff.y) > (viewDist * viewDist * 16 * 16)) {
 							if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
-								wiScene::Scene& scene = wiScene::GetScene();
-								wiECS::Entity meshEnt = scene.objects.GetComponent(it->second.chunkObj)->meshID;
-								m.lock();
-								scene.Entity_Remove(meshEnt);
-								scene.Entity_Remove(it->second.chunkObj);
-								for (size_t i = 0; i < it->second.meshes.size(); i++) {
-									scene.Entity_Remove(it->second.meshes[i]);
+								wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
+								if (obj != nullptr) {
+									wiECS::Entity meshEnt = obj->meshID;
+									m.lock();
+									scene.Entity_Remove(meshEnt);
+									scene.Entity_Remove(it->second.chunkObj);
+									for (size_t i = 0; i < it->second.meshes.size(); i++) {
+										scene.Entity_Remove(it->second.meshes[i]);
+									}
+									m.unlock();
+									auto pos = m_visibleChunks.erase(it);
+									it		 = pos;
+									changed++;
 								}
-								m.unlock();
+							} else {
+								auto pos = m_visibleChunks.erase(it);
+								it		 = pos;
+								changed++;
 							}
-							auto pos = m_visibleChunks.erase(it);
-							it		 = pos;
+							
 						} else
 							it++;
 					} else {
 						it++;
 					}
+					if (changed > 200) {
+						break;
+					}	
 				}
-
 				settings::numVisChunks = m_visibleChunks.size();
-				if (changed == false) {
+				if (changed == 0) {
 					lastghostpos = ghostpos;
 				}
 
 			} else {
-				Sleep(200);
+				Sleep(50);
 			}
-		} else {  //No valid world --> clear all axisting chunks (if there are any)
+		} else {  //world stopped --> clear all existing chunks (if there are any)
 			for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
 				if (it->second.chunkObj == 0xFFFFFFFE) {  //wait for the chunk to be finished
-					Sleep(1);
 					it = m_visibleChunks.find(it->first);
+					Sleep(2);
 				} else {
 					if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
-						wiScene::Scene& scene = wiScene::GetScene();
 						wiECS::Entity meshEnt = scene.objects.GetComponent(it->second.chunkObj)->meshID;
 						m.lock();
 						scene.Entity_Remove(meshEnt);
@@ -193,6 +209,7 @@ void chunkLoader::checkChunks(void) {
 }
 
 void chunkLoader::addChunks(uint8_t threadNum) {
+	chunkobjects_t chunkObj;
 	while (m_shutdown < 2) {
 		if (m_threadstate[threadNum] == 1) {
 			cyImportant* world = settings::getWorld();
@@ -219,7 +236,9 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 						chunkU.loadChunk(world->db[threadNum], chunkID, true);
 					if (world->getChunkID(coords.x + zero.x, coords.y + zero.y - 16, &chunkID))
 						chunkD.loadChunk(world->db[threadNum], chunkID, true);
-					m_visibleChunks[coords] = chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, coords.x, -coords.y);
+					chunkObj = chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, coords.x, -coords.y);
+					Sleep(5);	//somehow we must give the mesh some tiime to properly instanciate everything, before we are actually enabling the deletion
+					m_visibleChunks[coords] = chunkObj;
 				} else {
 					//wiBackLog::post("CHunk not found");
 					m_visibleChunks[coords].chunkObj = wiECS::INVALID_ENTITY;
@@ -264,7 +283,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 	}
 	
 	wiScene::Scene tmpScene;
-	for (int_fast16_t z = chunk.m_highestZ + 2; z > surfaceHeight; z -= stepsize) {
+	for (int_fast16_t z = min(chunk.m_highestZ + 2, 799); z > surfaceHeight; z -= stepsize) {
 		for (uint_fast8_t x = 0; x < 32; x += stepsize) {
 			for (uint_fast8_t y = 0; y < 32; y += stepsize) {
 				uint8_t blocktype = (uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * z);

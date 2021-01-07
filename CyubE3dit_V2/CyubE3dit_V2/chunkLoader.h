@@ -8,7 +8,7 @@
 
 class chunkLoader {
 public:
-	static constexpr uint8_t MAX_THREADS = 16;
+	static constexpr uint8_t MAX_THREADS = 32;
 	static constexpr float PI			 = 3.141592653589793238462643383279502884f;
 	struct face_t {
 		wiECS::Entity material;

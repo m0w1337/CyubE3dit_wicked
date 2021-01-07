@@ -121,7 +121,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	
 
 	chunkLoader loader;
-	loader.spawnThreads(wiJobSystem::GetThreadCount() - 4);
+	uint8_t numChunkThreads = wiJobSystem::GetThreadCount();
+	if (wiJobSystem::GetThreadCount() > 4)
+		numChunkThreads = wiJobSystem::GetThreadCount() - 2;
+
+	loader.spawnThreads(numChunkThreads);
 	DWORD lasttick = 0;
 	while (msg.message != WM_QUIT)
 	{
