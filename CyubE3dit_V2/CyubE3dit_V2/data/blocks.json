@@ -227,8 +227,8 @@
       {
         "id": 37,
         "textype": 6,
-		"mesh0": "walltorch_b.obj",
-		"mesh1": "standtorch_b.obj",
+		"mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
         "LightR": 0,
 		"LightG": 0,
 		"LightB": 255,
@@ -237,8 +237,8 @@
 	  {
         "id": 40,
         "textype": 6,
-        "mesh0": "walltorch_g.obj",
-		"mesh1": "standtorch_g.obj",
+        "mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
         "text": "Green Torch",
 		"LightR": 0,
 		"LightG": 255,
@@ -247,9 +247,12 @@
       {
         "id": 49,
         "textype": 6,
-        "texture0": "RedTorch.jpg",
-        "mesh": "torch_obj.mesh",
-        "text": "Red Torch"
+		"mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
+        "text": "Red Torch",
+		"LightR": 255,
+		"LightG": 0,
+		"LightB": 0
       }
 	],
 	"AlphaBlock":[

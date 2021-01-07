@@ -353,40 +353,40 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 						try {
 							switch (it->second) {
 								case 0:
-									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
 									transform.Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
 									transform.RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
 									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f + 0.1, z / 2.0f + 0.02, relY + 16 - y / 2.0f), color, 5, 4);
 									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 1:
-									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
 									transform.Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
 									transform.RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
 									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f - 0.1, z / 2.0f + 0.02, relY + 16 - y / 2.0f), color, 5, 4);
 									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 2:
-									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
 									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f + 0.248));
 									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.02, relY + 16 - y / 2.0f + 0.1), color, 5, 4);
 									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 3:
-									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[0];
+									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
 									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f - 0.248));
 									transform.RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
 									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.02, relY + 16 - y / 2.0f - 0.1), color, 5, 4);
 									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								case 4:
-									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
+									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
 									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.135f, relY + 16 - y / 2.0f));
 									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.08, relY + 16 - y / 2.0f), color, 5, 4);
 									light	 = tmpScene.lights.GetComponent(lightEnt);
 									break;
 								default:
-									meshID = cyBlocks::m_regMeshes.at(blocktype).mesh[1];
+									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
 									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.135f, relY + 16 - y / 2.0f));
 									transform.RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
 									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.08, relY + 16 - y / 2.0f), XMFLOAT3(1.0, 0.3, 0.0f), 5, 4);
@@ -406,6 +406,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 								LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
 								TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
 								object.meshID			= meshID;
+								object.emissiveColor	= XMFLOAT4(color.x, color.y, color.z, 1.0f);
 								layer.layerMask			= LAYER_TORCH;
 								ret.meshes.push_back(objEnt);
 								*tf = transform;
