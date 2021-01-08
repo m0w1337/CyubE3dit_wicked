@@ -25,6 +25,7 @@ public:
 	PostprocessWindow postprocessWnd;
 	wiButton rendererWnd_Toggle;
 	wiButton postprocessWnd_Toggle;
+	wiButton loadSchBtn;
 	wiSlider viewDist;
 	wiLabel label;
 	

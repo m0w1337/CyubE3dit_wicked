@@ -279,10 +279,10 @@
     <ClInclude Include="cyChunk.h" />
     <ClInclude Include="cyImportant.h" />
     <ClInclude Include="CyRender.h" />
+    <ClInclude Include="cySchematic.h" />
     <ClInclude Include="cyVersion.h" />
     <ClInclude Include="cyWorlds.h" />
     <ClInclude Include="json.hpp" />
-    <ClInclude Include="json_simple.hpp" />
     <ClInclude Include="lz4.h" />
     <ClInclude Include="meshGen.h" />
     <ClInclude Include="ModelImporter.h" />
@@ -303,6 +303,7 @@
     <ClCompile Include="cyChunk.cpp" />
     <ClCompile Include="cyImportant.cpp" />
     <ClCompile Include="CyRender.cpp" />
+    <ClCompile Include="cySchematic.cpp" />
     <ClCompile Include="cyVersion.cpp" />
     <ClCompile Include="cyWorlds.cpp" />
     <ClCompile Include="lz4.cpp" />

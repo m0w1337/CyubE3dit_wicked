@@ -58,9 +58,6 @@
     <ClInclude Include="settings.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="json_simple.hpp">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="cyWorlds.h">
       <Filter>Code</Filter>
     </ClInclude>
@@ -77,6 +74,9 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="cyVersion.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="cySchematic.h">
       <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
@@ -130,6 +130,9 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="cyVersion.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="cySchematic.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "CyRender.h"
 #include "cyWorlds.h"
+#include "cySchematic.h"
 #include "settings.h"
 #include <string>
 #include <sstream>
@@ -355,8 +356,12 @@ void CyRender::ResizeLayout() {
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
 	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 10));
 	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
-	postprocessWnd_Toggle.SetPos(XMFLOAT2(15, screenH - postprocessWnd_Toggle.scale.y - 15));
-	rendererWnd_Toggle.SetPos(XMFLOAT2(25 + postprocessWnd_Toggle.scale.x, screenH - postprocessWnd_Toggle.scale.y - 15));
+	uint32_t xOffset = 15;
+	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	xOffset += 10 + postprocessWnd_Toggle.scale.x;
+	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	xOffset += 10 + rendererWnd_Toggle.scale.x;
+	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - postprocessWnd_Toggle.scale.y - 15));
 }
 
@@ -375,15 +380,15 @@ void CyRender::Load() {
 	setSharpenFilterEnabled(true);
 	setSharpenFilterAmount(0.17);
 	wiRenderer::SetTransparentShadowsEnabled(false);
-	wiRenderer::SetShadowProps2D(2048, 4);
+	//wiRenderer::SetShadowProps2D(2048, 4);
 	setVolumetricCloudsEnabled(false);
 	setExposure(1.1f);
 	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
-	wiRenderer::SetVoxelRadianceEnabled(false);
+	wiRenderer::SetVoxelRadianceEnabled(true);
 	wiRenderer::SetVoxelRadianceNumCones(2);
 	wiRenderer::SetVoxelRadianceRayStepSize(1.0f);
-	wiRenderer::SetVoxelRadianceMaxDistance(600);
+	wiRenderer::SetVoxelRadianceMaxDistance(30);
 	wiRenderer::SetVoxelRadianceVoxelSize(0.1);
 	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
 	wiRenderer::SetOcclusionCullingEnabled(true);
@@ -460,6 +465,21 @@ void CyRender::Load() {
 		postprocessWnd.SetVisible(!postprocessWnd.IsVisible());
 	});
 	GetGUI().AddWidget(&postprocessWnd_Toggle);
+
+	loadSchBtn.Create("Load schematic");
+	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world");
+	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	loadSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	loadSchBtn.SetSize(XMFLOAT2(120, 20));
+	loadSchBtn.OnClick([&](wiEventArgs args) {
+		wiHelper::FileDialogParams params;
+		params.description = "CyubeVR schematic";
+		params.extensions.push_back("cySch");
+		params.OPEN;
+		wiHelper::FileDialog(params, cySchematic::loadSchematic);
+	});
+	GetGUI().AddWidget(&loadSchBtn);
 
 	RenderPath3D::Load();
 }
