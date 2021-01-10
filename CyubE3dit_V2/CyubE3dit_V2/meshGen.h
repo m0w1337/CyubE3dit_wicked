@@ -15,7 +15,7 @@ public:
 	
 	static SimplexNoise m_noise;
 	meshGen();
-	static wiScene::MeshComponent* AddMesh(wiScene::Scene& scene, uint32_t _chunkID, wiECS::Entity _material, wiECS::Entity* _newEntity);
+	static wiScene::MeshComponent* AddMesh(wiScene::Scene& scene, std::string _chunkID, wiECS::Entity _material, wiECS::Entity* _newEntity);
 
 	static void inline AddBillboard(wiScene::MeshComponent* mesh, float x, float y, float z) {
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();

@@ -5,9 +5,9 @@ class CyRender;
 
 enum PICKTYPE {
 	PICK_VOID		= 0,
-	PICK_CHUNK		= RENDERTYPE_OPAQUE | RENDERTYPE_TRANSPARENT,
+	PICK_CHUNK		= 1,
 	PICK_LIGHT		= 8,
-	PICK_DECAL		= 16,
+	PICK_TREE		= 16,
 	PICK_ENVPROBE	= 32,
 	PICK_FORCEFIELD = 64,
 	PICK_EMITTER	= 128,
@@ -50,6 +50,7 @@ public:
 	wiCheckBox gridHelperCheckBox;
 	wiCheckBox cameraVisCheckBox;
 	wiCheckBox pickTypeChunkCheckBox;
+	wiCheckBox pickTypeTreeCheckBox;
 	wiCheckBox TorchlightsCheckBox;
 	wiCheckBox pickTypeLightCheckBox;
 	wiCheckBox pickTypeDecalCheckBox;

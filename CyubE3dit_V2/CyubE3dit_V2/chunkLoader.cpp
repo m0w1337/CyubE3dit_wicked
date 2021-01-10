@@ -11,7 +11,7 @@ void chunkLoader::spawnThreads(uint8_t numthreads) {
 	}
 	m_numthreads = numthreads;
 	for (uint8_t i = 0; i < m_numthreads; i++) {
-		m_threadstate[i] = 0;
+		m_threadstate[i] = THREAD_IDLE;
 		m_thread[i]		 = thread(&chunkLoader::addChunks, this, i);
 	}
 	m_checkThread = thread(&chunkLoader::checkChunks, this);
@@ -36,11 +36,11 @@ void chunkLoader::shutdown(void) {
 
 void chunkLoader::checkChunks(void) {
 	cyImportant::chunkpos_t ghostpos, coords, lastghostpos;
-	cyImportant* world = settings::getWorld();
-	uint32_t changed	   = 0;
-	lastghostpos.x	   = -1000;
-	lastghostpos.y	   = -1000;
-	wiScene::Scene& scene  = wiScene::GetScene();
+	cyImportant* world	  = settings::getWorld();
+	uint32_t changed	  = 0;
+	lastghostpos.x		  = -1000;
+	lastghostpos.y		  = -1000;
+	wiScene::Scene& scene = wiScene::GetScene();
 	while (m_shutdown == 0) {
 		Sleep(5);
 		uint32_t viewDist = settings::getViewDist();
@@ -48,7 +48,7 @@ void chunkLoader::checkChunks(void) {
 			CameraComponent cam = wiScene::GetCamera();
 			XMFLOAT3 campos		= cam.Eye;
 			XMFLOAT3 camlook	= cam.At;
-			ghostpos.x			= (int32_t)(campos.x);	//move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
+			ghostpos.x			= (int32_t)(campos.x);	//to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
 			ghostpos.y			= -(int32_t)(campos.z);
 			ghostpos.x &= 0xFFFFFFE0;
 			ghostpos.y &= 0xFFFFFFE0;
@@ -57,17 +57,9 @@ void chunkLoader::checkChunks(void) {
 				coords = ghostpos;
 				if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
 					changed++;
-					for (uint8_t thread = 0; thread < m_numthreads; thread++) {
-						if (m_threadstate[thread] == 0) {
-							m_threadChunkX[thread]			 = coords.x;
-							m_threadChunkY[thread]			 = coords.y;
-							m_threadstate[thread]			 = 1;
-							m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
-							break;
-						}
-					}
+					employThread(coords);
 				}
-				
+
 				for (uint32_t r = 4; r <= viewDist; r = r + 4) {
 					for (uint32_t i = 0; i < r; i = i + 1) {
 						for (uint32_t ii = ((r - 4) > i) ? (1 + r - 4 - i) : 0; ii <= r - i; ii++) {
@@ -77,29 +69,13 @@ void chunkLoader::checkChunks(void) {
 									coords.y = ghostpos.y + ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
 										changed++;
-										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
-											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]			 = coords.x;
-												m_threadChunkY[thread]			 = coords.y;
-												m_threadstate[thread]			 = 1;
-												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
-												break;
-											}
-										}
+										employThread(coords);
 									}
 									coords.x = ghostpos.x - i * 16;
 									coords.y = ghostpos.y - ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
 										changed++;
-										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
-											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]			 = coords.x;
-												m_threadChunkY[thread]			 = coords.y;
-												m_threadstate[thread]			 = 1;
-												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
-												break;
-											}
-										}
+										employThread(coords);
 									}
 								}
 								if (i && ii) {
@@ -107,37 +83,28 @@ void chunkLoader::checkChunks(void) {
 									coords.y = ghostpos.y + ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
 										changed++;
-										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
-											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]			 = coords.x;
-												m_threadChunkY[thread]			 = coords.y;
-												m_threadstate[thread]			 = 1;
-												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
-												break;
-											}
-										}
+										employThread(coords);
 									}
 									coords.x = ghostpos.x + i * 16;
 									coords.y = ghostpos.y - ii * 16;
 									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
 										changed++;
-										for (uint8_t thread = 0; thread < m_numthreads; thread++) {
-											if (m_threadstate[thread] == 0) {
-												m_threadChunkX[thread]			 = coords.x;
-												m_threadChunkY[thread]			 = coords.y;
-												m_threadstate[thread]			 = 1;
-												m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
-												break;
-											}
-										}
+										employThread(coords);
 									}
 								}
 							}
 						}
 					}
 					if (changed > 100) {
-						break;
-					}	
+						changed	   = 1;
+						ghostpos.x = (int32_t)(campos.x);  //to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
+						ghostpos.y = -(int32_t)(campos.z);
+						ghostpos.x &= 0xFFFFFFE0;
+						ghostpos.y &= 0xFFFFFFE0;
+						if (lastghostpos.x != ghostpos.x || lastghostpos.y != ghostpos.y) {
+							break;
+						}
+					}
 				}
 				for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
 					if (it->second.chunkObj != 0xFFFFFFFE) {
@@ -149,11 +116,12 @@ void chunkLoader::checkChunks(void) {
 								if (obj != nullptr) {
 									wiECS::Entity meshEnt = obj->meshID;
 									m.lock();
-									scene.Entity_Remove(meshEnt);
+									scene.Component_RemoveChildren(it->second.chunkObj);
 									scene.Entity_Remove(it->second.chunkObj);
-									for (size_t i = 0; i < it->second.meshes.size(); i++) {
-										scene.Entity_Remove(it->second.meshes[i]);
-									}
+									scene.Entity_Remove(meshEnt);
+									//for (size_t i = 0; i < it->second.meshes.size(); i++) {
+									//	scene.Entity_Remove(it->second.meshes[i]);
+									//}
 									m.unlock();
 									auto pos = m_visibleChunks.erase(it);
 									it		 = pos;
@@ -164,7 +132,7 @@ void chunkLoader::checkChunks(void) {
 								it		 = pos;
 								changed++;
 							}
-							
+
 						} else
 							it++;
 					} else {
@@ -172,7 +140,7 @@ void chunkLoader::checkChunks(void) {
 					}
 					if (changed > 200) {
 						break;
-					}	
+					}
 				}
 				settings::numVisChunks = m_visibleChunks.size();
 				if (changed == 0) {
@@ -191,11 +159,14 @@ void chunkLoader::checkChunks(void) {
 					if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 						wiECS::Entity meshEnt = scene.objects.GetComponent(it->second.chunkObj)->meshID;
 						m.lock();
-						scene.Entity_Remove(meshEnt);
+						scene.Component_RemoveChildren(it->second.chunkObj);
 						scene.Entity_Remove(it->second.chunkObj);
-						for (size_t i = 0; i < it->second.meshes.size(); i++) {
-							scene.Entity_Remove(it->second.meshes[i]);
-						}
+						scene.Entity_Remove(meshEnt);
+						//scene.Entity_Remove(meshEnt);
+						//scene.Entity_Remove(it->second.chunkObj);
+						//for (size_t i = 0; i < it->second.meshes.size(); i++) {
+						//	scene.Entity_Remove(it->second.meshes[i]);
+						//}
 						m.unlock();
 					}
 					it++;
@@ -209,13 +180,12 @@ void chunkLoader::checkChunks(void) {
 }
 
 void chunkLoader::addChunks(uint8_t threadNum) {
-	chunkobjects_t chunkObj;
+	wiECS::Entity chunkObj;
 	while (m_shutdown < 2) {
-		if (m_threadstate[threadNum] == 1) {
+		if (m_threadstate[threadNum] == THREAD_BUSY) {
 			cyImportant* world = settings::getWorld();
 			cyImportant::chunkpos_t coords, zero;
-			coords.x = m_threadChunkX[threadNum];
-			coords.y = m_threadChunkY[threadNum];
+			coords = m_threadChunkPos[threadNum];
 			if (world->isValid()) {
 				uint32_t chunkID;
 				cyChunk chunk;
@@ -237,17 +207,14 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 					if (world->getChunkID(coords.x + zero.x, coords.y + zero.y - 16, &chunkID))
 						chunkD.loadChunk(world->db[threadNum], chunkID, true);
 					chunkObj = chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, coords.x, -coords.y);
-					Sleep(5);	//somehow we must give the mesh some tiime to properly instanciate everything, before we are actually enabling the deletion
-					m_visibleChunks[coords] = chunkObj;
+					//m_visibleChunks[coords] = chunkObj;
+					m_threadstate[threadNum] = chunkObj;
 				} else {
 					//wiBackLog::post("CHunk not found");
-					m_visibleChunks[coords].chunkObj = wiECS::INVALID_ENTITY;
+					m_threadstate[threadNum] = wiECS::INVALID_ENTITY;
 				}
 			} else {
-				m_visibleChunks[coords].chunkObj = wiECS::INVALID_ENTITY;
-			}
-			if (m_threadstate[threadNum] != 99) {
-				m_threadstate[threadNum] = 0;
+				m_threadstate[threadNum] = wiECS::INVALID_ENTITY;
 			}
 
 		} else {
@@ -256,32 +223,31 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 	}
 }
 
-chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
+wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
 	face_t tmpface;
-	chunkobjects_t ret;
 	wiECS::Entity entity = wiECS::INVALID_ENTITY;
 	vector<face_t> faces;
+	vector<torch_t> torches;
 	uint8_t stepsize	   = 1;
 	uint16_t surfaceHeight = chunk.m_surfaceheight;
+	if (chunk.m_isAirChunk)
+		return wiECS::INVALID_ENTITY;
+
 	if (settings::clipUnderground == true) {
-		if (eastChunk.m_surfaceheight < surfaceHeight)
-			surfaceHeight = eastChunk.m_surfaceheight;
-		if (westChunk.m_surfaceheight < surfaceHeight)
-			surfaceHeight = westChunk.m_surfaceheight;
-		if (northChunk.m_surfaceheight < surfaceHeight)
-			surfaceHeight = northChunk.m_surfaceheight;
-		if (southChunk.m_surfaceheight < surfaceHeight)
-			surfaceHeight = southChunk.m_surfaceheight;
+		surfaceHeight = min(surfaceHeight, eastChunk.m_surfaceheight);
+		surfaceHeight = min(surfaceHeight, westChunk.m_surfaceheight);
+		surfaceHeight = min(surfaceHeight, northChunk.m_surfaceheight);
+		surfaceHeight = min(surfaceHeight, southChunk.m_surfaceheight);
 		if (surfaceHeight > 25)
 			surfaceHeight -= 25;
 	} else {
 
-			if (chunk.m_lowestZ > 2)
-				surfaceHeight = chunk.m_lowestZ - 2;
-			else
-				surfaceHeight = chunk.m_lowestZ;
+		if (chunk.m_lowestZ > 2)
+			surfaceHeight = chunk.m_lowestZ - 2;
+		else
+			surfaceHeight = 0;
 	}
-	
+
 	wiScene::Scene tmpScene;
 	for (int_fast16_t z = min(chunk.m_highestZ + 2, 799); z > surfaceHeight; z -= stepsize) {
 		for (uint_fast8_t x = 0; x < 32; x += stepsize) {
@@ -361,79 +327,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 					cyChunk::blockpos_t pos(x, y, z);
 					auto it = chunk.m_Torches.find(pos);
 					if (it != chunk.m_Torches.end()) {
-						wiECS::Entity lightEnt;
-						LightComponent* light = nullptr;
-						//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
-						//light->SetStatic(true);
-						//light->SetVolumetricsEnabled(true);
-						wiECS::Entity meshID=0;
-						TransformComponent transform;
-						XMFLOAT3 color((float)cyBlocks::m_regBlockFlags[blocktype][0] / 255.f, (float)cyBlocks::m_regBlockFlags[blocktype][1] / 255.f, (float)cyBlocks::m_regBlockFlags[blocktype][2] / 255.f);
-						try {
-							switch (it->second) {
-								case 0:
-									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-									transform.Translate(XMFLOAT3(relX + x / 2.0f + 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
-									transform.RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
-									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f + 0.1, z / 2.0f + 0.02, relY + 16 - y / 2.0f), color, 5, 4);
-									light	 = tmpScene.lights.GetComponent(lightEnt);
-									break;
-								case 1:
-									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-									transform.Translate(XMFLOAT3(relX + x / 2.0f - 0.248, z / 2.0f - 0.14, relY + 16 - y / 2.0f));
-									transform.RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
-									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f - 0.1, z / 2.0f + 0.02, relY + 16 - y / 2.0f), color, 5, 4);
-									light	 = tmpScene.lights.GetComponent(lightEnt);
-									break;
-								case 2:
-									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f + 0.248));
-									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.02, relY + 16 - y / 2.0f + 0.1), color, 5, 4);
-									light	 = tmpScene.lights.GetComponent(lightEnt);
-									break;
-								case 3:
-									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.14, relY + 16 - y / 2.0f - 0.248));
-									transform.RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
-									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.02, relY + 16 - y / 2.0f - 0.1), color, 5, 4);
-									light	 = tmpScene.lights.GetComponent(lightEnt);
-									break;
-								case 4:
-									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
-									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.135f, relY + 16 - y / 2.0f));
-									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.08, relY + 16 - y / 2.0f), color, 5, 4);
-									light	 = tmpScene.lights.GetComponent(lightEnt);
-									break;
-								default:
-									meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
-									transform.Translate(XMFLOAT3(relX + x / 2.0f, z / 2.0f + 0.135f, relY + 16 - y / 2.0f));
-									transform.RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
-									lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + x / 2.0f, z / 2.0f - 0.08, relY + 16 - y / 2.0f), XMFLOAT3(1.0, 0.3, 0.0f), 5, 4);
-									light	 = tmpScene.lights.GetComponent(lightEnt);
-									break;
-							}
-							if (light != nullptr) {
-								light->SetCastShadow(true);
-								light->SetVolumetricsEnabled(true);
-								if (settings::torchlights == false) {
-									light->SetStatic(true);
-								}
-								ret.meshes.push_back(lightEnt);
-
-								wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
-								ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-								LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-								TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
-								object.meshID			= meshID;
-								object.emissiveColor	= XMFLOAT4(color.x, color.y, color.z, 1.0f);
-								layer.layerMask			= LAYER_TORCH;
-								ret.meshes.push_back(objEnt);
-								*tf = transform;
-								tf->UpdateTransform();
-							}
-						}
-						catch (...) {
-						}
+						torches.push_back(torch_t(blocktype, x, y, z, it->second));
 					}
 				}
 			}
@@ -445,9 +339,9 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 		MeshComponent* mesh;
 		string meshname = to_string(relX) + to_string(relY);
 		if (wiScene::GetScene().materials.GetComponent(faces[0].material) != nullptr) {
-			mesh = meshGen::AddMesh(tmpScene, chunk.m_id, faces[0].material, &entity);
+			mesh = meshGen::AddMesh(tmpScene, to_string(chunk.m_id), faces[0].material, &entity);
 		} else {
-			mesh = meshGen::AddMesh(tmpScene, chunk.m_id, cyBlocks::m_fallbackMat, &entity);
+			mesh = meshGen::AddMesh(tmpScene, to_string(chunk.m_id), cyBlocks::m_fallbackMat, &entity);
 		}
 		wiECS::Entity currMat = faces[0].material;
 		mesh->SetDoubleSided(true);
@@ -489,7 +383,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 
 		mesh->SetDynamic(false);
 		mesh->CreateRenderData();
-
+		ObjectComponent* chunkObj = tmpScene.objects.GetComponent(entity);
 		for (size_t i = 0; i < chunk.trees.size(); i++) {
 			if (chunk.trees[i].scale.x > 2 || chunk.trees[i].scale.y > 2 || chunk.trees[i].scale.z > 2) {
 				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
@@ -523,62 +417,148 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(const cyChunk& chunk, const
 				tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
 				tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
 				tf.UpdateTransform();
-				ret.meshes.push_back(objEnt);
+				object.parentObject = entity;
+				//ret.meshes.push_back(objEnt);
+				//tmpScene.Component_Attach(objEnt, entity);
 			}
 		}
-		/*
-		for (size_t i = 0; i < chunk.meshObjects.size(); i++) {
-			if (chunk.meshObjects[i].scale.x > 2 || chunk.meshObjects[i].scale.y > 2 || chunk.meshObjects[i].scale.z > 2) {
-				wiHelper::messageBox("Mesh scaling out of bounds!", "Error!");
-				uint32_t chID = chunk.m_id;
-				wiBackLog::post("Weird mesh data: ChunkID: ");
-				wiBackLog::post(to_string(chID).c_str());
-			} else {
-				try {
-					wiECS::Entity mesh = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0];
-					if (mesh) {
-						wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("mesh");
-						ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-						object.meshID			= mesh;
-						LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-						layer.layerMask			= LAYER_TREE;
-						TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
-						tf.Translate(XMFLOAT3(relX + 8 + chunk.meshObjects[i].pos.x, chunk.meshObjects[i].pos.z, relY + 8 - chunk.meshObjects[i].pos.y));
-						tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x, chunk.meshObjects[i].scale.z, chunk.meshObjects[i].scale.y));
-						tf.Rotate(XMFLOAT4(chunk.meshObjects[i].qRot.x, chunk.meshObjects[i].qRot.z, chunk.meshObjects[i].qRot.y, chunk.meshObjects[i].qRot.w));
-						tf.UpdateTransform();
-						ret.meshes.push_back(objEnt);
-					}
-				}
-				catch (...) {
-				}
-			}
-		}
-		*/
-
-		/*
-				try {
-					object.meshID = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0];
-					tf.Translate(XMFLOAT3(relX + 8 + chunk.meshObjects[i].pos.x, chunk.meshObjects[i].pos.z - 0.3f, relY + 8 - chunk.meshObjects[i].pos.y));
-					tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x, chunk.meshObjects[i].scale.z, chunk.meshObjects[i].scale.y));
-				}
-				catch (...) {
-				}
-				*/
-
+		placeTorches(torches, relX, relY, tmpScene, entity);
+		placeMeshes(chunk, relX, relY, tmpScene, entity);
 		m.lock();
 		wiScene::GetScene().Merge(tmpScene);
 		m.unlock();
 	}  //else	wiBackLog::post("Chunk has no blocks");
-	ret.chunkObj = entity;
-	return ret;
+	return entity;
 }
 
-void chunkLoader::updateDisplayedChunks(void) {
-	for (uint_fast16_t mesh = 0; mesh < VIEWDISTANCE; mesh++) {
+inline void chunkLoader::placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, Scene& tmpScene, const wiECS::Entity parent) {
+	for (size_t i = 0; i < chunk.meshObjects.size(); i++) {
+		if (chunk.meshObjects[i].scale.x > 2 || chunk.meshObjects[i].scale.y > 2 || chunk.meshObjects[i].scale.z > 2) {
+			wiHelper::messageBox("Mesh scaling out of bounds!", "Error!");
+			uint32_t chID = chunk.m_id;
+			wiBackLog::post("Weird mesh data: ChunkID: ");
+			wiBackLog::post(to_string(chID).c_str());
+		} else {
+			try {
+				wiECS::Entity mesh = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0];
+				if (mesh) {
+					wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("mesh");
+					ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+					object.meshID			= mesh;
+					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
+					layer.layerMask			= LAYER_TREE;
+					TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
+					tf.Translate(XMFLOAT3(relX + 8 + chunk.meshObjects[i].pos.x, chunk.meshObjects[i].pos.z, relY + 8 - chunk.meshObjects[i].pos.y));
+					tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x, chunk.meshObjects[i].scale.z, chunk.meshObjects[i].scale.y));
+					tf.Rotate(XMFLOAT4(chunk.meshObjects[i].qRot.x, chunk.meshObjects[i].qRot.z, chunk.meshObjects[i].qRot.y, chunk.meshObjects[i].qRot.w));
+					tf.UpdateTransform();
+					object.parentObject = parent;
+				}
+			}
+			catch (...) {
+			}
+		}
+	}
+	
+}
+inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& torches, const int32_t relX, const int32_t relY, Scene& tmpScene, const wiECS::Entity parent) {
+	for (size_t i = 0; i < torches.size(); i++) {
+		torch_t torch = torches[i];
+		wiECS::Entity lightEnt;
+		LightComponent* light = nullptr;
+		//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
+		//light->SetStatic(true);
+		//light->SetVolumetricsEnabled(true);
+		wiECS::Entity meshID = 0;
+		TransformComponent transform;
+		XMFLOAT3 color((float)cyBlocks::m_regBlockFlags[torch.ID][0] / 255.f, (float)cyBlocks::m_regBlockFlags[torch.ID][1] / 255.f, (float)cyBlocks::m_regBlockFlags[torch.ID][2] / 255.f);
+		try {
+			switch (torch.rotation) {
+				case 0:
+					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
+					transform.Translate(XMFLOAT3(relX + torch.x / 2.0f + 0.248, torch.z / 2.0f - 0.14, relY + 16 - torch.y / 2.0f));
+					transform.RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + torch.x / 2.0f + 0.1, torch.z / 2.0f + 0.02, relY + 16 - torch.y / 2.0f), color, 5, 4);
+					light	 = tmpScene.lights.GetComponent(lightEnt);
+					break;
+				case 1:
+					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
+					transform.Translate(XMFLOAT3(relX + torch.x / 2.0f - 0.248, torch.z / 2.0f - 0.14, relY + 16 - torch.y / 2.0f));
+					transform.RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + torch.x / 2.0f - 0.1, torch.z / 2.0f + 0.02, relY + 16 - torch.y / 2.0f), color, 5, 4);
+					light	 = tmpScene.lights.GetComponent(lightEnt);
+					break;
+				case 2:
+					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
+					transform.Translate(XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f - 0.14, relY + 16 - torch.y / 2.0f + 0.248));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f + 0.02, relY + 16 - torch.y / 2.0f + 0.1), color, 5, 4);
+					light	 = tmpScene.lights.GetComponent(lightEnt);
+					break;
+				case 3:
+					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
+					transform.Translate(XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f - 0.14, relY + 16 - torch.y / 2.0f - 0.248));
+					transform.RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f + 0.02, relY + 16 - torch.y / 2.0f - 0.1), color, 5, 4);
+					light	 = tmpScene.lights.GetComponent(lightEnt);
+					break;
+				case 4:
+					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
+					transform.Translate(XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f - 0.135f, relY + 16 - torch.y / 2.0f));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f + 0.08, relY + 16 - torch.y / 2.0f), color, 5, 4);
+					light	 = tmpScene.lights.GetComponent(lightEnt);
+					break;
+				default:
+					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
+					transform.Translate(XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f + 0.135f, relY + 16 - torch.y / 2.0f));
+					transform.RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(relX + torch.x / 2.0f, torch.z / 2.0f - 0.08, relY + 16 - torch.y / 2.0f), XMFLOAT3(1.0, 0.3, 0.0f), 5, 4);
+					light	 = tmpScene.lights.GetComponent(lightEnt);
+					break;
+			}
+			if (light != nullptr) {
+				light->SetCastShadow(true);
+				light->SetVolumetricsEnabled(true);
+				if (settings::torchlights == false) {
+					light->SetStatic(true);
+				}
+				//ret.meshes.push_back(lightEnt);
+
+				wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
+				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
+				TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
+				object.SetUserStencilRef(0x01);
+				object.meshID		 = meshID;
+				object.emissiveColor = XMFLOAT4(color.x, color.y, color.z, 1.0f);
+				layer.layerMask		 = LAYER_TORCH;
+				*tf					 = transform;
+				tf->UpdateTransform();
+				//ret.meshes.push_back(objEnt);
+				object.parentObject = parent;
+				light->parentObject = parent;
+				//tmpScene.Component_Attach(objEnt, entity);
+			}
+		}
+		catch (...) {
+		}
 	}
 }
 
+inline void chunkLoader::employThread(cyImportant::chunkpos_t coords) {
+	for (uint8_t thread = 0; thread < m_numthreads; thread++) {
+		if (m_threadstate[thread] != THREAD_BUSY) {
+			if (m_threadstate[thread] != THREAD_IDLE) {
+				m_visibleChunks[m_threadChunkPos[thread]].chunkObj = m_threadstate[thread];
+				m_threadstate[thread]							   = THREAD_IDLE;
+			}
+			m_threadChunkPos[thread]		 = coords;
+			m_threadstate[thread]			 = THREAD_BUSY;
+			m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
+			break;
+		}
+	}
+}
+/*
 cyImportant::chunkpos_t chunkLoader::spiral(const int32_t iteration) {
 	cyImportant::chunkpos_t ret;
 	double temp = (sqrt(iteration) - 1.0) / 2.0;
@@ -610,6 +590,4 @@ cyImportant::chunkpos_t chunkLoader::spiral(const int32_t iteration) {
 	ret.y *= 16;
 	return ret;
 }
-
-void chunkLoader::loadWorld(void) {
-}
+*/

@@ -69,23 +69,23 @@ void CyMainComponent::CreateScene(void) {
 		wiLua::KillProcesses();
 	}
 	// Add some nice weather, not just black:
-	auto& weather = scene.weathers.Create(CreateEntity());
-
-	weather.fogStart  = 5;
-	weather.fogEnd	  = 2000;
-	weather.fogHeight = 0;
-	weather.horizon	  = XMFLOAT3(0.4f, 0.4f, 0.9f);
-	weather.zenith	  = XMFLOAT3(0.5f, 0.7f, 0.9f);
-	weather.ambient	  = XMFLOAT3(0.8f, 0.8f, 0.9f);
+	auto& weather	   = scene.weathers.Create(CreateEntity());
+	weather.fogStart   = 5;
+	weather.fogEnd	   = 2000;
+	weather.fogHeight  = 0;
+	weather.horizon	   = XMFLOAT3(.7f, .5f, .8f);
+	weather.zenith	   = XMFLOAT3(0.8f, 0.8f, 1.0f);
+	weather.ambient	   = XMFLOAT3(1.0f, 1.0f, 1.0f);
+	weather.skyMapName = "images/sky.dds";
 	weather.SetRealisticSky(false);
-	weather.skyMapName	   = "images/sky.dds";
 	weather.cloudiness	   = 0.2f;
-	weather.windSpeed	   = 1.3f;
+	weather.cloudSpeed	   = 0.1f;
+	weather.windSpeed	   = 1.8f;
 	weather.windRandomness = 1.5f;
 	weather.windWaveSize   = 2.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 0.8, 0.6f), 35, 1000);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 0.8, 0.6f), 45, 1000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -146,9 +146,27 @@ void CyMainComponent::CreateScene(void) {
 void CyMainComponent::Compose(CommandList cmd) {
 	auto range = wiProfiler::BeginRangeCPU("Compose");
 
+	
+
 	if (GetActivePath() != nullptr)
 	{
 		GetActivePath()->Compose(cmd);
+	}
+
+	const float selectionColorIntensity = renderer.sinepulse * 0.5f + 0.5f;
+	if (renderer.GetDepthStencil() != nullptr)
+	{
+		GraphicsDevice* device = wiRenderer::GetDevice();
+		device->EventBegin("Editor - Selection Outline", cmd);
+		wiRenderer::BindCommonResources(cmd);
+		float opacity = wiMath::Lerp(0.4f, 1.0f, selectionColorIntensity);
+		XMFLOAT4 col  = selectionColor2;
+		col.w *= opacity;
+		wiRenderer::Postprocess_Outline(rt_selectionOutline[0], cmd, 0.1f, 1.f, col);
+		col = selectionColor;
+		col.w *= opacity;
+		wiRenderer::Postprocess_Outline(rt_selectionOutline[1], cmd, 0.1f, 1.f, col);
+		device->EventEnd(cmd);
 	}
 
 	if (fadeManager.IsActive())
@@ -233,8 +251,8 @@ void CyMainComponent::Compose(CommandList cmd) {
 		ss << settings::numVisChunks << " Chunks visible" << endl;
 		cyImportant* world = settings::getWorld();
 		XMFLOAT3 position  = wiScene::GetCamera().Eye;
-		position.x += world->m_playerpos.x;
-		position.z += world->m_playerpos.y;
+		position.x += (float)(world->m_playerpos.x / 100);
+		position.z += (float)(world->m_playerpos.y / 100);
 		ss << "X: " << position.x << " Y: " << position.z << " Z: " << position.y << endl;
 
 		/*if (infoDisplay.heap_allocation_counter)
@@ -251,16 +269,37 @@ void CyMainComponent::Compose(CommandList cmd) {
 			ss << "Warning: Graphics is in [debugdevice] mode, performance will be slow!" << endl;
 		}
 		ss << "Entity pool usage: " + to_string((((float)wiECS::next * 100.0f) / UINT32_MAX)) + "%" << endl;
-		static int64_t id			= -1;
-		static wiECS::Entity oldMat = 0;
-		static string blockname		= "";
-		wiScene::Scene& scene					  = wiScene::GetScene();
+		static int64_t id								 = -1;
+		static wiECS::Entity oldMat						 = 0;
+		static string blockname							 = "";
+		wiScene::Scene& scene							 = wiScene::GetScene();
 		static wiScene::MaterialComponent* highlightComp = scene.materials.GetComponent(scene.materials.GetIndex(0));
-		wiECS::Entity mat = 0;
-		if (renderer.hovered.entity)
-			mat								 = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID)->subsets[renderer.hovered.subsetIndex].materialID;
-		
+		wiECS::Entity mat								 = 0;
+		if (renderer.hovered.entity) {
+			wiScene::MeshComponent* mesh = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID);
+			mat							 = mesh->subsets[renderer.hovered.subsetIndex].materialID;
+			XMFLOAT3 pos				 = mesh->vertex_positions[renderer.hovered.vertexID0];
+			pos.x += mesh->vertex_positions[renderer.hovered.vertexID1].x;
+			pos.y += mesh->vertex_positions[renderer.hovered.vertexID1].y;
+			pos.z += mesh->vertex_positions[renderer.hovered.vertexID1].z;
+			pos.x += mesh->vertex_positions[renderer.hovered.vertexID2].x;
+			pos.y += mesh->vertex_positions[renderer.hovered.vertexID2].y;
+			pos.z += mesh->vertex_positions[renderer.hovered.vertexID2].z;
+			pos.x /= 1.5;
+			pos.y /= 1.5;
+			pos.z /= 1.5;
+			pos.x -= mesh->vertex_normals[renderer.hovered.vertexID1].x / 2;
+			pos.y -= mesh->vertex_normals[renderer.hovered.vertexID1].y / 2;
+			pos.z -= mesh->vertex_normals[renderer.hovered.vertexID1].z / 2;
+			XMMATRIX sca = XMMatrixScaling(0.26f, 0.26f, 0.26f);
+			XMMATRIX tra = XMMatrixTranslation(roundf(pos.x) / 2, roundf(pos.y) / 2, roundf(pos.z) / 2);
+			XMFLOAT4X4 hoverBox;
+			XMStoreFloat4x4(&hoverBox, sca * tra);
+			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.8f, 0.8f, 2.f, 1.0f));
+		}
+
 		if (oldMat != mat) {
+
 			oldMat = renderer.hovered.entity;
 			id	   = -1;
 			if (oldMat) {
@@ -347,6 +386,123 @@ void CyMainComponent::Compose(CommandList cmd) {
 	wiBackLog::Draw(cmd);
 
 	wiProfiler::EndRange(range);  // Compose
+
+
+}
+
+void CyRender::ResizeBuffers() {
+	RenderPath3D::ResizeBuffers();
+
+	GraphicsDevice* device = wiRenderer::GetDevice();
+	bool hr;
+
+	if (GetDepthStencil() != nullptr)
+	{
+		TextureDesc desc;
+		desc.Width	= GetInternalResolution().x;
+		desc.Height = GetInternalResolution().y;
+
+		desc.Format	   = FORMAT_R8_UNORM;
+		desc.BindFlags = BIND_RENDER_TARGET | BIND_SHADER_RESOURCE;
+		if (getMSAASampleCount() > 1)
+		{
+			desc.SampleCount = getMSAASampleCount();
+			hr				 = device->CreateTexture(&desc, nullptr, &main->rt_selectionOutline_MSAA);
+			assert(hr);
+			desc.SampleCount = 1;
+		}
+		hr = device->CreateTexture(&desc, nullptr, &main->rt_selectionOutline[0]);
+		assert(hr);
+		hr = device->CreateTexture(&desc, nullptr, &main->rt_selectionOutline[1]);
+		assert(hr);
+
+		{
+			RenderPassDesc desc;
+			desc.attachments.push_back(RenderPassAttachment::RenderTarget(&main->rt_selectionOutline[0], RenderPassAttachment::LOADOP_CLEAR));
+			if (getMSAASampleCount() > 1)
+			{
+				desc.attachments[0].texture = &main->rt_selectionOutline_MSAA;
+				desc.attachments.push_back(RenderPassAttachment::Resolve(&main->rt_selectionOutline[0]));
+			}
+			desc.attachments.push_back(
+				RenderPassAttachment::DepthStencil(
+					GetDepthStencil(),
+					RenderPassAttachment::LOADOP_LOAD,
+					RenderPassAttachment::STOREOP_STORE,
+					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
+					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
+					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY));
+			hr = device->CreateRenderPass(&desc, &main->renderpass_selectionOutline[0]);
+			assert(hr);
+
+			if (getMSAASampleCount() == 1)
+			{
+				desc.attachments[0].texture = &main->rt_selectionOutline[1];  // rendertarget
+			} else
+			{
+				desc.attachments[1].texture = &main->rt_selectionOutline[1];  // resolve
+			}
+			hr = device->CreateRenderPass(&desc, &main->renderpass_selectionOutline[1]);
+			assert(hr);
+		}
+	}
+}
+
+void CyMainComponent::Render() 
+{
+	if (GetActivePath() != nullptr)
+	{
+		GetActivePath()->Render();
+	}
+	
+	// Selection outline:
+	if (renderer.GetDepthStencil() != nullptr)
+	{
+		GraphicsDevice* device = wiRenderer::GetDevice();
+		CommandList cmd		   = device->BeginCommandList();
+
+		device->EventBegin("Editor - Selection Outline Mask", cmd);
+
+		Viewport vp;
+		vp.Width  = (float)rt_selectionOutline[0].GetDesc().Width;
+		vp.Height = (float)rt_selectionOutline[0].GetDesc().Height;
+		device->BindViewports(1, &vp, cmd);
+
+		wiImageParams fx;
+		fx.enableFullScreen();
+		fx.stencilComp = STENCILMODE::STENCILMODE_EQUAL;
+
+		// We will specify the stencil ref in user-space, don't care about engine stencil refs here:
+		//	Otherwise would need to take into account engine ref and draw multiple permutations of stencil refs.
+		fx.stencilRefMode = STENCILREFMODE_USER;
+
+		// Materials outline:
+		{
+			device->RenderPassBegin(&renderpass_selectionOutline[0], cmd);
+
+			// Draw solid blocks of selected materials
+			fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_MATERIAL;
+			wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
+
+			device->RenderPassEnd(cmd);
+		}
+
+		// Objects outline:
+		{
+			device->UnbindResources(TEXSLOT_ONDEMAND0, 1, cmd);
+			device->RenderPassBegin(&renderpass_selectionOutline[1], cmd);
+
+			// Draw solid blocks of selected objects
+			fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_OBJECT;
+			wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
+
+			device->RenderPassEnd(cmd);
+		}
+
+		device->EventEnd(cmd);
+	}
+	
+
 }
 
 void CyRender::ResizeLayout() {
@@ -356,7 +512,7 @@ void CyRender::ResizeLayout() {
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
 	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 10));
 	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
-	uint32_t xOffset = 15;
+	float xOffset = 15;
 	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	xOffset += 10 + postprocessWnd_Toggle.scale.x;
 	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
@@ -367,38 +523,40 @@ void CyRender::ResizeLayout() {
 
 void CyRender::Load() {
 	hovered = wiScene::PickResult();
-
+	setMotionBlurEnabled(true);
+	setMotionBlurStrength(10.0f);
 	setBloomEnabled(true);
-	setBloomThreshold(1.5);
+	setBloomThreshold(1.7f);
 	setReflectionsEnabled(true);
 	setSSREnabled(false);
-	wiRenderer::SetGamma(2.2);
+	wiRenderer::SetGamma(2.4f);
 	wiPhysicsEngine::SetEnabled(true);
 	setLightShaftsEnabled(true);
+	setColorGradingEnabled(true);
 	setShadowsEnabled(true);
 	setMSAASampleCount(1);
 	setSharpenFilterEnabled(true);
-	setSharpenFilterAmount(0.17);
+	setSharpenFilterAmount(0.17f);
 	wiRenderer::SetTransparentShadowsEnabled(false);
-	//wiRenderer::SetShadowProps2D(2048, 4);
+	wiRenderer::SetShadowProps2D(2048, 4);
 	setVolumetricCloudsEnabled(false);
-	setExposure(1.1f);
+	setExposure(1.0f);
 	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetVoxelRadianceEnabled(true);
 	wiRenderer::SetVoxelRadianceNumCones(2);
 	wiRenderer::SetVoxelRadianceRayStepSize(1.0f);
 	wiRenderer::SetVoxelRadianceMaxDistance(30);
-	wiRenderer::SetVoxelRadianceVoxelSize(0.1);
+	wiRenderer::SetVoxelRadianceVoxelSize(0.2f);
 	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
-	wiRenderer::SetOcclusionCullingEnabled(true);
+	wiRenderer::SetOcclusionCullingEnabled(false);
 	wiProfiler::SetEnabled(true);
 	setAO(AO_MSAO);
 	setAOPower(0.2);
 	setFXAAEnabled(false);
 	setEyeAdaptionEnabled(false);
-	wiScene::GetCamera().zNearP = 0.1;
-	wiScene::GetCamera().zFarP	= 2000;
+	wiScene::GetCamera().zNearP = 0.1f;
+	wiScene::GetCamera().zFarP	= 1500.f;
 	label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - sneak peek");
 	label.SetColor(wiColor(100, 100, 100, 0), wiWidget::WIDGETSTATE::IDLE);
@@ -410,8 +568,8 @@ void CyRender::Load() {
 	cyWorlds::getWorlds();
 	worldSelector.Create("TestSelector");
 	worldSelector.SetText("Current World: ");
-	worldSelector.SetSize(XMFLOAT2(250, 20));
-	worldSelector.SetPos(XMFLOAT2(300, 20));
+	worldSelector.SetSize(XMFLOAT2(250.f, 20.f));
+	worldSelector.SetPos(XMFLOAT2(300.f, 20.f));
 	worldSelector.SetColor(wiColor(100, 100, 100, 30), wiWidget::WIDGETSTATE::IDLE);
 	worldSelector.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
 	worldSelector.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
@@ -477,7 +635,7 @@ void CyRender::Load() {
 		params.description = "CyubeVR schematic";
 		params.extensions.push_back("cySch");
 		params.OPEN;
-		wiHelper::FileDialog(params, cySchematic::loadSchematic);
+		wiHelper::FileDialog(params, cySchematic::addSchematic);
 	});
 	GetGUI().AddWidget(&loadSchBtn);
 
@@ -485,8 +643,8 @@ void CyRender::Load() {
 }
 
 void CyRender::Update(float dt) {
-
-	CameraComponent& camera = wiScene::GetCamera();
+	static wiECS::Entity lastHovered = wiECS::INVALID_ENTITY;
+	CameraComponent& camera			 = wiScene::GetCamera();
 	// Camera control:
 	static XMFLOAT4 originalMouse = XMFLOAT4(0, 0, 0, 0);
 	static float Accel			  = 0.0;
@@ -524,22 +682,33 @@ void CyRender::Update(float dt) {
 	} else {
 		camControlStart = true;
 		wiInput::HidePointer(false);
-		if (rendererWnd.GetPickType() == PICK_CHUNK) {
-
-			RAY pickRay = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
-			hovered		= wiScene::Pick(pickRay, 1, LAYER_CHUNKMESH);
+		if (rendererWnd.GetPickType()) {
+			RAY pickRay		  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+			uint32_t pickmask = 0;
+			if (rendererWnd.GetPickType() & PICK_CHUNK)
+				pickmask |= LAYER_CHUNKMESH;
+			if (rendererWnd.GetPickType() & PICK_TREE)
+				pickmask |= LAYER_TREE;
+			hovered = wiScene::Pick(pickRay, 1, pickmask);
 
 		} else {
-
 			hovered.entity = wiECS::INVALID_ENTITY;
 		}
 		if (hovered.entity != wiECS::INVALID_ENTITY)
 		{
-			const ObjectComponent* object = wiScene::GetScene().objects.GetComponent(hovered.entity);
-			const AABB& aabb			  = *wiScene::GetScene().aabb_objects.GetComponent(hovered.entity);
+			ObjectComponent* object = wiScene::GetScene().objects.GetComponent(hovered.entity);
+			const AABB& aabb		= *wiScene::GetScene().aabb_objects.GetComponent(hovered.entity);
+			object->color			= XMFLOAT4((3.0 + sinepulse) / 4, (3.0 + sinepulse) / 4, (3.0 + sinepulse) / 4, 1);
 			XMFLOAT4X4 hoverBox;
 			XMStoreFloat4x4(&hoverBox, aabb.getAsBoxMatrix());
-			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 0.2f, 5.f, 3.0f));
+			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
+		}
+		if (lastHovered != hovered.entity) {
+			ObjectComponent* object = wiScene::GetScene().objects.GetComponent(lastHovered);
+			if (object != nullptr) {
+				object->color = XMFLOAT4(1, 1, 1, 1);
+			}
+			lastHovered = hovered.entity;
 		}
 	}
 
@@ -574,12 +743,12 @@ void CyRender::Update(float dt) {
 	if (Accel < 4) {
 		Accel += dt * 2;
 	}
-	const float MoveSpeed = 4 * Accel;
+	const float MoveSpeed = settings::camspeed * Accel;
 
 	// FPS Camera
 	const float clampedDT = min(dt, 0.1f);	// if dt > 100 millisec, don't allow the camera to jump too far...
 
-	const float speed	 = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0f : 1.2f) + rightTrigger.x * 10.0f) * MoveSpeed * clampedDT;
+	const float speed	 = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0) + rightTrigger.x * 10.0f) * MoveSpeed * clampedDT;
 	static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
 	XMVECTOR moveNew	 = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
 
@@ -620,14 +789,93 @@ void CyRender::Update(float dt) {
 	//if (moveLength < 10) {	//Ignore when movement is too far
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
+		CAPSULE capsule;
+		capsule.radius = 0.6;
+		capsule.tip	   = camera.Eye;
+		capsule.base   = capsule.tip;
+		capsule.base.y -= 1.5f;
+		
 
 		camera_transform.MatrixTransform(wiScene::GetCamera().GetInvView());
 		camera_transform.UpdateTransform();
 		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
 		XMVECTOR move_rot = XMVector3TransformNormal(move, camRot);
+		/* Collision --> not very reliable as only one intersection is evaluated
+		int ccd_max		  = 10;
+		XMVECTOR step	  = XMVectorSet(0, 0, 0, 0);
+		SPHERE sphere;
+		sphere.center = camera_transform.GetPosition();
+		sphere.radius = 0.;
+		for (int ccd = 0; ccd < ccd_max; ++ccd)
+		{
+			step = move_rot / ccd_max;
+			//step = step * 0.016;
+			XMFLOAT3 cTransf;
+			XMStoreFloat3(&cTransf, step);
+			capsule.tip.x += cTransf.x;
+			capsule.tip.y += cTransf.y;
+			capsule.tip.z += cTransf.z;
+			capsule.base = capsule.tip;
+			capsule.base.y -= 1.5f;
+			wiScene::SceneIntersectSphereResult intersect = SceneIntersectCapsule(capsule,1,LAYER_CHUNKMESH);
+			if (intersect.entity)
+			{
+				// Modify player velocity to slide on contact surface:
+				XMVECTOR velocity_length	 = XMVector3Length(move_rot);
+				XMVECTOR velocity_normalized = XMVector3Normalize(move_rot);
+				XMVECTOR collisionNormal	 = XMLoadFloat3(&(intersect.normal));
+				XMVECTOR undesired_motion	 = collisionNormal * XMVector3Dot(velocity_normalized, collisionNormal);
+				XMVECTOR desired_motion		 = XMVectorSubtract(velocity_normalized, undesired_motion);
+				move_rot					 = desired_motion * velocity_length;
+				// Remove penetration (penetration epsilon added to handle infinitely small penetration):
+				XMStoreFloat3(&cTransf, (collisionNormal * (intersect.depth + 0.0001)));
+				capsule.tip.x += cTransf.x;
+				capsule.tip.y += cTransf.y;
+				capsule.tip.z += cTransf.z;
+				capsule.base = capsule.tip;
+				capsule.base.y -= 1.5f;
+			}
+		}
+		*/
+		if (settings::collision == true && !wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
+			int ccd_max	  = 20;
+			XMVECTOR step = XMVectorSet(0, 0, 0, 0);
+			SPHERE sphere;
+			sphere.center = camera_transform.GetPosition();
+			sphere.radius = 0.22;
+			for (int ccd = 0; ccd < ccd_max; ++ccd)
+			{
+				step = move_rot / ccd_max;
+				//step = step * 0.016;
+				XMFLOAT3 cTransf;
+				XMStoreFloat3(&cTransf, step);
+				sphere.center.x += cTransf.x;
+				sphere.center.y += cTransf.y;
+				sphere.center.z += cTransf.z;
+				wiScene::SceneIntersectSphereResult intersect = SceneIntersectSphere(sphere, 1);
+				if (intersect.entity)
+				{
+					// Modify player velocity to slide on contact surface:
+					XMVECTOR velocity_length	 = XMVector3Length(move_rot);
+					XMVECTOR velocity_normalized = XMVector3Normalize(move_rot);
+					XMVECTOR collisionNormal	 = XMLoadFloat3(&(intersect.normal));
+					XMVECTOR undesired_motion	 = collisionNormal * XMVector3Dot(velocity_normalized, collisionNormal);
+					XMVECTOR desired_motion		 = XMVectorSubtract(velocity_normalized, undesired_motion);
+					move_rot					 = desired_motion * velocity_length;
+					// Remove penetration (penetration epsilon added to handle infinitely small penetration):
+					XMStoreFloat3(&cTransf, (collisionNormal * (intersect.depth + 0.0001)));
+					sphere.center.x += cTransf.x;
+					sphere.center.y += cTransf.y;
+					sphere.center.z += cTransf.z;
+				}
+			}
+		}
+		
 		XMFLOAT3 _move;
 		XMStoreFloat3(&_move, move_rot);
-		camera_transform.Translate(_move);
+		//if (abs(_move.x) < 25 && abs(_move.y) < 25 && abs(_move.z) < 25){
+			camera_transform.Translate(_move);
+		//}
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 		camera_transform.UpdateTransform();
 		camera.TransformCamera(camera_transform);
@@ -655,6 +903,8 @@ void CyRender::Update(float dt) {
 
 	RenderPath3D::Update(dt);
 }
+
+
 /*
 void CyPathRender::ResizeLayout()
 {

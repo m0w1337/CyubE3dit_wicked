@@ -82,7 +82,7 @@ void cyChunk::solidChunk(void) {
 void cyChunk::loadCustomBlocks(void) {
 	if (_msize(m_chunkdata) > 0x190000) {
 		uint32_t dSize	= 0;
-		uint64_t offset = 4 + 32 * 32 * 800 * 2;	 //Torch rotations ---> TBD
+		size_t offset = 4 + 32 * 32 * 800 * 2;	 //Torch rotations ---> TBD
 		memcpy(&dSize, m_chunkdata + offset, 4);
 		offset += 4;
 		blockpos_t pos;

@@ -154,6 +154,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			tex						   = it.value().at(i).at("texture" + std::to_string(ft));
 			m_regBlockMats[id][ft]	   = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
 			material				   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
+			material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 			material->baseColorMapName = "images/" + tex;
 			material->baseColorMap	   = wiResourceManager::Load(material->baseColorMapName);
 			/*if ((id == 1 && ft == 0) || blocktype == 0 || blocktype == 13 || blocktype == 12 || blocktype == 25 || blocktype == 26 || blocktype == 67) {
@@ -164,7 +165,6 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				//material->userBlendMode = BLENDMODE_ALPHA;
 				material->SetTransmissionAmount(0.99);
 				material->SetRefractionAmount(0.01f);
-				material->SetBaseColor(XMFLOAT4(1., 1., 1., 1.f));
 				material->SetMetalness(0.03f);
 				material->SetRoughness(0.05f);
 				material->SetCastShadow(true);

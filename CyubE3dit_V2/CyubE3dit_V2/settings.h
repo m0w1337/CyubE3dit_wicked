@@ -13,6 +13,9 @@ public:
 	static string thisWorld;
 	static bool torchlights;
 	static bool clipUnderground;
+	static bool collision;
+	static float camspeed_slow;
+	static float camspeed;
 
 static inline cyImportant* getWorld() {
 	return &world;

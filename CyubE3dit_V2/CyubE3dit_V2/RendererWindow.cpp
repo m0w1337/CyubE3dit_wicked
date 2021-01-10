@@ -293,7 +293,7 @@ void RendererWindow::Create(CyRender* renderer)
 			break;
 		}
 	});
-	shadowProps2DComboBox.SetSelected(4);
+	shadowProps2DComboBox.SetSelected(5);
 	shadowProps2DComboBox.SetTooltip("Choose a shadow quality preset for 2D shadow maps (spotlights, directional lights)...");
 	shadowProps2DComboBox.SetScriptTip("SetShadowProps2D(int resolution, int count, int softShadowQuality)");
 	AddWidget(&shadowProps2DComboBox);
@@ -560,6 +560,13 @@ void RendererWindow::Create(CyRender* renderer)
 	pickTypeChunkCheckBox.SetCheck(false);
 	AddWidget(&pickTypeChunkCheckBox);
 
+	pickTypeTreeCheckBox.Create("hover trees: ");
+	pickTypeTreeCheckBox.SetTooltip("Enable if you want to display tree bounding box on hovering");
+	pickTypeTreeCheckBox.SetPos(XMFLOAT2(x, y += step * 2));
+	pickTypeTreeCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
+	pickTypeTreeCheckBox.SetCheck(false);
+	AddWidget(&pickTypeTreeCheckBox);
+
 	TorchlightsCheckBox.Create("torchlights: ");
 	TorchlightsCheckBox.SetTooltip("Enable if you want to render all torches as real lights (might result in frame drop)");
 	TorchlightsCheckBox.SetPos(XMFLOAT2(x, y += step * 2));
@@ -680,9 +687,9 @@ uint32_t RendererWindow::GetPickType() const
 	{
 		pickType |= PICK_LIGHT;
 	}
-	if (pickTypeDecalCheckBox.GetCheck())
+	if (pickTypeTreeCheckBox.GetCheck())
 	{
-		pickType |= PICK_DECAL;
+		pickType |= PICK_TREE;
 	}
 	if (pickTypeForceFieldCheckBox.GetCheck())
 	{
