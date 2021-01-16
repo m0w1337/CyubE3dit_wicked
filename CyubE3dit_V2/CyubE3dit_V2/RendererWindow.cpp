@@ -435,7 +435,7 @@ void RendererWindow::Create(CyRender* renderer)
 			break;
 		}
 
-		wiRenderer::ModifySampler(desc, SSLOT_OBJECTSHADER);
+		wiRenderer::ModifyObjectSampler(desc);
 
 	});
 	textureQualityComboBox.SetSelected(3);
@@ -449,7 +449,7 @@ void RendererWindow::Create(CyRender* renderer)
 	mipLodBiasSlider.OnSlide([&](wiEventArgs args) {
 		wiGraphics::SamplerDesc desc = wiRenderer::GetSampler(SSLOT_OBJECTSHADER)->GetDesc();
 		desc.MipLODBias = wiMath::Clamp(args.fValue, -15.9f, 15.9f);
-		wiRenderer::ModifySampler(desc, SSLOT_OBJECTSHADER);
+		wiRenderer::ModifyObjectSampler(desc);
 	});
 	AddWidget(&mipLodBiasSlider);
 

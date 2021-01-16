@@ -7,13 +7,17 @@
 
 class chunkLoader {
 public:
-	static constexpr uint8_t MAX_THREADS = 32;
-
+	static constexpr uint8_t MAX_THREADS  = 32;
 	static constexpr uint32_t THREAD_IDLE = 1;
 	static constexpr uint32_t THREAD_BUSY = 2;
 	//static constexpr uint32_t THREAD_SHUTDOWN = 3;
-
 	static constexpr float PI = 3.141592653589793238462643383279502884f;
+
+	enum EDITORSTENCILREF {
+		STENCIL_HIGHLIGHT_CLR = 0x00,
+		STENCIL_HIGHLIGHT_OBJ = 0x01,
+		STENCIL_HIGHLIGHT_MAT = 0x02
+	};
 
 	struct face_t {
 		wiECS::Entity material;
@@ -59,7 +63,7 @@ public:
 	void shutdown(void);
 	void spawnThreads(uint8_t numthreads);
 	void checkChunks(void);
-	
+
 	wiECS::Entity RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
 	void updateDisplayedChunks(void);
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
@@ -73,7 +77,7 @@ public:
 
 private:
 	static const uint_fast16_t VIEWDISTANCE = 1024;
-	inline void removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll=false);
+	inline void removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll = false);
 	void addChunks(uint8_t threadNum);
 	inline void employThread(cyImportant::chunkpos_t coords);
 	inline void placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);

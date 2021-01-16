@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "chunkLoader.h"
+
 using namespace std;
 using namespace wiScene;
 extern mutex m;
@@ -45,73 +46,78 @@ void chunkLoader::checkChunks(void) {
 		Sleep(5);
 		uint32_t viewDist = settings::getViewDist();
 		if (!world->isStopped()) {
-			CameraComponent cam = wiScene::GetCamera();
-			XMFLOAT3 campos		= cam.Eye;
-			XMFLOAT3 camlook	= cam.At;
-			ghostpos.x			= (int32_t)(campos.x);	//to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
-			ghostpos.y			= -(int32_t)(campos.z);
-			ghostpos.x &= 0xFFFFFFE0;
-			ghostpos.y &= 0xFFFFFFE0;
-			changed = 0;
-			if (lastghostpos.x != ghostpos.x || lastghostpos.y != ghostpos.y) {
-				coords = ghostpos;
-				if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-					changed++;
-					employThread(coords);
-				}
+			if (!settings::pauseChunkloader) {
 
-				for (uint32_t r = 4; r <= viewDist; r = r + 4) {
-					for (uint32_t i = 0; i < r; i = i + 1) {
-						for (uint32_t ii = ((r - 4) > i) ? (1 + r - 4 - i) : 0; ii <= r - i; ii++) {
-							if (i * i + ii * ii <= (viewDist * viewDist) / 2) {
-								if (i || ii) {
-									coords.x = ghostpos.x + i * 16;
-									coords.y = ghostpos.y + ii * 16;
-									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed++;
-										employThread(coords);
+				CameraComponent cam = wiScene::GetCamera();
+				XMFLOAT3 campos		= cam.Eye;
+				XMFLOAT3 camlook	= cam.At;
+				ghostpos.x			= (int32_t)(campos.x);	//to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
+				ghostpos.y			= -(int32_t)(campos.z);
+				ghostpos.x &= 0xFFFFFFE0;
+				ghostpos.y &= 0xFFFFFFE0;
+				changed = 0;
+				if (lastghostpos.x != ghostpos.x || lastghostpos.y != ghostpos.y) {
+					coords = ghostpos;
+					if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+						changed++;
+						employThread(coords);
+					}
+
+					for (uint32_t r = 4; r <= viewDist; r = r + 4) {
+						for (uint32_t i = 0; i < r; i = i + 1) {
+							for (uint32_t ii = ((r - 4) > i) ? (1 + r - 4 - i) : 0; ii <= r - i; ii++) {
+								if (i * i + ii * ii <= (viewDist * viewDist) / 2) {
+									if (i || ii) {
+										coords.x = ghostpos.x + i * 16;
+										coords.y = ghostpos.y + ii * 16;
+										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+											changed++;
+											employThread(coords);
+										}
+										coords.x = ghostpos.x - i * 16;
+										coords.y = ghostpos.y - ii * 16;
+										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+											changed++;
+											employThread(coords);
+										}
 									}
-									coords.x = ghostpos.x - i * 16;
-									coords.y = ghostpos.y - ii * 16;
-									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed++;
-										employThread(coords);
-									}
-								}
-								if (i && ii) {
-									coords.x = ghostpos.x - i * 16;
-									coords.y = ghostpos.y + ii * 16;
-									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed++;
-										employThread(coords);
-									}
-									coords.x = ghostpos.x + i * 16;
-									coords.y = ghostpos.y - ii * 16;
-									if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
-										changed++;
-										employThread(coords);
+									if (i && ii) {
+										coords.x = ghostpos.x - i * 16;
+										coords.y = ghostpos.y + ii * 16;
+										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+											changed++;
+											employThread(coords);
+										}
+										coords.x = ghostpos.x + i * 16;
+										coords.y = ghostpos.y - ii * 16;
+										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+											changed++;
+											employThread(coords);
+										}
 									}
 								}
 							}
 						}
-					}
-					if (changed > 100) {
-						changed	   = 1;
-						ghostpos.x = (int32_t)(campos.x);  //to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
-						ghostpos.y = -(int32_t)(campos.z);
-						ghostpos.x &= 0xFFFFFFE0;
-						ghostpos.y &= 0xFFFFFFE0;
-						if (lastghostpos.x != ghostpos.x || lastghostpos.y != ghostpos.y) {
-							break;
+						if (changed > 100) {
+							changed	   = 1;
+							ghostpos.x = (int32_t)(campos.x);  //to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
+							ghostpos.y = -(int32_t)(campos.z);
+							ghostpos.x &= 0xFFFFFFE0;
+							ghostpos.y &= 0xFFFFFFE0;
+							if (lastghostpos.x != ghostpos.x || lastghostpos.y != ghostpos.y) {
+								break;
+							}
 						}
 					}
-				}
-				removeFarChunks(ghostpos);
-				settings::numVisChunks = m_visibleChunks.size();
-				if (changed == 0) {
-					lastghostpos = ghostpos;
-				}
+					removeFarChunks(ghostpos);
+					settings::numVisChunks = m_visibleChunks.size();
+					if (changed == 0) {
+						lastghostpos = ghostpos;
+					}
 
+				} else {
+					Sleep(50);
+				}
 			} else {
 				Sleep(50);
 			}
@@ -208,9 +214,6 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 						scene.Component_RemoveChildren(it->second.chunkObj);
 						scene.Entity_Remove(it->second.chunkObj);
 						scene.Entity_Remove(meshEnt);
-						//for (size_t i = 0; i < it->second.meshes.size(); i++) {
-						//	scene.Entity_Remove(it->second.meshes[i]);
-						//}
 						m.unlock();
 						it = m_visibleChunks.erase(it);
 						//changed++;
@@ -397,6 +400,8 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 		mesh->SetDynamic(false);
 		mesh->CreateRenderData();
 		ObjectComponent* chunkObj = tmpScene.objects.GetComponent(entity);
+		XMFLOAT4 treecolor1		  = XMFLOAT4(1, 0., 0., 1);
+		XMFLOAT4 treecolor2		  = XMFLOAT4(0., 1, 0., 1);
 		for (size_t i = 0; i < chunk.trees.size(); i++) {
 			if (chunk.trees[i].scale.x > 2 || chunk.trees[i].scale.y > 2 || chunk.trees[i].scale.z > 2) {
 				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
@@ -536,7 +541,6 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
 				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
 				TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
-				object.SetUserStencilRef(0x01);
 				object.meshID		 = meshID;
 				object.emissiveColor = XMFLOAT4(color.x, color.y, color.z, 1.0f);
 				layer.layerMask		 = LAYER_TORCH;

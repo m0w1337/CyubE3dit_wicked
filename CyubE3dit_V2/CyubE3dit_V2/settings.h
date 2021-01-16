@@ -16,6 +16,7 @@ public:
 	static bool collision;
 	static float camspeed_slow;
 	static float camspeed;
+	static bool pauseChunkloader;
 
 static inline cyImportant* getWorld() {
 	return &world;

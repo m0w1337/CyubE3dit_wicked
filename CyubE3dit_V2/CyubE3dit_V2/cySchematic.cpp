@@ -193,6 +193,7 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 		} else {
 			mesh = meshGen::AddMesh(tmpScene, "Schematic", cyBlocks::m_fallbackMat, &entity);
 		}
+		tmpScene.objects.GetComponent(entity)->SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
 		wiECS::Entity currMat = faces[0].material;
 		mesh->SetDoubleSided(true);
 		for (unsigned i = 0; i < faces.size(); ++i)
@@ -241,6 +242,7 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 			} else {
 				wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("tree");
 				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+				object.SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
 				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
 				layer.layerMask			= LAYER_TREE;
 				TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
@@ -335,6 +337,7 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
 					TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
 					object.meshID			= meshID;
+					object.SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
 					object.emissiveColor	= XMFLOAT4(color.x, color.y, color.z, 1.0f);
 					layer.layerMask			= LAYER_TORCH;
 					*tf						= transform;

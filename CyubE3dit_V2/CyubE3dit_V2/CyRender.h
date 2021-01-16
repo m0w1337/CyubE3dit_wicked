@@ -25,6 +25,17 @@ private:
 	wiGraphics::Texture rt_selectionOutline[2];
 
 public:
+
+		enum EDITORSTENCILREF {
+		EDITORSTENCILREF_CLEAR				= 0x00,
+		EDITORSTENCILREF_HIGHLIGHT_OBJECT	= 0x01,
+		EDITORSTENCILREF_HIGHLIGHT_MATERIAL = 0x02,
+		EDITORSTENCILREF_LAST				= 0x0F,
+	};
+	float selectionOutlineTimer	   = 0;
+	const XMFLOAT4 selectionColor  = XMFLOAT4(0.8f, 0.6f, 0, 1.f);
+	const XMFLOAT4 selectionColor2 = XMFLOAT4(0, 0.6f, 0.8f, 1.f);
+
 	float lasttime;
 	float sinepulse;
 	wiComboBox worldSelector;
@@ -33,6 +44,7 @@ public:
 	wiButton rendererWnd_Toggle;
 	wiButton postprocessWnd_Toggle;
 	wiButton loadSchBtn;
+	wiButton PauseChunkLoading;
 	wiSlider viewDist;
 	wiLabel label;
 

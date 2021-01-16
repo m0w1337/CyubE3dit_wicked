@@ -71,7 +71,7 @@ void CyMainComponent::CreateScene(void) {
 	// Add some nice weather, not just black:
 	auto& weather	   = scene.weathers.Create(CreateEntity());
 	weather.fogStart   = 5;
-	weather.fogEnd	   = 2000;
+	weather.fogEnd	   = 20000;
 	weather.fogHeight  = 0;
 	weather.horizon	   = XMFLOAT3(.7f, .5f, .8f);
 	weather.zenith	   = XMFLOAT3(0.8f, 0.8f, 1.0f);
@@ -460,13 +460,15 @@ void CyRender::ResizeLayout() {
 	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	xOffset += 10 + rendererWnd_Toggle.scale.x;
 	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	xOffset += 10 + loadSchBtn.scale.x;
+	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - postprocessWnd_Toggle.scale.y - 15));
 }
 
 void CyRender::Load() {
 	renderPath = std::make_unique<RenderPath3D>();
 	hovered = wiScene::PickResult();
-	setMotionBlurEnabled(true);
+	setMotionBlurEnabled(false);
 	setMotionBlurStrength(10.0f);
 	setBloomEnabled(true);
 	setBloomThreshold(1.7f);
@@ -486,7 +488,7 @@ void CyRender::Load() {
 	setExposure(1.0f);
 	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
-	wiRenderer::SetVoxelRadianceEnabled(false);
+	wiRenderer::SetVoxelRadianceEnabled(true);
 	wiRenderer::SetVoxelRadianceNumCones(2);
 	wiRenderer::SetVoxelRadianceRayStepSize(1.0f);
 	wiRenderer::SetVoxelRadianceMaxDistance(30);
@@ -499,7 +501,7 @@ void CyRender::Load() {
 	setFXAAEnabled(false);
 	setEyeAdaptionEnabled(true);
 	wiScene::GetCamera().zNearP = 0.1f;
-	wiScene::GetCamera().zFarP	= 1500.f;
+	wiScene::GetCamera().zFarP	= 3500.f;
 	label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - sneak peek");
 	label.SetColor(wiColor(100, 100, 100, 0), wiWidget::WIDGETSTATE::IDLE);
@@ -556,6 +558,20 @@ void CyRender::Load() {
 	});
 	GetGUI().AddWidget(&rendererWnd_Toggle);
 
+	PauseChunkLoading.Create("Pause World loading");
+	PauseChunkLoading.SetTooltip("This will stop loading further portions of the world to save performance");
+	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	PauseChunkLoading.SetSize(XMFLOAT2(150, 20));
+	PauseChunkLoading.OnClick([&](wiEventArgs args) {
+		settings::pauseChunkloader = !settings::pauseChunkloader;
+		if (settings::pauseChunkloader)
+			PauseChunkLoading.SetText("Resume World loading");
+		else
+			PauseChunkLoading.SetText("Pause World loading");
+	});
+	GetGUI().AddWidget(&PauseChunkLoading);
 	postprocessWnd_Toggle.Create("PostProcess");
 	postprocessWnd_Toggle.SetTooltip("Postprocess settings");
 	postprocessWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
@@ -1126,8 +1142,8 @@ void CyRender::Render() const {
 			col.w *= opacity;
 			wiRenderer::Postprocess_Outline(rt_selectionOutline[0], cmd, 0.1f, 0.5f, col);
 			col = selectionColor;
-			col.w *= opacity;
-			wiRenderer::Postprocess_Outline(rt_selectionOutline[1], cmd, 0.1f, 0.5f, col);
+			col.w *= opacity + 0.2;
+			wiRenderer::Postprocess_Outline(rt_selectionOutline[1], cmd, 0.1f, 1.0f, col);
 			device->RenderPassEnd(cmd);
 		}
 		//END selection_outline
