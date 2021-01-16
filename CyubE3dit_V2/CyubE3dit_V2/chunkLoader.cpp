@@ -106,42 +106,7 @@ void chunkLoader::checkChunks(void) {
 						}
 					}
 				}
-				for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
-					if (it->second.chunkObj != 0xFFFFFFFE) {
-						cyImportant::chunkpos_t diff = it->first;
-						diff						 = diff - ghostpos;
-						if ((diff.x * diff.x + diff.y * diff.y) > (viewDist * viewDist * 16 * 16)) {
-							if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
-								wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
-								if (obj != nullptr) {
-									wiECS::Entity meshEnt = obj->meshID;
-									m.lock();
-									scene.Component_RemoveChildren(it->second.chunkObj);
-									scene.Entity_Remove(it->second.chunkObj);
-									scene.Entity_Remove(meshEnt);
-									//for (size_t i = 0; i < it->second.meshes.size(); i++) {
-									//	scene.Entity_Remove(it->second.meshes[i]);
-									//}
-									m.unlock();
-									auto pos = m_visibleChunks.erase(it);
-									it		 = pos;
-									changed++;
-								}
-							} else {
-								auto pos = m_visibleChunks.erase(it);
-								it		 = pos;
-								changed++;
-							}
-
-						} else
-							it++;
-					} else {
-						it++;
-					}
-					if (changed > 200) {
-						break;
-					}
-				}
+				removeFarChunks(ghostpos);
 				settings::numVisChunks = m_visibleChunks.size();
 				if (changed == 0) {
 					lastghostpos = ghostpos;
@@ -151,6 +116,10 @@ void chunkLoader::checkChunks(void) {
 				Sleep(50);
 			}
 		} else {  //world stopped --> clear all existing chunks (if there are any)
+			while (m_visibleChunks.size()) {
+				removeFarChunks(ghostpos, true);
+			}
+			/*
 			for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
 				if (it->second.chunkObj == 0xFFFFFFFE) {  //wait for the chunk to be finished
 					it = m_visibleChunks.find(it->first);
@@ -171,7 +140,7 @@ void chunkLoader::checkChunks(void) {
 					}
 					it++;
 				}
-			}
+			}*/
 			m_visibleChunks.clear();
 			world->cleaned = true;
 		}
@@ -219,6 +188,50 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 
 		} else {
 			Sleep(10);
+		}
+	}
+}
+
+inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll) {
+	uint32_t viewDist = settings::getViewDist();
+	wiScene::Scene& scene = wiScene::GetScene();
+	for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
+		if (it->second.chunkObj != 0xFFFFFFFE) {
+			cyImportant::chunkpos_t diff = it->first;
+			diff						 = diff - ghostpos;
+			if (cleanAll || (diff.x * diff.x + diff.y * diff.y) > (viewDist * viewDist * 16 * 16)) {
+				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
+					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
+					//if (obj != nullptr) {
+						wiECS::Entity meshEnt = obj->meshID;
+						m.lock();
+						scene.Component_RemoveChildren(it->second.chunkObj);
+						scene.Entity_Remove(it->second.chunkObj);
+						scene.Entity_Remove(meshEnt);
+						//for (size_t i = 0; i < it->second.meshes.size(); i++) {
+						//	scene.Entity_Remove(it->second.meshes[i]);
+						//}
+						m.unlock();
+						it = m_visibleChunks.erase(it);
+						//changed++;
+					//}
+				} else {
+					it = m_visibleChunks.erase(it);
+					//changed++;
+				}
+
+			} else
+				it++;
+		} else {
+			it++;
+			for (uint8_t thread = 0; thread < m_numthreads; thread++) {
+				if (m_threadstate[thread] != THREAD_BUSY) {
+					if (m_threadstate[thread] != THREAD_IDLE) {
+						m_visibleChunks[m_threadChunkPos[thread]].chunkObj = m_threadstate[thread];
+						m_threadstate[thread]							   = THREAD_IDLE;
+					}
+				}
+			}
 		}
 	}
 }
@@ -466,9 +479,6 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 		torch_t torch = torches[i];
 		wiECS::Entity lightEnt;
 		LightComponent* light = nullptr;
-		//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
-		//light->SetStatic(true);
-		//light->SetVolumetricsEnabled(true);
 		wiECS::Entity meshID = 0;
 		TransformComponent transform;
 		XMFLOAT3 color((float)cyBlocks::m_regBlockFlags[torch.ID][0] / 255.f, (float)cyBlocks::m_regBlockFlags[torch.ID][1] / 255.f, (float)cyBlocks::m_regBlockFlags[torch.ID][2] / 255.f);
@@ -517,7 +527,6 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 			}
 			if (light != nullptr) {
 				light->SetCastShadow(true);
-				light->SetVolumetricsEnabled(true);
 				if (settings::torchlights == false) {
 					light->SetStatic(true);
 				}
@@ -533,10 +542,8 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 				layer.layerMask		 = LAYER_TORCH;
 				*tf					 = transform;
 				tf->UpdateTransform();
-				//ret.meshes.push_back(objEnt);
 				object.parentObject = parent;
 				light->parentObject = parent;
-				//tmpScene.Component_Attach(objEnt, entity);
 			}
 		}
 		catch (...) {

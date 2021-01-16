@@ -299,7 +299,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 				mesh.CreateRenderData();
 			}
 		}
-		scene.Update(0);
+		//scene.Update(0);
 
 	} else
 	{

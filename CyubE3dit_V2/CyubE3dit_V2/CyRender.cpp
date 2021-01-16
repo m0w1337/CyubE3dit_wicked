@@ -85,16 +85,14 @@ void CyMainComponent::CreateScene(void) {
 	weather.windWaveSize   = 2.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 0.8, 0.6f), 45, 1000);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 1.0, 1.0f), 35, 1000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
 	TransformComponent& transform = *scene.transforms.GetComponent(LightEnt);
-	transform.RotateRollPitchYaw(XMFLOAT3(0.87f, 0.f, -0.5f));
+	transform.RotateRollPitchYaw(XMFLOAT3(0.67f, 0.f, -0.5f));
 	transform.SetDirty();
 	transform.UpdateTransform();
-	//light->SetStatic(true);
-	//light->SetVolumetricsEnabled(true);
 	light->SetCastShadow(true);
 	light->lensFlareRimTextures.resize(6);
 	light->lensFlareNames.resize(6);
@@ -146,27 +144,9 @@ void CyMainComponent::CreateScene(void) {
 void CyMainComponent::Compose(CommandList cmd) {
 	auto range = wiProfiler::BeginRangeCPU("Compose");
 
-	
-
 	if (GetActivePath() != nullptr)
 	{
 		GetActivePath()->Compose(cmd);
-	}
-
-	const float selectionColorIntensity = renderer.sinepulse * 0.5f + 0.5f;
-	if (renderer.GetDepthStencil() != nullptr)
-	{
-		GraphicsDevice* device = wiRenderer::GetDevice();
-		device->EventBegin("Editor - Selection Outline", cmd);
-		wiRenderer::BindCommonResources(cmd);
-		float opacity = wiMath::Lerp(0.4f, 1.0f, selectionColorIntensity);
-		XMFLOAT4 col  = selectionColor2;
-		col.w *= opacity;
-		wiRenderer::Postprocess_Outline(rt_selectionOutline[0], cmd, 0.1f, 1.f, col);
-		col = selectionColor;
-		col.w *= opacity;
-		wiRenderer::Postprocess_Outline(rt_selectionOutline[1], cmd, 0.1f, 1.f, col);
-		device->EventEnd(cmd);
 	}
 
 	if (fadeManager.IsActive())
@@ -395,7 +375,7 @@ void CyRender::ResizeBuffers() {
 
 	GraphicsDevice* device = wiRenderer::GetDevice();
 	bool hr;
-
+	
 	if (GetDepthStencil() != nullptr)
 	{
 		TextureDesc desc;
@@ -407,22 +387,22 @@ void CyRender::ResizeBuffers() {
 		if (getMSAASampleCount() > 1)
 		{
 			desc.SampleCount = getMSAASampleCount();
-			hr				 = device->CreateTexture(&desc, nullptr, &main->rt_selectionOutline_MSAA);
+			hr				 = device->CreateTexture(&desc, nullptr, &rt_selectionOutline_MSAA);
 			assert(hr);
 			desc.SampleCount = 1;
 		}
-		hr = device->CreateTexture(&desc, nullptr, &main->rt_selectionOutline[0]);
+		hr = device->CreateTexture(&desc, nullptr, &rt_selectionOutline[0]);
 		assert(hr);
-		hr = device->CreateTexture(&desc, nullptr, &main->rt_selectionOutline[1]);
+		hr = device->CreateTexture(&desc, nullptr, &rt_selectionOutline[1]);
 		assert(hr);
 
 		{
 			RenderPassDesc desc;
-			desc.attachments.push_back(RenderPassAttachment::RenderTarget(&main->rt_selectionOutline[0], RenderPassAttachment::LOADOP_CLEAR));
+			desc.attachments.push_back(RenderPassAttachment::RenderTarget(&rt_selectionOutline[0], RenderPassAttachment::LOADOP_CLEAR));
 			if (getMSAASampleCount() > 1)
 			{
-				desc.attachments[0].texture = &main->rt_selectionOutline_MSAA;
-				desc.attachments.push_back(RenderPassAttachment::Resolve(&main->rt_selectionOutline[0]));
+				desc.attachments[0].texture = &rt_selectionOutline_MSAA;
+				desc.attachments.push_back(RenderPassAttachment::Resolve(&rt_selectionOutline[0]));
 			}
 			desc.attachments.push_back(
 				RenderPassAttachment::DepthStencil(
@@ -432,78 +412,40 @@ void CyRender::ResizeBuffers() {
 					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
 					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
 					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY));
-			hr = device->CreateRenderPass(&desc, &main->renderpass_selectionOutline[0]);
+			hr = device->CreateRenderPass(&desc, &renderpass_selectionOutline[0]);
 			assert(hr);
 
 			if (getMSAASampleCount() == 1)
 			{
-				desc.attachments[0].texture = &main->rt_selectionOutline[1];  // rendertarget
+				desc.attachments[0].texture = &rt_selectionOutline[1];  // rendertarget
 			} else
 			{
-				desc.attachments[1].texture = &main->rt_selectionOutline[1];  // resolve
+				desc.attachments[1].texture = &rt_selectionOutline[1];  // resolve
 			}
-			hr = device->CreateRenderPass(&desc, &main->renderpass_selectionOutline[1]);
+			hr = device->CreateRenderPass(&desc, &renderpass_selectionOutline[1]);
+			assert(hr);
+		}
+		{
+			RenderPassDesc desc;
+			desc.attachments.push_back(RenderPassAttachment::RenderTarget(&rtGbuffer[GBUFFER_COLOR_ROUGHNESS], RenderPassAttachment::LOADOP_LOAD));
+			desc.attachments.push_back(
+				RenderPassAttachment::DepthStencil(
+					&depthBuffer_Main,
+					RenderPassAttachment::LOADOP_LOAD,
+					RenderPassAttachment::STOREOP_STORE,
+					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
+					IMAGE_LAYOUT_DEPTHSTENCIL,
+					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY));
+			if (getMSAASampleCount() > 1)
+			{
+				desc.attachments.push_back(RenderPassAttachment::Resolve(&rtGbuffer_resolved[GBUFFER_COLOR_ROUGHNESS]));
+			}
+			hr = device->CreateRenderPass(&desc, &renderpass_composeOutline);
 			assert(hr);
 		}
 	}
 }
 
-void CyMainComponent::Render() 
-{
-	if (GetActivePath() != nullptr)
-	{
-		GetActivePath()->Render();
-	}
-	
-	// Selection outline:
-	if (renderer.GetDepthStencil() != nullptr)
-	{
-		GraphicsDevice* device = wiRenderer::GetDevice();
-		CommandList cmd		   = device->BeginCommandList();
-
-		device->EventBegin("Editor - Selection Outline Mask", cmd);
-
-		Viewport vp;
-		vp.Width  = (float)rt_selectionOutline[0].GetDesc().Width;
-		vp.Height = (float)rt_selectionOutline[0].GetDesc().Height;
-		device->BindViewports(1, &vp, cmd);
-
-		wiImageParams fx;
-		fx.enableFullScreen();
-		fx.stencilComp = STENCILMODE::STENCILMODE_EQUAL;
-
-		// We will specify the stencil ref in user-space, don't care about engine stencil refs here:
-		//	Otherwise would need to take into account engine ref and draw multiple permutations of stencil refs.
-		fx.stencilRefMode = STENCILREFMODE_USER;
-
-		// Materials outline:
-		{
-			device->RenderPassBegin(&renderpass_selectionOutline[0], cmd);
-
-			// Draw solid blocks of selected materials
-			fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_MATERIAL;
-			wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
-
-			device->RenderPassEnd(cmd);
-		}
-
-		// Objects outline:
-		{
-			device->UnbindResources(TEXSLOT_ONDEMAND0, 1, cmd);
-			device->RenderPassBegin(&renderpass_selectionOutline[1], cmd);
-
-			// Draw solid blocks of selected objects
-			fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_OBJECT;
-			wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
-
-			device->RenderPassEnd(cmd);
-		}
-
-		device->EventEnd(cmd);
-	}
-	
-
-}
 
 void CyRender::ResizeLayout() {
 	RenderPath3D::ResizeLayout();
@@ -522,6 +464,7 @@ void CyRender::ResizeLayout() {
 }
 
 void CyRender::Load() {
+	renderPath = std::make_unique<RenderPath3D>();
 	hovered = wiScene::PickResult();
 	setMotionBlurEnabled(true);
 	setMotionBlurStrength(10.0f);
@@ -543,7 +486,7 @@ void CyRender::Load() {
 	setExposure(1.0f);
 	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
-	wiRenderer::SetVoxelRadianceEnabled(true);
+	wiRenderer::SetVoxelRadianceEnabled(false);
 	wiRenderer::SetVoxelRadianceNumCones(2);
 	wiRenderer::SetVoxelRadianceRayStepSize(1.0f);
 	wiRenderer::SetVoxelRadianceMaxDistance(30);
@@ -554,7 +497,7 @@ void CyRender::Load() {
 	setAO(AO_MSAO);
 	setAOPower(0.2);
 	setFXAAEnabled(false);
-	setEyeAdaptionEnabled(false);
+	setEyeAdaptionEnabled(true);
 	wiScene::GetCamera().zNearP = 0.1f;
 	wiScene::GetCamera().zFarP	= 1500.f;
 	label.Create("Label1");
@@ -640,6 +583,7 @@ void CyRender::Load() {
 	GetGUI().AddWidget(&loadSchBtn);
 
 	RenderPath3D::Load();
+	ResizeBuffers();
 }
 
 void CyRender::Update(float dt) {
@@ -746,7 +690,7 @@ void CyRender::Update(float dt) {
 	const float MoveSpeed = settings::camspeed * Accel;
 
 	// FPS Camera
-	const float clampedDT = min(dt, 0.1f);	// if dt > 100 millisec, don't allow the camera to jump too far...
+	const float clampedDT = min(dt, 0.15f);	// if dt > 100 millisec, don't allow the camera to jump too far...
 
 	const float speed	 = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0) + rightTrigger.x * 10.0f) * MoveSpeed * clampedDT;
 	static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
@@ -800,43 +744,7 @@ void CyRender::Update(float dt) {
 		camera_transform.UpdateTransform();
 		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
 		XMVECTOR move_rot = XMVector3TransformNormal(move, camRot);
-		/* Collision --> not very reliable as only one intersection is evaluated
-		int ccd_max		  = 10;
-		XMVECTOR step	  = XMVectorSet(0, 0, 0, 0);
-		SPHERE sphere;
-		sphere.center = camera_transform.GetPosition();
-		sphere.radius = 0.;
-		for (int ccd = 0; ccd < ccd_max; ++ccd)
-		{
-			step = move_rot / ccd_max;
-			//step = step * 0.016;
-			XMFLOAT3 cTransf;
-			XMStoreFloat3(&cTransf, step);
-			capsule.tip.x += cTransf.x;
-			capsule.tip.y += cTransf.y;
-			capsule.tip.z += cTransf.z;
-			capsule.base = capsule.tip;
-			capsule.base.y -= 1.5f;
-			wiScene::SceneIntersectSphereResult intersect = SceneIntersectCapsule(capsule,1,LAYER_CHUNKMESH);
-			if (intersect.entity)
-			{
-				// Modify player velocity to slide on contact surface:
-				XMVECTOR velocity_length	 = XMVector3Length(move_rot);
-				XMVECTOR velocity_normalized = XMVector3Normalize(move_rot);
-				XMVECTOR collisionNormal	 = XMLoadFloat3(&(intersect.normal));
-				XMVECTOR undesired_motion	 = collisionNormal * XMVector3Dot(velocity_normalized, collisionNormal);
-				XMVECTOR desired_motion		 = XMVectorSubtract(velocity_normalized, undesired_motion);
-				move_rot					 = desired_motion * velocity_length;
-				// Remove penetration (penetration epsilon added to handle infinitely small penetration):
-				XMStoreFloat3(&cTransf, (collisionNormal * (intersect.depth + 0.0001)));
-				capsule.tip.x += cTransf.x;
-				capsule.tip.y += cTransf.y;
-				capsule.tip.z += cTransf.z;
-				capsule.base = capsule.tip;
-				capsule.base.y -= 1.5f;
-			}
-		}
-		*/
+		/*
 		if (settings::collision == true && !wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
 			int ccd_max	  = 20;
 			XMVECTOR step = XMVectorSet(0, 0, 0, 0);
@@ -870,12 +778,10 @@ void CyRender::Update(float dt) {
 				}
 			}
 		}
-		
+		*/
 		XMFLOAT3 _move;
 		XMStoreFloat3(&_move, move_rot);
-		//if (abs(_move.x) < 25 && abs(_move.y) < 25 && abs(_move.z) < 25){
-			camera_transform.Translate(_move);
-		//}
+		camera_transform.Translate(_move);
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 		camera_transform.UpdateTransform();
 		camera.TransformCamera(camera_transform);
@@ -892,163 +798,369 @@ void CyRender::Update(float dt) {
 		if (CyMainComponent::m_probe != INVALID_ENTITY) {
 			TransformComponent* probeT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
 			probeT->Translate(_move);
-			//probeT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 			probeT->SetDirty();
 			probeT->UpdateTransform();
 		}
-
-		//camera.CreatePerspective((float)wiRenderer::GetInternalResolution().x, (float)wiRenderer::GetInternalResolution().y, 0.1f,200.0f);
 	}
-	//	}
-
 	RenderPath3D::Update(dt);
 }
 
-
-/*
-void CyPathRender::ResizeLayout()
-{
-	RenderPath3D_PathTracing::ResizeLayout();
-
-	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
-	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
+void CyRender::Compose(wiGraphics::CommandList cmd) const {
+	RenderPath3D::Compose(cmd);
 }
 
+void CyRender::Render() const {
 
-void CyPathRender::Load()
-{
-	setSSREnabled(true);
-	setReflectionsEnabled(false);
-	setColorGradingEnabled(false);
-	setLightShaftsEnabled(true);
-	setShadowsEnabled(false);
-	//setRaytracedReflectionsEnabled(true);
-	setFXAAEnabled(true);
-	//setEyeAdaptionEnabled(true);
-	RenderPath3D_PathTracing::Load();
+	GraphicsDevice* device = wiRenderer::GetDevice();
+	wiJobSystem::context ctx;
+	CommandList cmd;
+
+	// Preparing the frame:
+	cmd = device->BeginCommandList();
+	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
+		RenderFrameSetUp(cmd);
+	});
+
+	static const uint32_t drawscene_flags =
+		wiRenderer::DRAWSCENE_OPAQUE |
+		wiRenderer::DRAWSCENE_HAIRPARTICLE |
+		wiRenderer::DRAWSCENE_TESSELLATION |
+		wiRenderer::DRAWSCENE_OCCLUSIONCULLING;
+	static const uint32_t drawscene_flags_reflections =
+		wiRenderer::DRAWSCENE_OPAQUE;
+
+	// Depth prepass + Occlusion culling + AO:
+	cmd = device->BeginCommandList();
+	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
+		GraphicsDevice* device = wiRenderer::GetDevice();
+
+		wiRenderer::UpdateCameraCB(
+			*camera,
+			camera_previous,
+			camera_reflection,
+			cmd);
+
+		device->RenderPassBegin(&renderpass_depthprepass, cmd);
+
+		device->EventBegin("Opaque Z-prepass", cmd);
+		auto range = wiProfiler::BeginRangeGPU("Z-Prepass", cmd);
+
+		Viewport vp;
+		vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
+		vp.Height = (float)depthBuffer_Main.GetDesc().Height;
+		device->BindViewports(1, &vp, cmd);
+		wiRenderer::DrawScene(visibility_main, RENDERPASS_DEPTHONLY, cmd, drawscene_flags);
+
+		wiProfiler::EndRange(range);
+		device->EventEnd(cmd);
+
+		wiRenderer::OcclusionCulling_Render(*camera, visibility_main, cmd);
+
+		device->RenderPassEnd(cmd);
+
+		// Make a readable copy for depth buffer:
+		if (getMSAASampleCount() > 1)
+		{
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY, IMAGE_LAYOUT_SHADER_RESOURCE),
+					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_SHADER_RESOURCE, IMAGE_LAYOUT_UNORDERED_ACCESS)};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+
+			wiRenderer::ResolveMSAADepthBuffer(depthBuffer_Copy, depthBuffer_Main, cmd);
+
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_SHADER_RESOURCE, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY),
+					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_UNORDERED_ACCESS, IMAGE_LAYOUT_SHADER_RESOURCE)};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+		} else
+		{
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY, IMAGE_LAYOUT_COPY_SRC),
+					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_SHADER_RESOURCE, IMAGE_LAYOUT_COPY_DST)};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+
+			device->CopyResource(&depthBuffer_Copy, &depthBuffer_Main, cmd);
+
+			{
+				GPUBarrier barriers[] = {
+					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_COPY_SRC, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY),
+					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_COPY_DST, IMAGE_LAYOUT_SHADER_RESOURCE)};
+				device->Barrier(barriers, arraysize(barriers), cmd);
+			}
+		}
+
+		wiRenderer::Postprocess_Lineardepth(depthBuffer_Copy, rtLinearDepth, cmd);
+
+		RenderAO(cmd);
+
+		if (wiRenderer::GetVariableRateShadingClassification() && device->CheckCapability(GRAPHICSDEVICE_CAPABILITY_VARIABLE_RATE_SHADING_TIER2))
+		{
+			wiRenderer::ComputeShadingRateClassification(
+				GetGbuffer_Read(),
+				rtLinearDepth,
+				rtShadingRate,
+				debugUAV,
+				cmd);
+		}
+	});
+
+	// Planar reflections depth prepass + Light culling:
+	if (visibility_main.IsRequestedPlanarReflections())
+	{
+		cmd = device->BeginCommandList();
+		wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
+			GraphicsDevice* device = wiRenderer::GetDevice();
+
+			wiRenderer::UpdateCameraCB(
+				camera_reflection,
+				camera_reflection,
+				camera_reflection,
+				cmd);
+
+			device->EventBegin("Planar reflections Z-Prepass", cmd);
+			auto range = wiProfiler::BeginRangeGPU("Planar Reflections Z-Prepass", cmd);
+
+			Viewport vp;
+			vp.Width  = (float)depthBuffer_Reflection.GetDesc().Width;
+			vp.Height = (float)depthBuffer_Reflection.GetDesc().Height;
+			device->BindViewports(1, &vp, cmd);
+
+			device->RenderPassBegin(&renderpass_reflection_depthprepass, cmd);
+
+			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_DEPTHONLY, cmd, drawscene_flags_reflections);
+
+			device->RenderPassEnd(cmd);
+
+			wiProfiler::EndRange(range);  // Planar Reflections
+			device->EventEnd(cmd);
+
+			wiRenderer::ComputeTiledLightCulling(
+				depthBuffer_Reflection,
+				tileFrustums,
+				entityTiles_Opaque,
+				entityTiles_Transparent,
+				debugUAV,
+				cmd);
+		});
+	}
+
+	// Shadow maps:
+	if (getShadowsEnabled() && !wiRenderer::GetRaytracedShadowsEnabled())
+	{
+		cmd = device->BeginCommandList();
+		wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
+			wiRenderer::DrawShadowmaps(visibility_main, cmd);
+		});
+	}
+
+	// Updating textures:
+	cmd = device->BeginCommandList();
+	wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
+		wiRenderer::BindCommonResources(cmd);
+		wiRenderer::RefreshDecalAtlas(*scene, cmd);
+		wiRenderer::RefreshLightmapAtlas(*scene, cmd);
+		wiRenderer::RefreshEnvProbes(visibility_main, cmd);
+		wiRenderer::RefreshImpostors(*scene, cmd);
+	});
+
+	// Voxel GI:
+	if (wiRenderer::GetVoxelRadianceEnabled())
+	{
+		cmd = device->BeginCommandList();
+		wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
+			wiRenderer::VoxelRadiance(visibility_main, cmd);
+		});
+	}
+
+	// Planar reflections:
+	if (visibility_main.IsRequestedPlanarReflections())
+	{
+		cmd = device->BeginCommandList();
+		wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
+			GraphicsDevice* device = wiRenderer::GetDevice();
+
+			wiRenderer::UpdateCameraCB(
+				camera_reflection,
+				camera_reflection,
+				camera_reflection,
+				cmd);
+
+			device->EventBegin("Planar reflections", cmd);
+			auto range = wiProfiler::BeginRangeGPU("Planar Reflections", cmd);
+
+			Viewport vp;
+			vp.Width  = (float)depthBuffer_Reflection.GetDesc().Width;
+			vp.Height = (float)depthBuffer_Reflection.GetDesc().Height;
+			device->BindViewports(1, &vp, cmd);
+
+			GPUBarrier barriers[] = {
+				GPUBarrier::Memory(&entityTiles_Opaque),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+			device->UnbindResources(TEXSLOT_DEPTH, 1, cmd);
+
+			device->RenderPassBegin(&renderpass_reflection, cmd);
+
+			device->BindResource(PS, &entityTiles_Opaque, TEXSLOT_RENDERPATH_ENTITYTILES, cmd);
+			device->BindResource(PS, wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_REFLECTION, cmd);
+			device->BindResource(PS, wiTextureHelper::getWhite(), TEXSLOT_RENDERPATH_AO, cmd);
+			device->BindResource(PS, wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_SSR, cmd);
+			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_MAIN, cmd, drawscene_flags_reflections);
+			wiRenderer::DrawSky(*scene, cmd);
+
+			device->RenderPassEnd(cmd);
+
+			wiProfiler::EndRange(range);  // Planar Reflections
+			device->EventEnd(cmd);
+		});
+	}
+
+	// Opaque scene + Light culling:
+	cmd = device->BeginCommandList();
+	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
+		GraphicsDevice* device = wiRenderer::GetDevice();
+		device->EventBegin("Opaque Scene", cmd);
+
+		wiRenderer::UpdateCameraCB(
+			*camera,
+			camera_previous,
+			camera_reflection,
+			cmd);
+
+		device->UnbindResources(TEXSLOT_ONDEMAND0, 1, cmd);
+
+		{
+			auto range = wiProfiler::BeginRangeGPU("Entity Culling", cmd);
+			wiRenderer::ComputeTiledLightCulling(
+				depthBuffer_Copy,
+				tileFrustums,
+				entityTiles_Opaque,
+				entityTiles_Transparent,
+				debugUAV,
+				cmd);
+			GPUBarrier barriers[] = {
+				GPUBarrier::Memory(&entityTiles_Opaque),
+			};
+			device->Barrier(barriers, arraysize(barriers), cmd);
+			wiProfiler::EndRange(range);
+		}
+
+		device->RenderPassBegin(&renderpass_main, cmd);
+
+		auto range = wiProfiler::BeginRangeGPU("Opaque Scene", cmd);
+
+		Viewport vp;
+		vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
+		vp.Height = (float)depthBuffer_Main.GetDesc().Height;
+		device->BindViewports(1, &vp, cmd);
+
+		device->BindResource(PS, &entityTiles_Opaque, TEXSLOT_RENDERPATH_ENTITYTILES, cmd);
+		device->BindResource(PS, getReflectionsEnabled() ? &rtReflection : wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_REFLECTION, cmd);
+		device->BindResource(PS, getAOEnabled() ? &rtAO : wiTextureHelper::getWhite(), TEXSLOT_RENDERPATH_AO, cmd);
+		device->BindResource(PS, getSSREnabled() || getRaytracedReflectionEnabled() ? &rtSSR : wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_SSR, cmd);
+		wiRenderer::DrawScene(visibility_main, RENDERPASS_MAIN, cmd, drawscene_flags);
+		wiRenderer::DrawSky(*scene, cmd);
+
+		wiProfiler::EndRange(range);  // Opaque Scene
+
+		RenderOutline(cmd);
+
+		
+
+		device->RenderPassEnd(cmd);
+
+		device->EventEnd(cmd);
+
+		// Selection outline:
+
+		if (GetDepthStencil() != nullptr)
+		{
+			//Viewport vp;
+			// We will specify the stencil ref in user-space, don't care about engine stencil refs here:
+			//	Otherwise would need to take into account engine ref and draw multiple permutations of stencil refs.
+			vp.Width  = (float)rt_selectionOutline[0].GetDesc().Width;
+			vp.Height = (float)rt_selectionOutline[0].GetDesc().Height;
+			device->BindViewports(1, &vp, cmd);
+
+			wiImageParams fx;
+			fx.enableFullScreen();
+			fx.stencilComp	  = STENCILMODE::STENCILMODE_EQUAL;
+			fx.stencilRefMode = STENCILREFMODE_USER;
+
+			// Materials outline:
+			{
+				device->RenderPassBegin(&renderpass_selectionOutline[0], cmd);
+
+				// Draw solid blocks of selected materials
+				fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_MATERIAL;
+				wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
+
+				device->RenderPassEnd(cmd);
+			}
+
+			// Objects outline:
+			{
+				device->UnbindResources(TEXSLOT_ONDEMAND0, 1, cmd);
+				device->RenderPassBegin(&renderpass_selectionOutline[1], cmd);
+
+				// Draw solid blocks of selected objects
+				fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_OBJECT;
+				wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
+
+				device->RenderPassEnd(cmd);
+			}
+			device->RenderPassBegin(&renderpass_composeOutline, cmd);
+			vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
+			vp.Height = (float)depthBuffer_Main.GetDesc().Height;
+			device->BindViewports(1, &vp, cmd);
+
+			const float selectionColorIntensity = sinepulse * 0.5f + 0.5f;
+			float opacity						= wiMath::Lerp(0.0f, 0.3f, selectionColorIntensity);
+			XMFLOAT4 col						= selectionColor2;
+			col.w *= opacity;
+			wiRenderer::Postprocess_Outline(rt_selectionOutline[0], cmd, 0.1f, 0.5f, col);
+			col = selectionColor;
+			col.w *= opacity;
+			wiRenderer::Postprocess_Outline(rt_selectionOutline[1], cmd, 0.1f, 0.5f, col);
+			device->RenderPassEnd(cmd);
+		}
+		//END selection_outline
+		
+	});
+
+	// Transparents, post processes, etc:
+	cmd = device->BeginCommandList();
+	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
+		GraphicsDevice* device = wiRenderer::GetDevice();
+
+		wiRenderer::UpdateCameraCB(
+			*camera,
+			camera_previous,
+			camera_reflection,
+			cmd);
+		wiRenderer::BindCommonResources(cmd);
+
+		RenderLightShafts(cmd);
+
+		RenderVolumetrics(cmd);
+
+		RenderSceneMIPChain(cmd);
+
+		RenderSSR(cmd);
+
+		RenderTransparents(cmd);
+
+
+		RenderPostprocessChain(cmd);
+	});
+
+	RenderPath2D::Render();
+
+	wiJobSystem::Wait(ctx);
 }
-
-void CyPathRender::Update(float dt)
-{
-
-	CameraComponent& camera = wiRenderer::GetCamera();
-	// Camera control:
-	static XMFLOAT4 originalMouse = XMFLOAT4(0, 0, 0, 0);
-	static float Accel = 0.0;
-	static bool camControlStart = true;
-	if (camControlStart)
-	{
-		originalMouse = wiInput::GetPointer();
-	}
-
-	XMFLOAT4 currentMouse = wiInput::GetPointer();
-	float xDif = 0, yDif = 0;
-
-	if (wiInput::Down(wiInput::MOUSE_BUTTON_LEFT))
-	{
-		camControlStart = false;
-#if 1
-		// Mouse delta from previous frame:
-		xDif = currentMouse.x - originalMouse.x;
-		yDif = currentMouse.y - originalMouse.y;
-#else
-		// Mouse delta from hardware read:
-		xDif = wiInput::GetMouseState().delta_position.x;
-		yDif = wiInput::GetMouseState().delta_position.y;
-#endif
-		xDif = 0.1f * xDif * (1.0f / 60.0f);
-		yDif = 0.1f * yDif * (1.0f / 60.0f);
-		wiInput::SetPointer(originalMouse);
-		wiInput::HidePointer(true);
-	}
-	else
-	{
-		camControlStart = true;
-		wiInput::HidePointer(false);
-	}
-
-	const float buttonrotSpeed = 2.0f / 60.0f;
-	if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LEFT))
-	{
-		xDif -= buttonrotSpeed;
-	}
-	if (wiInput::Down(wiInput::KEYBOARD_BUTTON_RIGHT))
-	{
-		xDif += buttonrotSpeed;
-	}
-	if (wiInput::Down(wiInput::KEYBOARD_BUTTON_UP))
-	{
-		yDif -= buttonrotSpeed;
-	}
-	if (wiInput::Down(wiInput::KEYBOARD_BUTTON_DOWN))
-	{
-		yDif += buttonrotSpeed;
-	}
-
-	const XMFLOAT4 leftStick = wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_L, 0);
-	const XMFLOAT4 rightStick = wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_R, 0);
-	const XMFLOAT4 rightTrigger = wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_TRIGGER_R, 0);
-
-	const float jostickrotspeed = 0.05f;
-	xDif += rightStick.x * jostickrotspeed;
-	yDif += rightStick.y * jostickrotspeed;
-
-	xDif *= 1.0;
-	yDif *= 1.0;
-	if (Accel < 4) {
-		Accel += dt * 2;
-	}
-	const float MoveSpeed = 4 * Accel;
-
-	// FPS Camera
-	const float clampedDT = dt; // if dt > 100 millisec, don't allow the camera to jump too far...
-
-	const float speed = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0f : 1.0f) + rightTrigger.x * 10.0f) * MoveSpeed * clampedDT;
-	static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
-	XMVECTOR moveNew = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
-
-	//if (!wiInput::Down(wiInput::KEYBOARD_BUTTON_LCONTROL))
-	//{
-		// Only move camera if control not pressed
-	if (wiInput::Down((wiInput::BUTTON)'A')) { moveNew += XMVectorSet(-1, 0, 0, 0); }
-	else if (wiInput::Down((wiInput::BUTTON)'D')) { moveNew += XMVectorSet(1, 0, 0, 0); }
-	if (wiInput::Down((wiInput::BUTTON)'W')) { moveNew += XMVectorSet(0, 0, 1, 0); }
-	else if (wiInput::Down((wiInput::BUTTON)'S')) { moveNew += XMVectorSet(0, 0, -1, 0); }
-	if (wiInput::Down((wiInput::BUTTON)'E')) { moveNew += XMVectorSet(0, 1, 0, 0); }
-	else if (wiInput::Down((wiInput::BUTTON)'Q')) { moveNew += XMVectorSet(0, -1, 0, 0); }
-	moveNew += XMVector3Normalize(moveNew);
-	//}
-	moveNew *= speed;
-
-
-	float moveLength = XMVectorGetX(XMVector3Length(moveNew));
-	if (moveLength < 0.0001f)
-	{
-		Accel = 0.0;
-	}
-	move = XMVectorLerp(move, moveNew, 0.20f * clampedDT / 0.0166f); // smooth the movement a bit
-	moveLength = XMVectorGetX(XMVector3Length(move));
-	if (moveLength < 0.0001f)
-	{
-		move = XMVectorSet(0, 0, 0, 0);
-	}
-	wiScene::TransformComponent camera_transform;
-	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
-	{
-
-		camera_transform.MatrixTransform(wiRenderer::GetCamera().GetInvView());
-		camera_transform.UpdateTransform();
-		XMMATRIX camRot = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
-		XMVECTOR move_rot = XMVector3TransformNormal(move, camRot);
-		XMFLOAT3 _move;
-		XMStoreFloat3(&_move, move_rot);
-		camera_transform.Translate(_move);
-		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
-		camera_transform.UpdateTransform();
-		camera.SetDirty();
-		camera.TransformCamera(camera_transform);
-		camera.UpdateCamera();
-	}
-	RenderPath3D_PathTracing::Update(dt);
-}
-*/

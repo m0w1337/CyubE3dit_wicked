@@ -17,6 +17,13 @@ public:
 };
 class CyMainComponent;
 class CyRender : public RenderPath3D {
+private:
+	std::unique_ptr<RenderPath3D> renderPath;
+	wiGraphics::RenderPass renderpass_selectionOutline[2];
+	wiGraphics::RenderPass renderpass_composeOutline;
+	wiGraphics::Texture rt_selectionOutline_MSAA;
+	wiGraphics::Texture rt_selectionOutline[2];
+
 public:
 	float lasttime;
 	float sinepulse;
@@ -36,6 +43,8 @@ public:
 	void Update(float dt) override;
 	void ResizeBuffers() override;
 	void ResizeLayout() override;
+	void Render() const override;
+	void Compose(wiGraphics::CommandList cmd) const override;
 };
 /*
 class CyPathRender : public RenderPath3D_PathTracing
@@ -57,9 +66,8 @@ public:
 		EDITORSTENCILREF_HIGHLIGHT_MATERIAL = 0x02,
 		EDITORSTENCILREF_LAST				= 0x0F,
 	};
-	wiGraphics::Texture rt_selectionOutline_MSAA;
-	wiGraphics::Texture rt_selectionOutline[2];
-	wiGraphics::RenderPass renderpass_selectionOutline[2];
+
+	
 	float selectionOutlineTimer	   = 0;
 	const XMFLOAT4 selectionColor  = XMFLOAT4(0.4f, 0.6f, 0.1f, 0.5f);
 	const XMFLOAT4 selectionColor2 = XMFLOAT4(0.f, 1.f, 0.6f, 0.35f);
@@ -70,9 +78,7 @@ public:
 	CyLoadingScreen loader;
 	//CyPathRender pathRenderer;
 	void Initialize() override;
-	
 	void CreateScene(void);
-	void Render() override;
 	void Compose(wiGraphics::CommandList cmd) override;
 };
 

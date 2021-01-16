@@ -325,7 +325,6 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 				}
 				if (light != nullptr) {
 					light->SetCastShadow(true);
-					light->SetVolumetricsEnabled(true);
 					if (settings::torchlights == false) {
 						light->SetStatic(true);
 					}

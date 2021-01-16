@@ -161,12 +161,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 						//wiBackLog::post("Light off");
 						light->energy = 0.0f;
 						light->SetCastShadow(false);
-						light->SetVolumetricsEnabled(false);
 					} else {
 						//wiBackLog::post("Light on");
 						light->energy = 7.0f;
 						light->SetCastShadow(true);
-						light->SetVolumetricsEnabled(true);
 					}
 				}
 			}
