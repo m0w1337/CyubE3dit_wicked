@@ -11,3 +11,4 @@ bool settings::clipUnderground		  = true;
 bool settings::collision			  = true;
 float settings::camspeed				  = 4.0f;
 bool settings::pauseChunkloader		  = false;
+uint32_t settings::camMode				  = 0;

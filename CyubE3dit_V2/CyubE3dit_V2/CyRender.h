@@ -39,6 +39,7 @@ public:
 	float lasttime;
 	float sinepulse;
 	wiComboBox worldSelector;
+	wiComboBox camModeSelector;
 	RendererWindow rendererWnd;
 	PostprocessWindow postprocessWnd;
 	wiButton rendererWnd_Toggle;

@@ -116,10 +116,10 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			//material.emissiveColor.z = obj_material.emission[2];
 			//material.emissiveColor.w = max(obj_material.emission[0], max(obj_material.emission[1], obj_material.emission[2]));
 			material.refraction = obj_material.ior;
-			material.metalness		 = 0.01f;  //obj_material.metallic;
+			material.metalness		 = obj_material.metallic;
 			material.normalMapName	 = obj_material.normal_texname;
 			material.surfaceMapName	 = obj_material.specular_texname;
-			material.roughness		 = 0.8f;  //obj_material.roughness;
+			material.roughness		 = obj_material.roughness;
 			material.reflectance	 = 0.0f;
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;

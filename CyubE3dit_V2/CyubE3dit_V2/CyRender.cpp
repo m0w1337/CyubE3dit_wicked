@@ -453,6 +453,7 @@ void CyRender::ResizeLayout() {
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
 	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 10));
+	camModeSelector.SetPos(XMFLOAT2(screenW - camModeSelector.scale.x - 15, 10));
 	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
 	float xOffset = 15;
 	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
@@ -466,6 +467,10 @@ void CyRender::ResizeLayout() {
 }
 
 void CyRender::Load() {
+	wiColor uiColor_idle(100, 100, 100, 30);
+	wiColor uiColor_focus(100, 100, 100, 0);
+	wiColor uiColor_active(100, 130, 130, 0);
+
 	renderPath = std::make_unique<RenderPath3D>();
 	hovered = wiScene::PickResult();
 	setMotionBlurEnabled(false);
@@ -504,20 +509,20 @@ void CyRender::Load() {
 	wiScene::GetCamera().zFarP	= 3500.f;
 	label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - sneak peek");
-	label.SetColor(wiColor(100, 100, 100, 0), wiWidget::WIDGETSTATE::IDLE);
-	label.SetColor(wiColor(100, 100, 100, 0), wiWidget::WIDGETSTATE::FOCUS);
-	label.SetColor(wiColor(100, 130, 130, 0), wiWidget::WIDGETSTATE::ACTIVE);
+	label.SetColor(uiColor_idle, wiWidget::WIDGETSTATE::IDLE);
+	label.SetColor(uiColor_focus, wiWidget::WIDGETSTATE::FOCUS);
+	label.SetColor(uiColor_active, wiWidget::WIDGETSTATE::ACTIVE);
 	label.font.params.h_align = WIFALIGN_CENTER;
 	label.SetSize(XMFLOAT2(240, 20));
 	GetGUI().AddWidget(&label);
 	cyWorlds::getWorlds();
-	worldSelector.Create("TestSelector");
+	worldSelector.Create("WorldSelector");
 	worldSelector.SetText("Current World: ");
 	worldSelector.SetSize(XMFLOAT2(250.f, 20.f));
 	worldSelector.SetPos(XMFLOAT2(300.f, 20.f));
-	worldSelector.SetColor(wiColor(100, 100, 100, 30), wiWidget::WIDGETSTATE::IDLE);
-	worldSelector.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
-	worldSelector.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	worldSelector.SetColor(uiColor_idle, wiWidget::WIDGETSTATE::IDLE);
+	worldSelector.SetColor(uiColor_focus, wiWidget::WIDGETSTATE::FOCUS);
+	worldSelector.SetColor(uiColor_active, wiWidget::WIDGETSTATE::ACTIVE);
 	worldSelector.AddItem("");
 	for (const auto& world : cyWorlds::worlds) {
 		worldSelector.AddItem(world);
@@ -527,8 +532,24 @@ void CyRender::Load() {
 	worldSelector.OnSelect([=](wiEventArgs args) {
 		settings::newWorld = worldSelector.GetItemText(args.iValue);
 	});
-
 	GetGUI().AddWidget(&worldSelector);
+
+	camModeSelector.Create("CamMode");
+	camModeSelector.SetText("WASD Camera mode: ");
+	camModeSelector.SetTooltip("Camera can always be moved up/down with Q/E");
+	camModeSelector.SetSize(XMFLOAT2(200.f, 20.f));
+	camModeSelector.SetPos(XMFLOAT2(300.f, 20.f));
+	camModeSelector.SetColor(uiColor_idle, wiWidget::WIDGETSTATE::IDLE);
+	camModeSelector.SetColor(uiColor_focus, wiWidget::WIDGETSTATE::FOCUS);
+	camModeSelector.SetColor(uiColor_active, wiWidget::WIDGETSTATE::ACTIVE);
+	camModeSelector.AddItem("Move on all axis");
+	camModeSelector.AddItem("Hor. plane only");
+	camModeSelector.SetSelected(settings::camMode);
+	camModeSelector.SetMaxVisibleItemCount(2);
+	camModeSelector.OnSelect([=](wiEventArgs args) {
+		settings::camMode = args.iValue;
+	});
+	GetGUI().AddWidget(&camModeSelector);
 
 	rendererWnd = RendererWindow();
 	rendererWnd.Create(this);
@@ -700,66 +721,70 @@ void CyRender::Update(float dt) {
 
 	xDif *= 1.0;
 	yDif *= 1.0;
-	if (Accel < 4) {
-		Accel += dt * 2;
-	}
-	const float MoveSpeed = settings::camspeed * Accel;
+	
 
 	// FPS Camera
 	const float clampedDT = min(dt, 0.15f);	// if dt > 100 millisec, don't allow the camera to jump too far...
-
-	const float speed	 = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0) + rightTrigger.x * 10.0f) * MoveSpeed * clampedDT;
-	static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
+	bool btn			  = false;
+	//static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
+	//static float moveY = 0.f;
 	XMVECTOR moveNew	 = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
+	float moveNewY		 = 0.f;
 
+	Accel += clampedDT * 1.1f;
+	if (Accel > 3.5) {
+		Accel = 3.5;
+	}
+	const float speed = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0) + rightTrigger.x * 10.0f) * Accel * settings::camspeed * clampedDT;
 	//if (!wiInput::Down(wiInput::KEYBOARD_BUTTON_LCONTROL))
 	//{
 	// Only move camera if control not pressed
 	if (wiInput::Down((wiInput::BUTTON)'A')) {
 		moveNew += XMVectorSet(-1, 0, 0, 0);
+		btn = true;
 	} else if (wiInput::Down((wiInput::BUTTON)'D')) {
 		moveNew += XMVectorSet(1, 0, 0, 0);
+		btn = true;
 	}
 	if (wiInput::Down((wiInput::BUTTON)'W')) {
 		moveNew += XMVectorSet(0, 0, 1, 0);
+		btn = true;
 	} else if (wiInput::Down((wiInput::BUTTON)'S')) {
 		moveNew += XMVectorSet(0, 0, -1, 0);
+		btn = true;
 	}
 	if (wiInput::Down((wiInput::BUTTON)'E')) {
-		moveNew += XMVectorSet(0, 1, 0, 0);
+		moveNewY = 1;
+		btn		 = true;
 	} else if (wiInput::Down((wiInput::BUTTON)'Q')) {
-		moveNew += XMVectorSet(0, -1, 0, 0);
+		moveNewY = -1;
+		btn		 = true;
 	}
 	moveNew += XMVector3Normalize(moveNew);
 	//}
 	moveNew *= speed;
-
-	float moveLength = XMVectorGetX(XMVector3Length(moveNew));
+	moveNewY *= speed;
+	//move	   = XMVectorLerp(move, moveNew, 0.20f * clampedDT );	// smooth the movement a bit
+	//moveY	   = wiMath::Lerp(moveY, moveNewY, 0.20f * clampedDT);  // smooth the movement a bit
+	float moveLength = XMVectorGetX(XMVector3Length(moveNew)) + abs(moveNewY);
 	if (moveLength < 0.0001f)
 	{
-		Accel = 0.0;
+		moveLength = 0;
+		moveNew = XMVectorSet(0, 0, 0, 0);
+		moveNewY = 0.f;
+		Accel = 0;
 	}
-	move	   = XMVectorLerp(move, moveNew, 0.20f * clampedDT / 0.0166f);	// smooth the movement a bit
-	moveLength = XMVectorGetX(XMVector3Length(move));
-	if (moveLength < 0.0001f)
-	{
-		move = XMVectorSet(0, 0, 0, 0);
+	if (!btn) {
+		Accel = 0;
 	}
 	wiScene::TransformComponent camera_transform;
 	//if (moveLength < 10) {	//Ignore when movement is too far
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
-		CAPSULE capsule;
-		capsule.radius = 0.6;
-		capsule.tip	   = camera.Eye;
-		capsule.base   = capsule.tip;
-		capsule.base.y -= 1.5f;
-		
-
 		camera_transform.MatrixTransform(wiScene::GetCamera().GetInvView());
 		camera_transform.UpdateTransform();
-		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
-		XMVECTOR move_rot = XMVector3TransformNormal(move, camRot);
+		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMQuaternionNormalize(XMLoadFloat4(&camera_transform.rotation_local)));
+		XMVECTOR move_rot = XMVector3TransformNormal(moveNew, camRot);
 		/*
 		if (settings::collision == true && !wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
 			int ccd_max	  = 20;
@@ -795,14 +820,25 @@ void CyRender::Update(float dt) {
 			}
 		}
 		*/
+		
+		if (settings::camMode && XMVectorGetX(XMVector3Length(moveNew)) > 0.0001) {
+			moveLength = XMVectorGetX(XMVector3Length(move_rot));
+			move_rot = XMVectorSetY(move_rot, 0);
+			move_rot = (moveLength / XMVectorGetX(XMVector3Length(move_rot))) * move_rot;
+		}
 		XMFLOAT3 _move;
-		XMStoreFloat3(&_move, move_rot);
+		XMStoreFloat3(&_move, move_rot);	
+		_move.y += moveNewY;
 		camera_transform.Translate(_move);
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
+		if (camera.At.y > 0.95 && yDif < 0) {
+			camera_transform.RotateRollPitchYaw(XMFLOAT3(-yDif, 0, 0));
+		} else if (camera.At.y < -0.95 && yDif > 0) {
+			camera_transform.RotateRollPitchYaw(XMFLOAT3(-yDif, 0, 0));
+		}
 		camera_transform.UpdateTransform();
 		camera.TransformCamera(camera_transform);
 		camera.UpdateCamera();
-		camera.SetDirty();
 
 		if (CyMainComponent::m_headLight != INVALID_ENTITY) {
 			TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
@@ -817,6 +853,8 @@ void CyRender::Update(float dt) {
 			probeT->SetDirty();
 			probeT->UpdateTransform();
 		}
+	} else {
+		Accel = 0;
 	}
 	RenderPath3D::Update(dt);
 }

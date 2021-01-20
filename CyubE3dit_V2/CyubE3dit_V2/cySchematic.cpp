@@ -21,8 +21,8 @@ cySchematic::cySchematic(string filename) {
 		int flength = file.tellg();
 		file.seekg(flength - 4, ios_base::beg);
 		file.read(reinterpret_cast<char*>(&uncompressedSize), sizeof(uncompressedSize));
-		m_chunkdata = (char*)malloc(uncompressedSize);
-		char* compressed   = (char*)malloc(flength - HEADER_SIZE);
+		m_chunkdata		 = (char*)malloc(uncompressedSize);
+		char* compressed = (char*)malloc(flength - HEADER_SIZE);
 		file.seekg(12, ios_base::beg);
 		uint32_t magic;
 		file.read(reinterpret_cast<char*>(&magic), sizeof(magic));
@@ -40,7 +40,7 @@ cySchematic::cySchematic(string filename) {
 			}
 			free(compressed);
 			uint32_t dSize = 0;
-			size_t offset = size.x * size.y * size.z;
+			size_t offset  = size.x * size.y * size.z;
 			memcpy(&dSize, m_chunkdata + offset, 4);
 			offset += 4;
 			blockpos_t pos;
@@ -82,12 +82,10 @@ cySchematic& cySchematic::getSchematic(wiECS::Entity antity) {
 }*/
 
 void cySchematic::addSchematic(std::string filename) {
-	cySchematic* schem = new cySchematic(filename);
+	cySchematic* schem	 = new cySchematic(filename);
 	wiECS::Entity entity = schem->RenderSchematic(0, 0, 120);
 	m_schematics[entity] = schem;
-	
 }
-
 
 wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t relY, const int32_t relZ) {
 	chunkLoader::face_t tmpface;
@@ -97,7 +95,7 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 	uint8_t stepsize = 1;
 	if (m_chunkdata == nullptr)
 		return wiECS::INVALID_ENTITY;
-
+	std::vector<wiECS::Entity> groupChilds;
 	wiScene::Scene tmpScene;
 	for (int_fast16_t z = 0; z < size.z; z++) {
 		for (uint_fast16_t x = 0; x < size.x; x++) {
@@ -194,6 +192,8 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 			mesh = meshGen::AddMesh(tmpScene, "Schematic", cyBlocks::m_fallbackMat, &entity);
 		}
 		tmpScene.objects.GetComponent(entity)->SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
+		LayerComponent* layer = tmpScene.layers.GetComponent(entity);
+		layer->layerMask	  = LAYER_SCHEMATIC;
 		wiECS::Entity currMat = faces[0].material;
 		mesh->SetDoubleSided(true);
 		for (unsigned i = 0; i < faces.size(); ++i)
@@ -234,51 +234,71 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 
 		mesh->SetDynamic(false);
 		mesh->CreateRenderData();
-		ObjectComponent* chunkObj = tmpScene.objects.GetComponent(entity);
+		float arrowsize = (float)min(size.x, size.y);// / 100;
+		wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("cwArrow");
+		groupChilds.push_back(objEnt);
+		ObjectComponent* object = tmpScene.objects.GetComponent(objEnt);
+		TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
+		layer	= tmpScene.layers.GetComponent(objEnt);
+		layer->layerMask			= LAYER_SCHEMATIC;
+		object->meshID			= cyBlocks::m_toolMeshes[0];
+		object->parentObject		= entity;
+		tf->Translate(XMFLOAT3(relX + 5 + size.x / 4, relZ + 3 + size.z/2, relY + size.y/4));
+		tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+		tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+		tf->UpdateTransform();
+		objEnt				= tmpScene.Entity_CreateObject("ccArrow");
+		groupChilds.push_back(objEnt);
+		object				= tmpScene.objects.GetComponent(objEnt);
+		layer				= tmpScene.layers.GetComponent(objEnt);
+		layer->layerMask	 = LAYER_SCHEMATIC;
+		tf					= tmpScene.transforms.GetComponent(objEnt);
+		object->meshID		= cyBlocks::m_treeMeshes[0];
+		object->parentObject = entity;
+		tf->Translate(XMFLOAT3(relX + 5 + size.x / 4, relZ - 3, relY + size.y / 4));
+		tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+		tf->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
+		tf->UpdateTransform();
 		for (size_t i = 0; i < trees.size(); i++) {
 			if (trees[i].scale.x > 2 || trees[i].scale.y > 2 || trees[i].scale.z > 2) {
 				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
 				wiBackLog::post("Weird tree data: in Schematic.");
 			} else {
-				wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("tree");
-				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-				object.SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
-				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-				layer.layerMask			= LAYER_TREE;
-				TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
+				objEnt = tmpScene.Entity_CreateObject("tree");
+				//groupChilds.push_back(objEnt);
+				object = tmpScene.objects.GetComponent(objEnt);
+				object->SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
+				layer			= tmpScene.layers.GetComponent(objEnt);
+				layer->layerMask = LAYER_SCHEMATIC;
+				tf				= tmpScene.transforms.GetComponent(objEnt);
 				switch (trees[i].type) {
 					case 0:	 //leaf trees (light wood)
-						object.meshID = cyBlocks::m_treeMeshes[((trees[i].pos.x + trees[i].pos.y + trees[i].pos.z) % 3)];
+						object->meshID = cyBlocks::m_treeMeshes[((trees[i].pos.x + trees[i].pos.y + trees[i].pos.z) % 3)];
 						break;
 					case 1:	 //needle trees (dark wood)
-						object.meshID = cyBlocks::m_treeMeshes[3];
+						object->meshID = cyBlocks::m_treeMeshes[3];
 						break;
 					case 2:	 //cactus
 					case 3:
 					case 4:
 					case 5:
-						object.meshID = cyBlocks::m_treeMeshes[4];
+						object->meshID = cyBlocks::m_treeMeshes[4];
 						break;
 					default:  //desert grass 6,7
-						object.meshID = cyBlocks::m_treeMeshes[5];
+						object->meshID = cyBlocks::m_treeMeshes[5];
 						break;
 				}
-				tf.Translate(XMFLOAT3(relX + trees[i].pos.x / 2, relZ + trees[i].pos.z / 2 - 0.25, relY + 16 - trees[i].pos.y / 2));
-				tf.Scale(XMFLOAT3(trees[i].scale.x, trees[i].scale.z, trees[i].scale.y));
-				tf.RotateRollPitchYaw(XMFLOAT3(0, trees[i].yaw, 0));
-				tf.UpdateTransform();
-				object.parentObject = entity;
-				//ret.meshes.push_back(objEnt);
-				//tmpScene.Component_Attach(objEnt, entity);
+				tf->Translate(XMFLOAT3(relX + trees[i].pos.x / 2, relZ + trees[i].pos.z / 2 - 0.25, relY + 16 - trees[i].pos.y / 2));
+				tf->Scale(XMFLOAT3(trees[i].scale.x, trees[i].scale.z, trees[i].scale.y));
+				tf->RotateRollPitchYaw(XMFLOAT3(0, trees[i].yaw, 0));
+				tf->UpdateTransform();
+				object->parentObject = entity;
 			}
 		}
 		for (size_t i = 0; i < torches.size(); i++) {
 			torch_t torch = torches[i];
 			wiECS::Entity lightEnt;
 			LightComponent* light = nullptr;
-			//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
-			//light->SetStatic(true);
-			//light->SetVolumetricsEnabled(true);
 			wiECS::Entity meshID = 0;
 			TransformComponent transform;
 			XMFLOAT3 color((float)cyBlocks::m_regBlockFlags[torch.ID][0] / 255.f, (float)cyBlocks::m_regBlockFlags[torch.ID][1] / 255.f, (float)cyBlocks::m_regBlockFlags[torch.ID][2] / 255.f);
@@ -326,30 +346,34 @@ wiECS::Entity cySchematic::RenderSchematic(const int32_t relX, const int32_t rel
 						break;
 				}
 				if (light != nullptr) {
+					layer			 = tmpScene.layers.GetComponent(lightEnt);
+					layer->layerMask = LAYER_SCHEMATIC;
+					groupChilds.push_back(lightEnt);
 					light->SetCastShadow(true);
 					if (settings::torchlights == false) {
 						light->SetStatic(true);
 					}
-					//ret.meshes.push_back(lightEnt);
-
-					wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
-					ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-					TransformComponent* tf	= tmpScene.transforms.GetComponent(objEnt);
-					object.meshID			= meshID;
-					object.SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
-					object.emissiveColor	= XMFLOAT4(color.x, color.y, color.z, 1.0f);
-					layer.layerMask			= LAYER_TORCH;
-					*tf						= transform;
+					objEnt = tmpScene.Entity_CreateObject("torch" + to_string(lightEnt));
+					groupChilds.push_back(objEnt);
+					object = tmpScene.objects.GetComponent(objEnt);
+					layer	= tmpScene.layers.GetComponent(objEnt);
+					layer->layerMask		= LAYER_SCHEMATIC;
+					tf	= tmpScene.transforms.GetComponent(objEnt);
+					object->meshID			= meshID;
+					object->SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
+					object->emissiveColor = XMFLOAT4(color.x, color.y, color.z, 1.0f);
+					*tf					 = transform;
 					tf->UpdateTransform();
-					//ret.meshes.push_back(objEnt);
-					object.parentObject = entity;
+					object->parentObject = entity;
 					light->parentObject = entity;
-					//tmpScene.Component_Attach(objEnt, entity);
 				}
 			}
 			catch (...) {
 			}
+		}
+		for (size_t i = 0; i < groupChilds.size(); i++) {
+			tmpScene.Component_Detach(groupChilds[i]);
+			tmpScene.Component_Attach(groupChilds[i], entity);
 		}
 
 		m.lock();

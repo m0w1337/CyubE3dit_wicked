@@ -11,6 +11,7 @@ public:
 	static atomic <size_t> numVisChunks;
 	static string newWorld;
 	static string thisWorld;
+	static uint32_t camMode;
 	static bool torchlights;
 	static bool clipUnderground;
 	static bool collision;

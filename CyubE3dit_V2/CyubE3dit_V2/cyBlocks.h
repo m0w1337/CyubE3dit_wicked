@@ -68,6 +68,7 @@ public:
 	static  std::string m_regBlockNames[256];
 	static wiECS::Entity m_fallbackMat;
 	static std::vector<wiECS::Entity> m_treeMeshes;
+	static std::vector<wiECS::Entity> m_toolMeshes;
 	static bool m_loaded;
 
 	static void LoadRegBlocks(void);

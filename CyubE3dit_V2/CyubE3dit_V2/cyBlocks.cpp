@@ -15,6 +15,7 @@ uint8_t cyBlocks::m_torchID	   = 0;
 Entity cyBlocks::m_fallbackMat = wiECS::INVALID_ENTITY;
 bool cyBlocks::m_loaded		   = false;
 std::vector<Entity> cyBlocks::m_treeMeshes;
+std::vector<Entity> cyBlocks::m_toolMeshes;
 std::string cyBlocks::m_regBlockNames[256] = {""};
 wiScene::Scene& cyBlocks::m_scene		   = wiScene::GetScene();
 std::unordered_map<uint32_t, cyBlocks::cBlock_t> cyBlocks::m_cBlockTypes;
@@ -66,6 +67,7 @@ void cyBlocks::LoadRegBlocks(void) {
 }
 
 void cyBlocks::loadMeshes(void) {
+	m_toolMeshes.push_back(ImportModel_OBJ("data\\meshes\\rotCW.obj", wiScene::GetScene(), 0));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b_lod0.obj", wiScene::GetScene(), 2));

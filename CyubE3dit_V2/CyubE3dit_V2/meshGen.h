@@ -6,7 +6,8 @@
 enum LAYERMASKS {
 	LAYER_CHUNKMESH = 1,
 	LAYER_TREE		= 2,
-	LAYER_TORCH = 4
+	LAYER_TORCH = 4,
+	LAYER_SCHEMATIC = 8
 };
 
 class meshGen {
