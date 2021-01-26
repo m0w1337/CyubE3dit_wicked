@@ -15,7 +15,7 @@ uint8_t cyBlocks::m_torchID	   = 0;
 Entity cyBlocks::m_fallbackMat = wiECS::INVALID_ENTITY;
 bool cyBlocks::m_loaded		   = false;
 std::vector<Entity> cyBlocks::m_treeMeshes;
-std::vector<Entity> cyBlocks::m_toolMeshes;
+Entity cyBlocks::m_toolMeshes[];
 std::string cyBlocks::m_regBlockNames[256] = {""};
 wiScene::Scene& cyBlocks::m_scene		   = wiScene::GetScene();
 std::unordered_map<uint32_t, cyBlocks::cBlock_t> cyBlocks::m_cBlockTypes;
@@ -67,7 +67,13 @@ void cyBlocks::LoadRegBlocks(void) {
 }
 
 void cyBlocks::loadMeshes(void) {
-	m_toolMeshes.push_back(ImportModel_OBJ("data\\meshes\\rotCW.obj", wiScene::GetScene(), 0));
+	m_toolMeshes[TOOL_ROT]= ImportModel_OBJ("data\\meshes\\rotCW.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_ORIGIN] = ImportModel_OBJ("data\\meshes\\originOnly.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_XAXIS] = ImportModel_OBJ("data\\meshes\\xAxis.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_YAXIS] = ImportModel_OBJ("data\\meshes\\yAxis.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_ZAXIS] = ImportModel_OBJ("data\\meshes\\zAxis.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_PLANE] = ImportModel_OBJ("data\\meshes\\plane.obj", wiScene::GetScene(), 0);
+
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b_lod0.obj", wiScene::GetScene(), 2));

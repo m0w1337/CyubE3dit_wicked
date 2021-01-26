@@ -55,8 +55,16 @@ public:
 		BLOCKFLAG_MISC1		= 4,  //unuseable
 		BLOCKFLAG_ANTITILE	= 8  //must be greater than 5 to prevent ovewrlap with the 6 face IDs
 	};
-	
 
+	enum toolMeshes_t {
+		TOOL_ROT = 0,
+		TOOL_ORIGIN,
+		TOOL_XAXIS,
+		TOOL_YAXIS,
+		TOOL_ZAXIS,
+		TOOL_PLANE,
+		TOOL_NUMTOOLS
+	};
 
 	static uint8_t m_regBlockTypes[256];
 	static uint8_t m_regBlockFlags[256][6];
@@ -68,7 +76,7 @@ public:
 	static  std::string m_regBlockNames[256];
 	static wiECS::Entity m_fallbackMat;
 	static std::vector<wiECS::Entity> m_treeMeshes;
-	static std::vector<wiECS::Entity> m_toolMeshes;
+	static wiECS::Entity m_toolMeshes[TOOL_NUMTOOLS];
 	static bool m_loaded;
 
 	static void LoadRegBlocks(void);

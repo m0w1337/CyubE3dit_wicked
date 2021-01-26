@@ -4,6 +4,19 @@
 
 class cySchematic {
 public:
+	typedef enum hovertype_e{
+		HOVER_ROTCW,
+		HOVER_ROTCC,
+		HOVER_X_AXIS,
+		HOVER_Y_AXIS,
+		HOVER_Z_AXIS,
+		HOVER_XY_PLANE,
+		HOVER_XZ_PLANE,
+		HOVER_YZ_PLANE,
+		HOVER_ORIGIN,
+		HOVER_NUMELEMENTS,
+		HOVER_NONE
+	} hovertype_t;
 	static constexpr float PI		  = 3.141592653589793238462643383279502884f;
 	static const uint32_t HEADER_SIZE = 20;
 	static const uint32_t MAGICBYTE = 0x13371337;
@@ -79,18 +92,28 @@ public:
 		uint16_t z;
 		uint8_t rotation;
 	};
-	blockpos_t size;
-	static unordered_map<wiECS::Entity, cySchematic*> m_schematics;
+	struct hoverAttr_s {
+		wiECS::Entity entity;
+		XMFLOAT4 hovercolor;
+	};
+	XMFLOAT3 size;
+	XMFLOAT3 pos;
+	static std::vector<cySchematic*> m_schematics;
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
 	unordered_map<blockpos_t, uint8_t, blockpos_t> m_Torches;
 	std::vector<cyChunk::meshLoc> meshObjects;
 	std::vector<cyChunk::treeLoc> trees;
+	wiECS::Entity mainEntity;
+	struct hoverAttr_s hoverEntities[HOVER_NUMELEMENTS];
 	bool m_isAirChunk;
 	char* m_chunkdata;
 	cySchematic(string filename);
 	static void addSchematic(std::string filename);
-	wiECS::Entity RenderSchematic(const int32_t relX, const int32_t relY, const int32_t relZ);
+	hovertype_t hoverGizmo(const wiECS::Entity entity);
+	void RenderSchematic(const float relX, const float relY, const float relZ);
 
 private:
 	void loadCustomBlocks(void);
+	inline void placeTorches(const std::vector<torch_t>& torches, wiScene::Scene& tmpScene);
+	void attachGizmos(wiScene::Scene& tmpScene);
 };

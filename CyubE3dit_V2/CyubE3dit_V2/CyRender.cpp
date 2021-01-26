@@ -366,8 +366,6 @@ void CyMainComponent::Compose(CommandList cmd) {
 	wiBackLog::Draw(cmd);
 
 	wiProfiler::EndRange(range);  // Compose
-
-
 }
 
 void CyRender::ResizeBuffers() {
@@ -375,7 +373,7 @@ void CyRender::ResizeBuffers() {
 
 	GraphicsDevice* device = wiRenderer::GetDevice();
 	bool hr;
-	
+
 	if (GetDepthStencil() != nullptr)
 	{
 		TextureDesc desc;
@@ -417,10 +415,10 @@ void CyRender::ResizeBuffers() {
 
 			if (getMSAASampleCount() == 1)
 			{
-				desc.attachments[0].texture = &rt_selectionOutline[1];  // rendertarget
+				desc.attachments[0].texture = &rt_selectionOutline[1];	// rendertarget
 			} else
 			{
-				desc.attachments[1].texture = &rt_selectionOutline[1];  // resolve
+				desc.attachments[1].texture = &rt_selectionOutline[1];	// resolve
 			}
 			hr = device->CreateRenderPass(&desc, &renderpass_selectionOutline[1]);
 			assert(hr);
@@ -445,7 +443,6 @@ void CyRender::ResizeBuffers() {
 		}
 	}
 }
-
 
 void CyRender::ResizeLayout() {
 	RenderPath3D::ResizeLayout();
@@ -472,7 +469,7 @@ void CyRender::Load() {
 	wiColor uiColor_active(100, 130, 130, 0);
 
 	renderPath = std::make_unique<RenderPath3D>();
-	hovered = wiScene::PickResult();
+	hovered	   = wiScene::PickResult();
 	setMotionBlurEnabled(false);
 	setMotionBlurStrength(10.0f);
 	setBloomEnabled(true);
@@ -485,6 +482,7 @@ void CyRender::Load() {
 	setColorGradingEnabled(true);
 	setShadowsEnabled(true);
 	setMSAASampleCount(1);
+	setDitherEnabled(false);
 	setSharpenFilterEnabled(true);
 	setSharpenFilterAmount(0.17f);
 	wiRenderer::SetTransparentShadowsEnabled(false);
@@ -624,6 +622,9 @@ void CyRender::Load() {
 }
 
 void CyRender::Update(float dt) {
+	static cySchematic::hovertype_t drag = cySchematic::HOVER_NONE;
+	static size_t dragID = 0;
+	static XMVECTOR deltaV;
 	static wiECS::Entity lastHovered = wiECS::INVALID_ENTITY;
 	CameraComponent& camera			 = wiScene::GetCamera();
 	// Camera control:
@@ -638,6 +639,7 @@ void CyRender::Update(float dt) {
 	if (camControlStart)
 	{
 		originalMouse = wiInput::GetPointer();
+		deltaV		  = XMVectorZero();
 	}
 
 	XMFLOAT4 currentMouse = wiInput::GetPointer();
@@ -645,21 +647,101 @@ void CyRender::Update(float dt) {
 
 	if (wiInput::Down(wiInput::MOUSE_BUTTON_LEFT) && !GetGUI().GetActiveWidget())
 	{
-		hovered.entity	= wiECS::INVALID_ENTITY;
 		camControlStart = false;
+		if (drag != cySchematic::HOVER_NONE) {
+			XMFLOAT4 pointer = wiInput::GetPointer();
+			XMVECTOR plane, planeNormal;
+			TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->hoverEntities[drag].entity);
+			XMVECTOR pos = transform->GetPositionV();
+			XMVECTOR B, axis, wrong;
+			switch (drag) {
+				case cySchematic::HOVER_X_AXIS:
+					axis   = XMVectorSet(1, 0, 0, 0);
+					B	 = pos + XMVectorSet(1, 0, 0, 0);
+					wrong = XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
+					planeNormal	   = XMVector3Cross(wrong, axis);
+					break;
+				case cySchematic::HOVER_Y_AXIS:
+					axis   = XMVectorSet(0, 0, 1, 0);
+					B	 = pos + XMVectorSet(0, 0, 1, 0);
+					wrong = XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
+					planeNormal	   = XMVector3Cross(wrong, axis);
+					break;
+				case cySchematic::HOVER_Z_AXIS:
+					axis   = XMVectorSet(0, 1, 0, 0);
+					B	 = pos + XMVectorSet(0, 1, 0, 0);
+					wrong = XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
+					planeNormal	   = XMVector3Cross(wrong, axis);
+					break;
+				case cySchematic::HOVER_ORIGIN:
+					planeNormal = wiScene::GetCamera().GetAt();
+					break;
+				case cySchematic::HOVER_XY_PLANE:
+					planeNormal = XMVectorSet(0, 1, 0, 0);
+					break;
+				case cySchematic::HOVER_XZ_PLANE:
+					planeNormal = XMVectorSet(0, 0, 1, 0);
+					break;
+				case cySchematic::HOVER_YZ_PLANE:
+					planeNormal = XMVectorSet(1, 0, 0, 0);
+					break;
+				break;
+
+			}
+			plane = XMPlaneFromPointNormal(pos, XMVector3Normalize(planeNormal));
+
+			RAY ray				  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+			XMVECTOR rayOrigin	  = XMLoadFloat3(&ray.origin);
+			XMVECTOR rayDir		  = XMLoadFloat3(&ray.direction);
+			XMVECTOR intersection = XMPlaneIntersectLine(plane, rayOrigin, rayOrigin + rayDir * wiScene::GetCamera().zFarP);
+
+			ray						  = wiRenderer::GetPickRay((long)originalMouse.x, (long)originalMouse.y);
+			rayOrigin				  = XMLoadFloat3(&ray.origin);
+			rayDir					  = XMLoadFloat3(&ray.direction);
+			XMVECTOR intersectionPrev = XMPlaneIntersectLine(plane, rayOrigin, rayOrigin + rayDir * wiScene::GetCamera().zFarP);
+			
+			switch (drag) {
+				case cySchematic::HOVER_X_AXIS:
+				case cySchematic::HOVER_Y_AXIS:
+				case cySchematic::HOVER_Z_AXIS:
+					XMVECTOR P	   = wiMath::GetClosestPointToLine(pos, B, intersection);
+					XMVECTOR PPrev = wiMath::GetClosestPointToLine(pos, B, intersectionPrev);
+					deltaV += P - PPrev;
+					break;
+				default:
+					deltaV += intersection - intersectionPrev;
+			
+			}
+			XMFLOAT3 delta;
+			delta.x = roundf(XMVectorGetX(deltaV) * 2) / 2;
+			delta.y = roundf(XMVectorGetY(deltaV) * 2) / 2;
+			delta.z = roundf(XMVectorGetZ(deltaV) * 2) / 2;
+			deltaV = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
+			transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
+			//transform->ApplyTransform();
+			transform->Translate(delta);
+			transform->UpdateTransform();
+			cySchematic::m_schematics[dragID]->pos.x = transform->GetPosition().x;
+			cySchematic::m_schematics[dragID]->pos.z = transform->GetPosition().y;
+			cySchematic::m_schematics[dragID]->pos.y = transform->GetPosition().z;
+			originalMouse = pointer;
+		} else {
+			hovered.entity	= wiECS::INVALID_ENTITY;
+			
 #if 1
-		// Mouse delta from previous frame:
-		xDif = currentMouse.x - originalMouse.x;
-		yDif = currentMouse.y - originalMouse.y;
+			// Mouse delta from previous frame:
+			xDif = currentMouse.x - originalMouse.x;
+			yDif = currentMouse.y - originalMouse.y;
 #else
-		// Mouse delta from hardware read:
-		xDif = wiInput::GetMouseState().delta_position.x;
-		yDif = wiInput::GetMouseState().delta_position.y;
+			// Mouse delta from hardware read:
+			xDif = wiInput::GetMouseState().delta_position.x;
+			yDif = wiInput::GetMouseState().delta_position.y;
 #endif
-		xDif = 0.1f * xDif * (1.0f / 60.0f);
-		yDif = 0.1f * yDif * (1.0f / 60.0f);
-		wiInput::SetPointer(originalMouse);
-		wiInput::HidePointer(true);
+			xDif = 0.1f * xDif * (1.0f / 60.0f);
+			yDif = 0.1f * yDif * (1.0f / 60.0f);
+			wiInput::SetPointer(originalMouse);
+			wiInput::HidePointer(true);
+		}
 	} else {
 		camControlStart = true;
 		wiInput::HidePointer(false);
@@ -691,7 +773,23 @@ void CyRender::Update(float dt) {
 			}
 			lastHovered = hovered.entity;
 		}
+		if (cySchematic::m_schematics.size() > 0) {
+			for (size_t i = 0; i < cySchematic::m_schematics.size(); i++) {
+				wiScene::Scene& scene	   = wiScene::GetScene();
+				RAY pickRay				   = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+				wiScene::PickResult SchHov = wiScene::Pick(pickRay, 1, LAYER_SCHEMATIC);
+				drag					   = cySchematic::m_schematics[i]->hoverGizmo(SchHov.entity);
+				dragID					   = i;
+				XMMATRIX sca			   = XMMatrixScaling(cySchematic::m_schematics[i]->size.x / 2, cySchematic::m_schematics[i]->size.z / 2, cySchematic::m_schematics[i]->size.y / 2);
+				XMMATRIX tra			   = XMMatrixTranslation(cySchematic::m_schematics[i]->pos.x  + cySchematic::m_schematics[i]->size.x / 2 - 0.25f, cySchematic::m_schematics[i]->pos.z + cySchematic::m_schematics[i]->size.z / 2 - 0.25f, cySchematic::m_schematics[i]->pos.y + cySchematic::m_schematics[i]->size.y / 2 + 0.25f);
+				XMFLOAT4X4 hoverBox;
+				XMStoreFloat4x4(&hoverBox, sca * tra);
+				wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
+			}
+		}
+
 	}
+	
 
 	const float buttonrotSpeed = 2.0f / 60.0f;
 	if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LEFT))
@@ -721,15 +819,14 @@ void CyRender::Update(float dt) {
 
 	xDif *= 1.0;
 	yDif *= 1.0;
-	
 
 	// FPS Camera
-	const float clampedDT = min(dt, 0.15f);	// if dt > 100 millisec, don't allow the camera to jump too far...
+	const float clampedDT = min(dt, 0.15f);	 // if dt > 100 millisec, don't allow the camera to jump too far...
 	bool btn			  = false;
 	//static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
 	//static float moveY = 0.f;
-	XMVECTOR moveNew	 = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
-	float moveNewY		 = 0.f;
+	XMVECTOR moveNew = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
+	float moveNewY	 = 0.f;
 
 	Accel += clampedDT * 1.1f;
 	if (Accel > 3.5) {
@@ -770,9 +867,9 @@ void CyRender::Update(float dt) {
 	if (moveLength < 0.0001f)
 	{
 		moveLength = 0;
-		moveNew = XMVectorSet(0, 0, 0, 0);
-		moveNewY = 0.f;
-		Accel = 0;
+		moveNew	   = XMVectorSet(0, 0, 0, 0);
+		moveNewY   = 0.f;
+		Accel	   = 0;
 	}
 	if (!btn) {
 		Accel = 0;
@@ -820,14 +917,14 @@ void CyRender::Update(float dt) {
 			}
 		}
 		*/
-		
+
 		if (settings::camMode && XMVectorGetX(XMVector3Length(moveNew)) > 0.0001) {
 			moveLength = XMVectorGetX(XMVector3Length(move_rot));
-			move_rot = XMVectorSetY(move_rot, 0);
-			move_rot = (moveLength / XMVectorGetX(XMVector3Length(move_rot))) * move_rot;
+			move_rot   = XMVectorSetY(move_rot, 0);
+			move_rot   = (moveLength / XMVectorGetX(XMVector3Length(move_rot))) * move_rot;
 		}
 		XMFLOAT3 _move;
-		XMStoreFloat3(&_move, move_rot);	
+		XMStoreFloat3(&_move, move_rot);
 		_move.y += moveNewY;
 		camera_transform.Translate(_move);
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
@@ -1125,8 +1222,6 @@ void CyRender::Render() const {
 
 		RenderOutline(cmd);
 
-		
-
 		device->RenderPassEnd(cmd);
 
 		device->EventEnd(cmd);
@@ -1185,7 +1280,6 @@ void CyRender::Render() const {
 			device->RenderPassEnd(cmd);
 		}
 		//END selection_outline
-		
 	});
 
 	// Transparents, post processes, etc:
@@ -1209,7 +1303,6 @@ void CyRender::Render() const {
 		RenderSSR(cmd);
 
 		RenderTransparents(cmd);
-
 
 		RenderPostprocessChain(cmd);
 	});
