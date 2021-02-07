@@ -4,6 +4,10 @@
 
 class settings {
 public:
+	struct worldOffset_t {
+		double x;
+		double y;
+	};
 	static constexpr uint8_t VIEWDIST_MIN = 8;
 	static constexpr uint8_t VIEWDIST_MAX = 64;
 	static atomic<uint32_t> viewDist;

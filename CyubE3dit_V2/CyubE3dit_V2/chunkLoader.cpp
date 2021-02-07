@@ -5,6 +5,9 @@ using namespace std;
 using namespace wiScene;
 extern mutex m;
 
+std::vector<cyImportant::chunkpos_t> chunkLoader::maskedChunks;
+mutex chunkLoader::maskMutex;
+
 void chunkLoader::spawnThreads(uint8_t numthreads) {
 	m_shutdown = 0;
 	if (numthreads > MAX_THREADS) {
@@ -35,6 +38,12 @@ void chunkLoader::shutdown(void) {
 	}
 }
 
+void chunkLoader::addMaskedChunk(const cyImportant::chunkpos_t chunkPos) {
+	maskMutex.lock();
+	maskedChunks.push_back(chunkPos);
+	maskMutex.unlock();
+}
+
 void chunkLoader::checkChunks(void) {
 	cyImportant::chunkpos_t ghostpos, coords, lastghostpos;
 	cyImportant* world	  = settings::getWorld();
@@ -44,6 +53,25 @@ void chunkLoader::checkChunks(void) {
 	wiScene::Scene& scene = wiScene::GetScene();
 	while (m_shutdown == 0) {
 		Sleep(5);
+		maskMutex.lock();
+		for (size_t i = 0; i < maskedChunks.size(); i++) {
+			auto it = m_visibleChunks.find(maskedChunks[i]);
+			if (it != m_visibleChunks.end()) {
+				if (it->second.chunkObj != wiECS::INVALID_ENTITY && it->second.chunkObj != 0xFFFFFFFE) {
+					wiScene::Scene& scene = wiScene::GetScene();
+					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
+					//if (obj != nullptr) {
+					wiECS::Entity meshEnt = obj->meshID;
+					m.lock();
+					scene.Component_RemoveChildren(it->second.chunkObj);
+					scene.Entity_Remove(it->second.chunkObj);
+					scene.Entity_Remove(meshEnt);
+					m.unlock();
+					it->second.chunkObj = wiECS::INVALID_ENTITY;
+				}
+			}
+		}
+		maskMutex.unlock();
 		uint32_t viewDist = settings::getViewDist();
 		if (!world->isStopped()) {
 			if (!settings::pauseChunkloader) {
@@ -150,6 +178,7 @@ void chunkLoader::checkChunks(void) {
 			m_visibleChunks.clear();
 			world->cleaned = true;
 		}
+		
 	}
 	m_shutdown = 2;
 }
@@ -569,6 +598,8 @@ inline void chunkLoader::employThread(cyImportant::chunkpos_t coords) {
 		}
 	}
 }
+
+
 /*
 cyImportant::chunkpos_t chunkLoader::spiral(const int32_t iteration) {
 	cyImportant::chunkpos_t ret;

@@ -63,9 +63,9 @@ public:
 	void shutdown(void);
 	void spawnThreads(uint8_t numthreads);
 	void checkChunks(void);
-
 	wiECS::Entity RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
-	void updateDisplayedChunks(void);
+
+	static void addMaskedChunk(const cyImportant::chunkpos_t chunkPos);
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
 	unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t> m_visibleChunks;
 	atomic<uint32_t> m_threadstate[MAX_THREADS];
@@ -76,6 +76,8 @@ public:
 	uint8_t m_numthreads;
 
 private:
+	static std::vector<cyImportant::chunkpos_t> maskedChunks;
+	static mutex maskMutex;
 	static const uint_fast16_t VIEWDISTANCE = 1024;
 	inline void removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll = false);
 	void addChunks(uint8_t threadNum);

@@ -78,6 +78,8 @@ public:
 	bool isValid(void);
 	bool isStopped(void);
 	bool getChunkID(const double x, const double y, uint32_t* chunkID);
+	inline bool getChunkIDFast(const chunkpos_t chunkPos, uint32_t* chunkID);
+	chunkpos_t getChunkPos(const double x, const double y);
 
 	std::string utf8_encode(const std::wstring& wstr);
 	std::wstring utf8_decode(const std::string& str);

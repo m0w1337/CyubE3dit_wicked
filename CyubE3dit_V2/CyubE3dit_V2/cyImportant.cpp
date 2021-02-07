@@ -60,6 +60,23 @@ bool cyImportant::getChunkID(const double x, const double y, uint32_t* chunkID) 
 	return true;
 }
 
+inline bool cyImportant::getChunkIDFast(const cyImportant::chunkpos_t chunkPos, uint32_t* chunkID) {
+	std::unordered_map<chunkpos_t, uint32_t>::const_iterator chunk = m_chunkMap.find(chunkPos);
+	if (chunk == m_chunkMap.end())
+		return false;
+	*chunkID = chunk->second;
+	return true;
+}
+
+cyImportant::chunkpos_t cyImportant::getChunkPos(const double x, const double y) {
+	chunkpos_t pos;
+	pos.x = x;
+	pos.y = y;
+	pos.x &= 0xFFFFFFF0;
+	pos.y &= 0xFFFFFFF0;
+	return pos;
+}
+
 void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 	ifstream file;
 	m_stopped = true;

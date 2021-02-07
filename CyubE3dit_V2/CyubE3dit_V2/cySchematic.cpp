@@ -91,7 +91,9 @@ cySchematic& cySchematic::getSchematic(wiECS::Entity antity) {
 
 void cySchematic::addSchematic(std::string filename) {
 	cySchematic* schem = new cySchematic(filename);
-	schem->RenderSchematic(0, 0, 10);
+	std::vector<wiECS::Entity> affected;
+	schem->RenderSchematic(0, 0, 110);
+	schem->getAffectedChunks(affected);
 	m_schematics.push_back(schem);
 }
 
@@ -265,7 +267,9 @@ void cySchematic::RenderSchematic(const float relX, const float relY, const floa
 
 		mesh->SetDynamic(false);
 		mesh->CreateRenderData();
-
+		wiScene::TransformComponent* tf;
+		wiScene::ObjectComponent* object;
+		wiECS::Entity objEnt;
 		for (size_t i = 0; i < trees.size(); i++) {
 			if (trees[i].scale.x > 2 || trees[i].scale.y > 2 || trees[i].scale.z > 2) {
 				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
@@ -303,7 +307,7 @@ void cySchematic::RenderSchematic(const float relX, const float relY, const floa
 			}
 		}
 		placeTorches(torches, tmpScene);
-		attachGizmos();
+		attachGizmos(tmpScene);
 		tf = tmpScene.transforms.GetComponent(mainEntity);
 		tf->Translate(XMFLOAT3(relX, relZ, relY));
 		tf->UpdateTransform();
@@ -505,4 +509,22 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	hoverEntities[HOVER_XZ_PLANE].entity	 = objEnt;
 	hoverEntities[HOVER_XZ_PLANE].hovercolor = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.f);
 	tmpScene.Component_Attach(objEnt, mainEntity);
+}
+
+void cySchematic::getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks) {
+	affectedChunks.clear();
+	settings::worldOffset_t offset;
+	offset.x		 = settings::getWorld()->m_playerpos.x / 100;
+	offset.y		 = settings::getWorld()->m_playerpos.y/100;
+	uint32_t chunkID = 0;
+	if (settings::getWorld()->isValid()) {
+		for (float x = 0; x < size.x; x += 16) {
+			for (float y = 0; y < size.y; y += 16) {
+				if (settings::getWorld()->getChunkID(offset.x + pos.x + x, offset.y + pos.y - y, &chunkID)) {
+					affectedChunks.push_back(chunkID);
+				}
+				chunkLoader::addMaskedChunk(settings::getWorld()->getChunkPos(pos.x + x, pos.y - y));
+			}
+		}
+	}
 }

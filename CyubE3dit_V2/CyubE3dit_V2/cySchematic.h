@@ -111,6 +111,7 @@ public:
 	static void addSchematic(std::string filename);
 	hovertype_t hoverGizmo(const wiECS::Entity entity);
 	void RenderSchematic(const float relX, const float relY, const float relZ);
+	void getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks);
 
 private:
 	void loadCustomBlocks(void);
