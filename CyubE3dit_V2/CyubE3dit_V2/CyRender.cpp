@@ -1000,7 +1000,8 @@ void CyRender::Render() const {
 		vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
 		vp.Height = (float)depthBuffer_Main.GetDesc().Height;
 		device->BindViewports(1, &vp, cmd);
-		wiRenderer::DrawScene(visibility_main, RENDERPASS_DEPTHONLY, cmd, drawscene_flags);
+		wiRenderer::DrawScene(visibility_main, RENDERPASS_PREPASS, cmd, drawscene_flags);
+		wiRenderer::DrawSkyVelocity(cmd);
 
 		wiProfiler::EndRange(range);
 		device->EventEnd(cmd);
@@ -1009,44 +1010,16 @@ void CyRender::Render() const {
 
 		device->RenderPassEnd(cmd);
 
-		// Make a readable copy for depth buffer:
+		// Create the top mip of depth pyramid from main depth buffer:
 		if (getMSAASampleCount() > 1)
 		{
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY, IMAGE_LAYOUT_SHADER_RESOURCE),
-					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_SHADER_RESOURCE, IMAGE_LAYOUT_UNORDERED_ACCESS)};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
-
 			wiRenderer::ResolveMSAADepthBuffer(depthBuffer_Copy, depthBuffer_Main, cmd);
-
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_SHADER_RESOURCE, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY),
-					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_UNORDERED_ACCESS, IMAGE_LAYOUT_SHADER_RESOURCE)};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
 		} else
 		{
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY, IMAGE_LAYOUT_COPY_SRC),
-					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_SHADER_RESOURCE, IMAGE_LAYOUT_COPY_DST)};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
-
-			device->CopyResource(&depthBuffer_Copy, &depthBuffer_Main, cmd);
-
-			{
-				GPUBarrier barriers[] = {
-					GPUBarrier::Image(&depthBuffer_Main, IMAGE_LAYOUT_COPY_SRC, IMAGE_LAYOUT_DEPTHSTENCIL_READONLY),
-					GPUBarrier::Image(&depthBuffer_Copy, IMAGE_LAYOUT_COPY_DST, IMAGE_LAYOUT_SHADER_RESOURCE)};
-				device->Barrier(barriers, arraysize(barriers), cmd);
-			}
+			wiRenderer::CopyTexture2D(depthBuffer_Copy, 0, 0, 0, depthBuffer_Main, 0, cmd);
 		}
 
-		wiRenderer::Postprocess_Lineardepth(depthBuffer_Copy, rtLinearDepth, cmd);
+		wiRenderer::Postprocess_DepthPyramid(depthBuffer_Copy, rtLinearDepth, cmd);
 
 		RenderAO(cmd);
 
@@ -1084,7 +1057,7 @@ void CyRender::Render() const {
 
 			device->RenderPassBegin(&renderpass_reflection_depthprepass, cmd);
 
-			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_DEPTHONLY, cmd, drawscene_flags_reflections);
+			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_PREPASS, cmd, drawscene_flags_reflections);
 
 			device->RenderPassEnd(cmd);
 
@@ -1102,7 +1075,7 @@ void CyRender::Render() const {
 	}
 
 	// Shadow maps:
-	if (getShadowsEnabled() && !wiRenderer::GetRaytracedShadowsEnabled())
+	if (getShadowsEnabled())
 	{
 		cmd = device->BeginCommandList();
 		wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
@@ -1150,10 +1123,6 @@ void CyRender::Render() const {
 			vp.Height = (float)depthBuffer_Reflection.GetDesc().Height;
 			device->BindViewports(1, &vp, cmd);
 
-			GPUBarrier barriers[] = {
-				GPUBarrier::Memory(&entityTiles_Opaque),
-			};
-			device->Barrier(barriers, arraysize(barriers), cmd);
 			device->UnbindResources(TEXSLOT_DEPTH, 1, cmd);
 
 			device->RenderPassBegin(&renderpass_reflection, cmd);
@@ -1162,6 +1131,7 @@ void CyRender::Render() const {
 			device->BindResource(PS, wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_REFLECTION, cmd);
 			device->BindResource(PS, wiTextureHelper::getWhite(), TEXSLOT_RENDERPATH_AO, cmd);
 			device->BindResource(PS, wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_SSR, cmd);
+			device->BindResource(PS, wiTextureHelper::getUINT4(), TEXSLOT_RENDERPATH_RTSHADOW, cmd);
 			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_MAIN, cmd, drawscene_flags_reflections);
 			wiRenderer::DrawSky(*scene, cmd);
 
@@ -1172,19 +1142,16 @@ void CyRender::Render() const {
 		});
 	}
 
-	// Opaque scene + Light culling:
+	// Lighting effects:
 	cmd = device->BeginCommandList();
 	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
 		GraphicsDevice* device = wiRenderer::GetDevice();
-		device->EventBegin("Opaque Scene", cmd);
 
 		wiRenderer::UpdateCameraCB(
 			*camera,
 			camera_previous,
 			camera_reflection,
 			cmd);
-
-		device->UnbindResources(TEXSLOT_ONDEMAND0, 1, cmd);
 
 		{
 			auto range = wiProfiler::BeginRangeGPU("Entity Culling", cmd);
@@ -1195,12 +1162,42 @@ void CyRender::Render() const {
 				entityTiles_Transparent,
 				debugUAV,
 				cmd);
-			GPUBarrier barriers[] = {
-				GPUBarrier::Memory(&entityTiles_Opaque),
-			};
-			device->Barrier(barriers, arraysize(barriers), cmd);
 			wiProfiler::EndRange(range);
 		}
+
+		RenderSSR(cmd);
+
+		if (wiRenderer::GetScreenSpaceShadowsEnabled())
+		{
+			wiRenderer::Postprocess_ScreenSpaceShadow(
+				depthBuffer_Copy,
+				rtLinearDepth,
+				entityTiles_Opaque,
+				rtShadow,
+				cmd,
+				getScreenSpaceShadowRange(),
+				getScreenSpaceShadowSampleCount());
+		}
+
+		if (wiRenderer::GetRaytracedShadowsEnabled())
+		{
+			wiRenderer::Postprocess_RTShadow(
+				*scene,
+				depthBuffer_Copy,
+				rtLinearDepth,
+				depthBuffer_Copy1,
+				entityTiles_Opaque,
+				GetGbuffer_Read(),
+				rtShadow,
+				cmd);
+		}
+	});
+
+	// Opaque scene:
+	cmd = device->BeginCommandList();
+	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
+		GraphicsDevice* device = wiRenderer::GetDevice();
+		device->EventBegin("Opaque Scene", cmd);
 
 		device->RenderPassBegin(&renderpass_main, cmd);
 
@@ -1210,6 +1207,14 @@ void CyRender::Render() const {
 		vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
 		vp.Height = (float)depthBuffer_Main.GetDesc().Height;
 		device->BindViewports(1, &vp, cmd);
+
+		if (wiRenderer::GetRaytracedShadowsEnabled() || wiRenderer::GetScreenSpaceShadowsEnabled())
+		{
+			device->BindResource(PS, &rtShadow, TEXSLOT_RENDERPATH_RTSHADOW, cmd);
+		} else
+		{
+			device->BindResource(PS, wiTextureHelper::getUINT4(), TEXSLOT_RENDERPATH_RTSHADOW, cmd);
+		}
 
 		device->BindResource(PS, &entityTiles_Opaque, TEXSLOT_RENDERPATH_ENTITYTILES, cmd);
 		device->BindResource(PS, getReflectionsEnabled() ? &rtReflection : wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_REFLECTION, cmd);
@@ -1299,8 +1304,6 @@ void CyRender::Render() const {
 		RenderVolumetrics(cmd);
 
 		RenderSceneMIPChain(cmd);
-
-		RenderSSR(cmd);
 
 		RenderTransparents(cmd);
 
