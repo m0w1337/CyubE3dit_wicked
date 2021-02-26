@@ -268,7 +268,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 	}
 }
 
-wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
+wiECS::Entity chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
 	face_t tmpface;
 	wiECS::Entity entity = wiECS::INVALID_ENTITY;
 	vector<face_t> faces;
@@ -361,6 +361,16 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 							}
 						}
 					}
+				} else if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_DECOMESH) {
+					cyChunk::meshLoc mesh;
+					mesh.pos.x = x / 2.0f;
+					mesh.pos.y = y / 2.0f;
+					mesh.pos.z = z / 2.0f;
+					mesh.scale.x = (0.8 + wiRandom::getRandom(20)/50.f);
+					mesh.scale.y = mesh.scale.x;
+					mesh.scale.z = mesh.scale.x;
+					mesh.type	 = blocktype;
+					chunk.addMesh(mesh);
 				} else if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_BILLBOARD) {
 					tmpface.x		 = relX + x / 2.0f;
 					tmpface.y		 = relY + 16 - y / 2.0f;
@@ -425,7 +435,6 @@ wiECS::Entity chunkLoader::RenderChunk(const cyChunk& chunk, const cyChunk& nort
 			}
 		}
 		mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
-
 		mesh->SetDynamic(false);
 		mesh->CreateRenderData();
 		ObjectComponent* chunkObj = tmpScene.objects.GetComponent(entity);

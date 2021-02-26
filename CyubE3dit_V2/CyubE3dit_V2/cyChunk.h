@@ -87,6 +87,7 @@ public:
 	void loadChunk(sqlite3* db, uint32_t chunkID, bool fast = false);
 	void airChunk(void);
 	void solidChunk(void);
+	void addMesh(meshLoc mesh);
 	~cyChunk(void);
 
 protected:

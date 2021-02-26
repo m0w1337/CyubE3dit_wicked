@@ -66,6 +66,11 @@ public:
 		TOOL_NUMTOOLS
 	};
 
+	enum foilageMeshes_t {
+		FOIL_FLOWER_BLUE = 0,
+		FOIL_NUM_MESHES
+	};
+
 	static uint8_t m_regBlockTypes[256];
 	static uint8_t m_regBlockFlags[256][6];
 	static wiECS::Entity m_regBlockMats[256][6];

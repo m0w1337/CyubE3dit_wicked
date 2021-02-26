@@ -29,12 +29,12 @@ public:
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x+0.25f, z + 0.25f, y));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x+0.25f, z - 0.25f, y));
 		mesh->vertex_windweights.emplace_back(0);
-		mesh->vertex_windweights.emplace_back(100);
-		mesh->vertex_windweights.emplace_back(100);
+		mesh->vertex_windweights.emplace_back(130);
+		mesh->vertex_windweights.emplace_back(130);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_windweights.emplace_back(0);
-		mesh->vertex_windweights.emplace_back(100);
-		mesh->vertex_windweights.emplace_back(100);
+		mesh->vertex_windweights.emplace_back(130);
+		mesh->vertex_windweights.emplace_back(130);
 		mesh->vertex_windweights.emplace_back(0);
 		mesh->vertex_colors.emplace_back(0xFFFFFF);
 		mesh->vertex_colors.emplace_back(0xFFFFFF);

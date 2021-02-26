@@ -80,12 +80,12 @@ void CyMainComponent::CreateScene(void) {
 	weather.SetRealisticSky(false);
 	weather.cloudiness	   = 0.2f;
 	weather.cloudSpeed	   = 0.1f;
-	weather.windSpeed	   = 1.8f;
+	weather.windSpeed	   = 10.5f;
 	weather.windRandomness = 1.5f;
 	weather.windWaveSize   = 2.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 1.0, 1.0f), 35, 1000);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(1.0, 1.0, 1.0f), 25, 1000);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -423,7 +423,7 @@ void CyRender::ResizeBuffers() {
 			hr = device->CreateRenderPass(&desc, &renderpass_selectionOutline[1]);
 			assert(hr);
 		}
-		{
+		/*{
 			RenderPassDesc desc;
 			desc.attachments.push_back(RenderPassAttachment::RenderTarget(&rtGbuffer[GBUFFER_COLOR_ROUGHNESS], RenderPassAttachment::LOADOP_LOAD));
 			desc.attachments.push_back(
@@ -440,7 +440,7 @@ void CyRender::ResizeBuffers() {
 			}
 			hr = device->CreateRenderPass(&desc, &renderpass_composeOutline);
 			assert(hr);
-		}
+		}*/
 	}
 }
 
@@ -473,6 +473,7 @@ void CyRender::Load() {
 	setMotionBlurEnabled(false);
 	setMotionBlurStrength(10.0f);
 	setBloomEnabled(true);
+	wiRenderer::SetScreenSpaceShadowsEnabled(false);
 	setBloomThreshold(1.7f);
 	setReflectionsEnabled(true);
 	setSSREnabled(false);

@@ -79,6 +79,10 @@ void cyChunk::solidChunk(void) {
 	memset(m_chunkdata, 0, 32 * 32 * 800 + 4);
 }
 
+void cyChunk::addMesh(meshLoc mesh) {
+	meshObjects.push_back(mesh);
+}
+
 void cyChunk::loadCustomBlocks(void) {
 	if (_msize(m_chunkdata) > 0x190000) {
 		uint32_t dSize	= 0;

@@ -106,19 +106,19 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 		{
 			Entity materialEntity		= scene.Entity_CreateMaterial(obj_material.name);
 			MaterialComponent& material = *scene.materials.GetComponent(materialEntity);
-			material.emissiveMapName	= obj_material.emissive_texname;
+			material.textures[MaterialComponent::EMISSIVEMAP].name	= obj_material.emissive_texname;
 			material.emissiveColor		= XMFLOAT4(obj_material.emission[0], obj_material.emission[1], obj_material.emission[2], 1);
 			material.baseColor		  = XMFLOAT4(obj_material.diffuse[0], obj_material.diffuse[1], obj_material.diffuse[2], 1);
-			material.baseColorMapName = obj_material.diffuse_texname;
-			material.occlusionMapName = obj_material.displacement_texname;
+			material.textures[MaterialComponent::BASECOLORMAP].name	= obj_material.diffuse_texname;
+			material.textures[MaterialComponent::OCCLUSIONMAP].name	= obj_material.displacement_texname;
 			//material.emissiveColor.x = obj_material.emission[0];
 			//material.emissiveColor.y = obj_material.emission[1];
 			//material.emissiveColor.z = obj_material.emission[2];
 			//material.emissiveColor.w = max(obj_material.emission[0], max(obj_material.emission[1], obj_material.emission[2]));
 			material.refraction = obj_material.ior;
 			material.metalness		 = obj_material.metallic;
-			material.normalMapName	 = obj_material.normal_texname;
-			material.surfaceMapName	 = obj_material.specular_texname;
+			material.textures[MaterialComponent::NORMALMAP].name = obj_material.normal_texname;
+			material.textures[MaterialComponent::SURFACEMAP].name = obj_material.specular_texname;
 			material.roughness		 = obj_material.roughness;
 			material.reflectance	 = 0.0f;
 			if (obj_material.alpha_texname != "") {
@@ -126,46 +126,46 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 				material.SetAlphaRef(0.5f);
 			}
 			material.SetUseWind(true);
-			if (material.normalMapName.empty())
+			if (material.textures[MaterialComponent::NORMALMAP].name.empty())
 			{
-				material.normalMapName = obj_material.bump_texname;
+				material.textures[MaterialComponent::NORMALMAP].name = obj_material.bump_texname;
 			}
-			if (material.surfaceMapName.empty())
+			if (material.textures[MaterialComponent::SURFACEMAP].name.empty())
 			{
-				material.surfaceMapName = obj_material.specular_highlight_texname;
+				material.textures[MaterialComponent::SURFACEMAP].name  = obj_material.specular_highlight_texname;
 			}
 
-			if (!material.surfaceMapName.empty())
+			if (!material.textures[MaterialComponent::SURFACEMAP].name.empty())
 			{
-				material.surfaceMap = wiResourceManager::Load(directory + material.surfaceMapName);
-				material.surfaceMapName.clear();
+				material.textures[MaterialComponent::SURFACEMAP].resource = wiResourceManager::Load(directory + material.textures[MaterialComponent::SURFACEMAP].name);
+				material.textures[MaterialComponent::SURFACEMAP].name.clear();
 			}
-			if (!material.baseColorMapName.empty())
+			if (!material.textures[MaterialComponent::BASECOLORMAP].name.empty())
 			{
-				material.baseColorMap = wiResourceManager::Load(directory + material.baseColorMapName);
-				material.baseColorMapName.clear();
+				material.textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(directory + material.textures[MaterialComponent::BASECOLORMAP].name);
+				material.textures[MaterialComponent::BASECOLORMAP].name.clear();
 			}
-			if (!material.normalMapName.empty())
+			if (!material.textures[MaterialComponent::NORMALMAP].name.empty())
 			{
-				material.normalMap = wiResourceManager::Load(directory + material.normalMapName);
-				material.normalMapName.clear();
+				material.textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(directory + material.textures[MaterialComponent::NORMALMAP].name);
+				material.textures[MaterialComponent::NORMALMAP].name.clear();
 			}
-			if (!material.displacementMapName.empty())
+			if (!material.textures[MaterialComponent::DISPLACEMENTMAP].name.empty())
 			{
-				material.displacementMap = wiResourceManager::Load(directory + material.displacementMapName);
-				material.displacementMapName.clear();
+				material.textures[MaterialComponent::DISPLACEMENTMAP].resource = wiResourceManager::Load(directory + material.textures[MaterialComponent::DISPLACEMENTMAP].name);
+				material.textures[MaterialComponent::DISPLACEMENTMAP].name.clear();
 			}
-			if (!material.occlusionMapName.empty())
+			if (!material.textures[MaterialComponent::OCCLUSIONMAP].name.empty())
 			{
-				material.occlusionMap = wiResourceManager::Load(directory + material.occlusionMapName);
-				material.occlusionMapName.clear();
+				material.textures[MaterialComponent::OCCLUSIONMAP].resource = wiResourceManager::Load(directory + material.textures[MaterialComponent::OCCLUSIONMAP].name);
+				material.textures[MaterialComponent::OCCLUSIONMAP].name.clear();
 				material.SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
 				material.SetParallaxOcclusionMapping(1.0f);
 			}
-			if (!material.emissiveMapName.empty())
+			if (!material.textures[MaterialComponent::EMISSIVEMAP].name.empty())
 			{
-				material.emissiveMap = wiResourceManager::Load(directory + material.emissiveMapName);
-				material.emissiveMapName.clear();
+				material.textures[MaterialComponent::EMISSIVEMAP].resource = wiResourceManager::Load(directory + material.textures[MaterialComponent::EMISSIVEMAP].name);
+				material.textures[MaterialComponent::EMISSIVEMAP].name.clear();
 				material.SetEmissiveStrength(15.0);
 			}
 
@@ -267,8 +267,8 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 									mesh.vertex_windweights.push_back(0);
 									break;
 								case 1:
-									if (pos.y > 0.2f) {
-										mesh.vertex_windweights.push_back(50);
+									if (pos.y > 0.1f) {
+										mesh.vertex_windweights.push_back(150);
 									} else {
 										mesh.vertex_windweights.push_back(0);
 									}
@@ -278,9 +278,11 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 										if (obj_materials[materialIndex].alpha_texname != "") {
 											mesh.vertex_windweights.push_back(100);// * pos.z);
 										} else {
-											mesh.vertex_windweights.push_back(20);// * pos.x);
+											mesh.vertex_windweights.push_back(6);// * pos.x);
 										}
 
+									} else if(pos.y > 0.3f) {
+										mesh.vertex_windweights.push_back(5);
 									} else {
 										mesh.vertex_windweights.push_back(0);
 									}

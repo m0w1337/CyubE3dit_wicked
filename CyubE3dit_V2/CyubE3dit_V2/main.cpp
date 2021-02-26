@@ -141,7 +141,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
 			wiScene::Scene& scn = wiScene::GetScene();
-			if (GetTickCount() - lasttick > 50 && settings::torchlights == true) {
+			if (GetTickCount() - lasttick > 500 && settings::torchlights == true) {
 				lasttick = GetTickCount();
 				for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
 					if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
