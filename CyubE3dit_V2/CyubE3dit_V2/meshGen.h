@@ -68,14 +68,14 @@ public:
 		mesh->indices.emplace_back(start + 0);
 		mesh->indices.emplace_back(start + 3);
 		mesh->indices.emplace_back(start + 2);
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 1, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
 
 	}
 

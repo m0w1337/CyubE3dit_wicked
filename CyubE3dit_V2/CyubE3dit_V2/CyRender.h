@@ -87,6 +87,7 @@ public:
 
 	static wiECS::Entity m_headLight;
 	static wiECS::Entity m_probe;
+	static wiECS::Entity m_dust;
 	CyRender renderer;
 	CyLoadingScreen loader;
 	//CyPathRender pathRenderer;

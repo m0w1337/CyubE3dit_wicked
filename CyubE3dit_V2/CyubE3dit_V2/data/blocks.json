@@ -3,7 +3,7 @@
       {
         "id": 0,
         "textype": 1,
-        "texture0": "rock2_a.dds",
+        "texture0": "rock2_aB.dds",
 		"normal0": "rock2_n.dds",
 		"occlusion0": "Rock2_o.dds",
 		"antitile0": true,
@@ -12,13 +12,13 @@
       {
         "id": 1,
         "textype": 3,
-        "texture0": "Grass_Albedo.dds",
+        "texture0": "Grass_AlbedoB.dds",
 		"normal0": "Grass_Normal.dds",
 		"occlusion0": "Grass_AO.dds",
         "texture1": "dirt_Albedo.dds",
 		"normal1": "dirt_Normal.dds",
 		"occlusion1": "dirt_AO.dds",
-        "texture2": "grassEdge_Albedo.dds",
+        "texture2": "grassEdge_AlbedoB.dds",
 		"normal2": "grassEdge_Normal.dds",
 		"occlusion2": "grassEdge_AO.dds",
 		"antitile0": true,
@@ -28,7 +28,7 @@
       {
         "id": 2,
         "textype": 1,
-        "texture0": "dirt_Albedo.dds",
+        "texture0": "dirt_AlbedoB.dds",
 		"normal0": "dirt_Normal.dds",
 		"occlusion0": "dirt_AO.dds",
         "text": "Dirt"
@@ -67,7 +67,7 @@
       {
         "id": 12,
         "textype": 1,
-        "texture0": "coal2_a.dds",
+        "texture0": "coal2_aB.dds",
 		"normal0": "coal2_n.dds",
 		"surface0": "coal2_s.dds",
 		"antitile0": true,
@@ -76,7 +76,7 @@
       {
         "id": 13,
         "textype": 1,
-        "texture0": "iron2_a.dds",
+        "texture0": "iron2_aB.dds",
 		"normal0": "copper2_n.dds",
 		"glow0": "iron2_g.png",
 		"surface0": "copper2_s.dds",
@@ -86,7 +86,7 @@
       {
         "id": 25,
         "textype": 1,
-        "texture0": "copper2_a.dds",
+        "texture0": "copper2_aB.dds",
 		"normal0": "copper2_n.dds",
 		"glow0": "copper2_g.png",
 		"surface0": "copper2_s.dds",
@@ -96,7 +96,7 @@
       {
         "id": 26,
         "textype": 1,
-        "texture0": "gold2_a.dds",
+        "texture0": "gold2_aB.dds",
 		"normal0": "copper2_n.dds",
 		"glow0": "gold2_g.png",
 		"surface0": "copper2_s.dds",
@@ -121,7 +121,7 @@
       {
         "id": 34,
         "textype": 1,
-        "texture0": "dplanks.png",
+        "texture0": "dplanksB.dds",
 		"normal0": "lplanks_NORM.dds",
 		"occlusion0": "lplanks_AO.dds",
         "text": "Dark Planks"
@@ -129,7 +129,7 @@
       {
         "id": 35,
         "textype": 1,
-        "texture0": "Rock2_a.dds",
+        "texture0": "Rock2_aB.dds",
 		"normal0": "Rock2_n.dds",
 		"occlusion0": "Rock2_o.dds",
 		"antitile0": true,
@@ -138,7 +138,7 @@
       {
         "id": 46,
         "textype": 1,
-        "texture0": "wallstone2.dds",
+        "texture0": "wallstoneB.dds",
 		"normal0": "wallstone_n.dds",
 		"occlusion0": "wallstone_o.dds",
         "text": "Wallstone"
@@ -198,7 +198,7 @@
       {
         "id": 39,
         "textype": 5,
-        "texture0": "flower4.png",
+        "texture0": "flower_green.png",
         "text": "Flower 4"
       },
       {

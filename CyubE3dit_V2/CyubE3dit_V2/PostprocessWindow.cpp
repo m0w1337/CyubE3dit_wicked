@@ -179,6 +179,37 @@ void PostprocessWindow::Create(CyRender* renderer) {
 	});
 	AddWidget(&eyeAdaptionCheckBox);
 
+	screenSpaceShadowsCheckBox.Create("SS Shadows: ");
+	screenSpaceShadowsCheckBox.SetTooltip("Enable screen space contact shadows. This can add small shadows details to shadow maps in screen space.");
+	screenSpaceShadowsCheckBox.SetSize(XMFLOAT2(hei, hei));
+	screenSpaceShadowsCheckBox.SetPos(XMFLOAT2(x, y += step));
+	screenSpaceShadowsCheckBox.SetCheck(wiRenderer::GetScreenSpaceShadowsEnabled());
+	screenSpaceShadowsCheckBox.OnClick([=](wiEventArgs args) {
+		wiRenderer::SetScreenSpaceShadowsEnabled(args.bValue);
+	});
+	AddWidget(&screenSpaceShadowsCheckBox);
+
+	screenSpaceShadowsRangeSlider.Create(0.1f, 10.0f, 1, 1000, "Range: ");
+	screenSpaceShadowsRangeSlider.SetTooltip("Range of contact shadows");
+	screenSpaceShadowsRangeSlider.SetSize(XMFLOAT2(100, hei));
+	screenSpaceShadowsRangeSlider.SetPos(XMFLOAT2(x + 100, y));
+	screenSpaceShadowsRangeSlider.SetValue((float)renderer->getScreenSpaceShadowRange());
+	screenSpaceShadowsRangeSlider.OnSlide([=](wiEventArgs args) {
+		renderer->setScreenSpaceShadowRange(args.fValue);
+	});
+	AddWidget(&screenSpaceShadowsRangeSlider);
+
+	screenSpaceShadowsStepCountSlider.Create(4, 128, 16, 128 - 4, "Sample Count: ");
+	screenSpaceShadowsStepCountSlider.SetTooltip("Sample count of contact shadows. Higher values are better quality but slower.");
+	screenSpaceShadowsStepCountSlider.SetSize(XMFLOAT2(100, hei));
+	screenSpaceShadowsStepCountSlider.SetPos(XMFLOAT2(x + 100, y += step));
+	screenSpaceShadowsStepCountSlider.SetValue((float)renderer->getScreenSpaceShadowSampleCount());
+	screenSpaceShadowsStepCountSlider.OnSlide([=](wiEventArgs args) {
+		renderer->setScreenSpaceShadowSampleCount(args.iValue);
+	});
+	AddWidget(&screenSpaceShadowsStepCountSlider);
+
+
 	motionBlurCheckBox.Create("MotionBlur: ");
 	motionBlurCheckBox.SetTooltip("Enable motion blur for camera movement and animated meshes.");
 	motionBlurCheckBox.SetScriptTip("RenderPath3D::SetMotionBlurEnabled(bool value)");
@@ -278,8 +309,7 @@ void PostprocessWindow::Create(CyRender* renderer) {
 	AddWidget(&fxaaCheckBox);
 
 	colorGradingCheckBox.Create("Color Grading: ");
-	colorGradingCheckBox.SetTooltip("Enable color grading of the final render. An additional lookup texture must be set for it to take effect.");
-	colorGradingCheckBox.SetScriptTip("RenderPath3D::SetColorGradingEnabled(bool value)");
+	colorGradingCheckBox.SetTooltip("Enable color grading of the final render. An additional lookup texture must be set in the Weather!");
 	colorGradingCheckBox.SetSize(XMFLOAT2(hei, hei));
 	colorGradingCheckBox.SetPos(XMFLOAT2(x, y += step));
 	colorGradingCheckBox.SetCheck(renderer->getColorGradingEnabled());
@@ -287,42 +317,6 @@ void PostprocessWindow::Create(CyRender* renderer) {
 		renderer->setColorGradingEnabled(args.bValue);
 	});
 	AddWidget(&colorGradingCheckBox);
-
-	colorGradingButton.Create("Load Color Grading LUT...");
-	colorGradingButton.SetTooltip("Load a color grading lookup texture...");
-	colorGradingButton.SetPos(XMFLOAT2(x + 35, y));
-	colorGradingButton.SetSize(XMFLOAT2(200, hei));
-	colorGradingButton.OnClick([=](wiEventArgs args) {
-		auto x = renderer->getColorGradingTexture();
-
-		if (x == nullptr)
-		{
-			wiHelper::FileDialogParams params;
-			params.type = wiHelper::FileDialogParams::OPEN;
-			params.description = "Texture";
-			params.extensions.push_back("dds");
-			params.extensions.push_back("png");
-			params.extensions.push_back("jpg");
-			params.extensions.push_back("jpeg");
-			params.extensions.push_back("tga");
-			wiHelper::FileDialog(params, [=](std::string fileName) {
-				wiEvent::Subscribe_Once(SYSTEM_EVENT_THREAD_SAFE_POINT, [=](uint64_t userdata) {
-					renderer->setColorGradingTexture(wiResourceManager::Load(fileName));
-					if (renderer->getColorGradingTexture() != nullptr)
-					{
-						colorGradingButton.SetText(fileName);
-					}
-				});
-			});
-		}
-		else
-		{
-			renderer->setColorGradingTexture(nullptr);
-			colorGradingButton.SetText("Load Color Grading LUT...");
-		}
-
-	});
-	AddWidget(&colorGradingButton);
 
 	ditherCheckBox.Create("Dithering: ");
 	ditherCheckBox.SetTooltip("Toggle the full screen dithering effect. This helps to reduce color banding.");

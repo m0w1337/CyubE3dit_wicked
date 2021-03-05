@@ -152,7 +152,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			
 			if (wiInput::Press((wiInput::BUTTON)'H')) {
 				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
-				//wiBackLog::Toggle();
+				wiBackLog::Toggle();
 			}
 			if (wiInput::Press((wiInput::BUTTON)'F')) {
 				if (mainComp.m_headLight != INVALID_ENTITY) {
@@ -184,6 +184,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				transform->ClearTransform();
 				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
 				transform->RotateRollPitchYaw(XMFLOAT3(-1.5, 0, 0));
+				transform->SetDirty();
+				transform->UpdateTransform();
+				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_dust);
+				transform->ClearTransform();
+				transform->Scale(XMFLOAT3(5,5,5));
+				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 20.0f, 0.f));
 				transform->SetDirty();
 				transform->UpdateTransform();
 				if (CyMainComponent::m_probe != wiECS::INVALID_ENTITY) {
@@ -313,6 +319,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 					wiTextInputField::AddInput(c);
 				} break;
 			}
+			break;
+		case WM_KILLFOCUS:
+			mainComp.is_window_active = false;
+			break;
+		case WM_SETFOCUS:
+			mainComp.is_window_active = true;
 			break;
 		case WM_PAINT:
 		{

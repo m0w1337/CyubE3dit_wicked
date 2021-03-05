@@ -38,6 +38,9 @@ public:
 	wiSlider outlineThresholdSlider;
 	wiSlider outlineThicknessSlider;
 	wiCheckBox chromaticaberrationCheckBox;
+	wiCheckBox screenSpaceShadowsCheckBox;
+	wiSlider screenSpaceShadowsRangeSlider;
+	wiSlider screenSpaceShadowsStepCountSlider;
 	wiSlider chromaticaberrationSlider;
 
 

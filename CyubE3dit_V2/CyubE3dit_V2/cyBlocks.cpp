@@ -169,7 +169,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			tex						   = it.value().at(i).at("texture" + std::to_string(ft));
 			m_regBlockMats[id][ft]	   = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
 			material				   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
-			material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+			material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, .0f));
 			material->textures[MaterialComponent::BASECOLORMAP].name = "images/" + tex;
 			material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/" + tex);
 			/*if ((id == 1 && ft == 0) || blocktype == 0 || blocktype == 13 || blocktype == 12 || blocktype == 25 || blocktype == 26 || blocktype == 67) {
@@ -212,6 +212,8 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->textures[MaterialComponent::SURFACEMAP].resource = wiResourceManager::Load("images/" + tex);
 				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
 				material->SetParallaxOcclusionMapping(1.0);
+				material->SetClearcoatFactor(1.);
+				material->SetClearcoatRoughness(.5);
 				material->SetMetalness(1.0f);
 				material->SetRoughness(1.0f);
 				material->SetReflectance(1.0f);
@@ -270,6 +272,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	} else {
 		//m_scene.materials.GetComponent(m_regBlockMats[id][0])->userBlendMode = BLENDMODE_ALPHA;
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetAlphaRef(0.2f);
+		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetReceiveShadow(false);
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseWind(true);
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetCastShadow(false);
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseVertexColors(false);
