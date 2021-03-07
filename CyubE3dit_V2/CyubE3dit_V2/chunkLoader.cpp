@@ -98,30 +98,34 @@ void chunkLoader::checkChunks(void) {
 									if (i || ii) {
 										coords.x = ghostpos.x + i * 16;
 										coords.y = ghostpos.y + ii * 16;
-										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+										std::unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t>::iterator visChunk = m_visibleChunks.find(coords);
+										if (visChunk == m_visibleChunks.end()) {
 											changed++;
 											employThread(coords);
 										}
 										coords.x = ghostpos.x - i * 16;
 										coords.y = ghostpos.y - ii * 16;
-										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+										visChunk = m_visibleChunks.find(coords);
+										if (visChunk == m_visibleChunks.end()) {
 											changed++;
 											employThread(coords);
-										}
+										} 
 									}
 									if (i && ii) {
 										coords.x = ghostpos.x - i * 16;
 										coords.y = ghostpos.y + ii * 16;
-										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+										std::unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t>::iterator visChunk = m_visibleChunks.find(coords);
+										if (visChunk == m_visibleChunks.end()) {
 											changed++;
 											employThread(coords);
 										}
 										coords.x = ghostpos.x + i * 16;
 										coords.y = ghostpos.y - ii * 16;
-										if (m_visibleChunks.find(coords) == m_visibleChunks.end()) {
+										visChunk = m_visibleChunks.find(coords);
+										if (visChunk == m_visibleChunks.end()) {
 											changed++;
 											employThread(coords);
-										}
+										} 
 									}
 								}
 							}
@@ -184,7 +188,7 @@ void chunkLoader::checkChunks(void) {
 }
 
 void chunkLoader::addChunks(uint8_t threadNum) {
-	wiECS::Entity chunkObj;
+	chunkobjects_t chunkObj;
 	while (m_shutdown < 2) {
 		if (m_threadstate[threadNum] == THREAD_BUSY) {
 			cyImportant* world = settings::getWorld();
@@ -212,7 +216,7 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 						chunkD.loadChunk(world->db[threadNum], chunkID, true);
 					chunkObj = chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, coords.x, -coords.y);
 					//m_visibleChunks[coords] = chunkObj;
-					m_threadstate[threadNum] = chunkObj;
+					m_threadstate[threadNum] = chunkObj.chunkObj;
 				} else {
 					//wiBackLog::post("CHunk not found");
 					m_threadstate[threadNum] = wiECS::INVALID_ENTITY;
@@ -228,13 +232,14 @@ void chunkLoader::addChunks(uint8_t threadNum) {
 }
 
 inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll) {
-	uint32_t viewDist = settings::getViewDist();
 	wiScene::Scene& scene = wiScene::GetScene();
 	for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
 		if (it->second.chunkObj != 0xFFFFFFFE) {
 			cyImportant::chunkpos_t diff = it->first;
 			diff						 = diff - ghostpos;
-			if (cleanAll || (diff.x * diff.x + diff.y * diff.y) > (viewDist * viewDist * 16 * 16)) {
+			float dist					 = (diff.x * diff.x + diff.y * diff.y);
+			float viewDist				 = (settings::getViewDist() * settings::getViewDist() * 16 * 16);
+			if (cleanAll || dist > viewDist) {
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
 					//if (obj != nullptr) {
@@ -244,7 +249,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 						scene.Entity_Remove(it->second.chunkObj);
 						scene.Entity_Remove(meshEnt);
 						m.unlock();
-						it = m_visibleChunks.erase(it);
+ 						it = m_visibleChunks.erase(it);
 						//changed++;
 					//}
 				} else {
@@ -252,14 +257,69 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 					//changed++;
 				}
 
-			} else
+			} else {
+				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
+					if (dist > viewDist / 4) {
+						if (it->second.lod != LOD_MAX) {
+							it->second.lod = LOD_MAX;
+							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
+								m.lock();
+								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+								if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+									mesh->SetCastShadow(false);
+									mesh->SetRenderable(false);
+								}
+								m.unlock();
+							}
+						}
+					} else if (dist > viewDist / 8) {
+						if (it->second.lod != LOD_MAX - 1) {
+							it->second.lod = LOD_MAX-1;
+							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
+								m.lock();
+								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+								if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+									mesh->SetCastShadow(false);
+									mesh->SetRenderable(true);
+									mesh->color = XMFLOAT4(1.f, 0, 0, 1.0f);
+								}
+								m.unlock();
+							}
+						}
+					} else if (it->second.lod) {
+						it->second.lod = 0;
+						for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
+							m.lock();
+							wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+							if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+								mesh->SetCastShadow(true);
+								mesh->SetRenderable(true);
+								mesh->color = XMFLOAT4(0, 1.f, 0, 1.0f);
+							}
+							m.unlock();
+						}
+					}
+				}
 				it++;
+			}
+				
 		} else {
 			it++;
 			for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 				if (m_threadstate[thread] != THREAD_BUSY) {
 					if (m_threadstate[thread] != THREAD_IDLE) {
 						m_visibleChunks[m_threadChunkPos[thread]].chunkObj = m_threadstate[thread];
+						m_visibleChunks[m_threadChunkPos[thread]].lod	   = LOD_MAX;
+						m.lock();
+						for (size_t i = 0; i < wiScene::GetScene().objects.GetCount();i++)
+						{
+							if (wiScene::GetScene().objects[i].parentObject == m_threadstate[thread] && wiScene::GetScene().objects.GetEntity(i) != m_threadstate[thread])
+							{
+								wiECS::Entity entity = wiScene::GetScene().objects.GetEntity(i);
+								m_visibleChunks[m_threadChunkPos[thread]].meshes.push_back(entity);
+							}
+						}
+						m.unlock();
 						m_threadstate[thread]							   = THREAD_IDLE;
 					}
 				}
@@ -268,15 +328,17 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 	}
 }
 
-wiECS::Entity chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
+chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
 	face_t tmpface;
 	wiECS::Entity entity = wiECS::INVALID_ENTITY;
+	chunkobjects_t ret;
 	vector<face_t> faces;
 	vector<torch_t> torches;
 	uint8_t stepsize	   = 1;
 	uint16_t surfaceHeight = chunk.m_surfaceheight;
+	ret.chunkObj		   = entity;
 	if (chunk.m_isAirChunk)
-		return wiECS::INVALID_ENTITY;
+		return ret;
 
 	if (settings::clipUnderground == true) {
 		surfaceHeight = min(surfaceHeight, eastChunk.m_surfaceheight);
@@ -398,6 +460,7 @@ wiECS::Entity chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk
 		} else {
 			mesh = meshGen::AddMesh(tmpScene, to_string(chunk.m_id), cyBlocks::m_fallbackMat, &entity);
 		}
+		ret.chunkObj		  = entity;
 		wiECS::Entity currMat = faces[0].material;
 		mesh->SetDoubleSided(true);
 		for (unsigned i = 0; i < faces.size(); ++i)
@@ -474,7 +537,9 @@ wiECS::Entity chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk
 				tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
 				tf.UpdateTransform();
 				object.parentObject = entity;
-				//ret.meshes.push_back(objEnt);
+				object.SetRenderable(false);	//load the Mesh with lowest LOD to prevent flicker
+				object.SetCastShadow(false);
+				ret.meshes.push_back(objEnt);
 				//tmpScene.Component_Attach(objEnt, entity);
 			}
 		}
@@ -484,7 +549,7 @@ wiECS::Entity chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk
 		wiScene::GetScene().Merge(tmpScene);
 		m.unlock();
 	}  //else	wiBackLog::post("Chunk has no blocks");
-	return entity;
+	return ret;
 }
 
 inline void chunkLoader::placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, Scene& tmpScene, const wiECS::Entity parent) {
@@ -598,6 +663,17 @@ inline void chunkLoader::employThread(cyImportant::chunkpos_t coords) {
 		if (m_threadstate[thread] != THREAD_BUSY) {
 			if (m_threadstate[thread] != THREAD_IDLE) {
 				m_visibleChunks[m_threadChunkPos[thread]].chunkObj = m_threadstate[thread];
+				m_visibleChunks[m_threadChunkPos[thread]].lod	   = LOD_MAX;
+				m.lock();
+				for (size_t i = 0; i < wiScene::GetScene().objects.GetCount(); i++)
+				{
+					if (wiScene::GetScene().objects[i].parentObject == m_threadstate[thread])
+					{
+						wiECS::Entity entity = wiScene::GetScene().objects.GetEntity(i);
+						m_visibleChunks[m_threadChunkPos[thread]].meshes.push_back(entity);
+					}
+				}
+				m.unlock();
 				m_threadstate[thread]							   = THREAD_IDLE;
 			}
 			m_threadChunkPos[thread]		 = coords;

@@ -138,7 +138,8 @@ void CyMainComponent::CreateScene(void) {
 	dust->random_factor											= 1.f;
 	dust->count													= 4096;
 	dust->normal_factor											= 0.4;
-	dust->size													= .03f;
+	dust->size													= .005f;
+	/*
 	dust->mass													= 1.7;
 	dust->SPH_h													= 20.0f;
 	dust->SPH_K													= 0.1;
@@ -146,12 +147,12 @@ void CyMainComponent::CreateScene(void) {
 	dust->SPH_e													= 4;
 
 	dust->SetSPHEnabled(true);
-	dust->SetDepthCollisionEnabled(false);
+		*/
+	dust->SetDepthCollisionEnabled(true);
 	wiScene::MaterialComponent* dustmat							= wiScene::GetScene().materials.GetComponent(m_dust);
 	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
 	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_dust.dds");
 	infoDisplay.active											= true;
-	;
 	infoDisplay.watermark  = true;
 	infoDisplay.resolution = true;
 	infoDisplay.fpsinfo	   = true;
@@ -514,7 +515,7 @@ void CyRender::Load() {
 	wiRenderer::SetTransparentShadowsEnabled(false);
 	wiRenderer::SetShadowProps2D(2048, 4);
 	setVolumetricCloudsEnabled(false);
-	setExposure(1.0f);
+	setExposure(1.5f);
 	wiRenderer::SetTemporalAAEnabled(true);
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetVoxelRadianceEnabled(true);

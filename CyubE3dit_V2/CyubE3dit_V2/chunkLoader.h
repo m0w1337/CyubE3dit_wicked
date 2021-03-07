@@ -53,6 +53,7 @@ public:
 	struct chunkobjects_t {
 		wiECS::Entity chunkObj;
 		std::vector<wiECS::Entity> meshes;
+		uint8_t lod;
 	};
 	struct point2d_t {
 		int32_t x;
@@ -63,7 +64,7 @@ public:
 	void shutdown(void);
 	void spawnThreads(uint8_t numthreads);
 	void checkChunks(void);
-	wiECS::Entity RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
+	chunkobjects_t RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
 
 	static void addMaskedChunk(const cyImportant::chunkpos_t chunkPos);
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
@@ -77,9 +78,8 @@ public:
 
 private:
 	static std::vector<cyImportant::chunkpos_t> maskedChunks;
-	inline void appendMesh(const cyChunk& chunk, wiScene::MeshComponent* mesh);
 	static mutex maskMutex;
-	static const uint_fast16_t VIEWDISTANCE = 1024;
+	static const uint8_t LOD_MAX = 2;
 	inline void removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll = false);
 	void addChunks(uint8_t threadNum);
 	inline void employThread(cyImportant::chunkpos_t coords);

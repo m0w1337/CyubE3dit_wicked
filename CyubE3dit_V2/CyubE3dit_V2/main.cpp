@@ -188,8 +188,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				transform->UpdateTransform();
 				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_dust);
 				transform->ClearTransform();
-				transform->Scale(XMFLOAT3(5,5,5));
-				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 20.0f, 0.f));
+				transform->Scale(XMFLOAT3(10,10,10));
+				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
 				transform->SetDirty();
 				transform->UpdateTransform();
 				if (CyMainComponent::m_probe != wiECS::INVALID_ENTITY) {
