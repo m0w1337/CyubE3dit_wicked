@@ -121,6 +121,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			material.textures[MaterialComponent::SURFACEMAP].name = obj_material.specular_texname;
 			material.roughness		 = obj_material.roughness;
 			material.reflectance	 = 0.0f;
+			
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
 				material.SetAlphaRef(0.5f);

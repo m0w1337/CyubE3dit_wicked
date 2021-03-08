@@ -509,7 +509,7 @@ void CyRender::Load() {
 	setColorGradingEnabled(true);
 	setShadowsEnabled(true);
 	setMSAASampleCount(1);
-	setDitherEnabled(false);
+	setDitherEnabled(true);
 	setSharpenFilterEnabled(true);
 	setSharpenFilterAmount(0.17f);
 	wiRenderer::SetTransparentShadowsEnabled(false);

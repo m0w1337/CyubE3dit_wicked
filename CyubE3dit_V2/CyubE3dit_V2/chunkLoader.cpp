@@ -45,7 +45,7 @@ void chunkLoader::addMaskedChunk(const cyImportant::chunkpos_t chunkPos) {
 }
 
 void chunkLoader::checkChunks(void) {
-	cyImportant::chunkpos_t ghostpos, coords, lastghostpos;
+	cyImportant::chunkpos_t ghostpos, coords, lastghostpos,exactGhostPos;
 	cyImportant* world	  = settings::getWorld();
 	uint32_t changed	  = 0;
 	lastghostpos.x		  = -1000;
@@ -81,6 +81,7 @@ void chunkLoader::checkChunks(void) {
 				XMFLOAT3 camlook	= cam.At;
 				ghostpos.x			= (int32_t)(campos.x);	//to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
 				ghostpos.y			= -(int32_t)(campos.z);
+				exactGhostPos		= ghostpos;
 				ghostpos.x &= 0xFFFFFFE0;
 				ghostpos.y &= 0xFFFFFFE0;
 				changed = 0;
@@ -141,21 +142,23 @@ void chunkLoader::checkChunks(void) {
 							}
 						}
 					}
-					removeFarChunks(ghostpos);
+					removeFarChunks(exactGhostPos);
 					settings::numVisChunks = m_visibleChunks.size();
 					if (changed == 0) {
 						lastghostpos = ghostpos;
 					}
 
 				} else {
-					Sleep(50);
+					removeFarChunks(exactGhostPos);
+					settings::numVisChunks = m_visibleChunks.size();
+					Sleep(100);
 				}
 			} else {
 				Sleep(50);
 			}
 		} else {  //world stopped --> clear all existing chunks (if there are any)
 			while (m_visibleChunks.size()) {
-				removeFarChunks(ghostpos, true);
+				removeFarChunks(exactGhostPos, true);
 			}
 			/*
 			for (unordered_map<cyImportant::chunkpos_t, chunkobjects_t>::iterator it = m_visibleChunks.begin(); it != m_visibleChunks.end();) {
@@ -242,7 +245,6 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 			if (cleanAll || dist > viewDist) {
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
-					//if (obj != nullptr) {
 						wiECS::Entity meshEnt = obj->meshID;
 						m.lock();
 						scene.Component_RemoveChildren(it->second.chunkObj);
@@ -250,13 +252,9 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 						scene.Entity_Remove(meshEnt);
 						m.unlock();
  						it = m_visibleChunks.erase(it);
-						//changed++;
-					//}
 				} else {
 					it = m_visibleChunks.erase(it);
-					//changed++;
 				}
-
 			} else {
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 					if (dist > viewDist / 4) {
@@ -265,36 +263,45 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
 								m.lock();
 								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
-								if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+								if (mesh != nullptr) {
 									mesh->SetCastShadow(false);
 									mesh->SetRenderable(false);
 								}
 								m.unlock();
 							}
 						}
-					} else if (dist > viewDist / 8) {
+					} else if (dist > viewDist / 16) {
 						if (it->second.lod != LOD_MAX - 1) {
 							it->second.lod = LOD_MAX-1;
 							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
 								m.lock();
 								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
-								if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+								if (mesh != nullptr) {
 									mesh->SetCastShadow(false);
 									mesh->SetRenderable(true);
-									mesh->color = XMFLOAT4(1.f, 0, 0, 1.0f);
+									//mesh->color = XMFLOAT4(1.f, 1.f, 1.f, 1 - ((float)dist - (viewDist / 16.0f)) / (viewDist / 4.f - viewDist / 16.f));
 								}
 								m.unlock();
 							}
-						}
+						} /*else {
+							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
+								m.lock();
+								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+								if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+									mesh->color = XMFLOAT4(1.f, 1.f, 1.f, 1 - ((float)dist - (viewDist / 16.0f)) / (viewDist / 4.f - viewDist / 16.f));
+								}
+								m.unlock();
+							}
+						}*/
 					} else if (it->second.lod) {
 						it->second.lod = 0;
 						for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
 							m.lock();
 							wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
-							if (mesh != nullptr && it->second.meshes[iii] != it->second.chunkObj) {
+							if (mesh != nullptr) {
 								mesh->SetCastShadow(true);
 								mesh->SetRenderable(true);
-								mesh->color = XMFLOAT4(0, 1.f, 0, 1.0f);
+								//mesh->color = XMFLOAT4(1.f, 1.f, 1.f, 1.0f);
 							}
 							m.unlock();
 						}
