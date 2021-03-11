@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "cyImportant.h"
+
 #include <iostream>
 #include <filesystem>
 
@@ -106,7 +107,7 @@ void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 		file.read(reinterpret_cast<char*>(&(m_playerpos.x)), sizeof(m_playerpos.x));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.y)), sizeof(m_playerpos.y));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.z)), sizeof(m_playerpos.z));
-		for (uint8_t i = 0; i < wiJobSystem::GetThreadCount(); i++) {
+		for (uint8_t i = 0; i < MAX_THREADS+1; i++) {	//make one more connection handle than threads to keep one connection for the main thread.
 			if (db[i] != nullptr) {
 				sqlite3_close(db[i]);
 				db[i] = nullptr;

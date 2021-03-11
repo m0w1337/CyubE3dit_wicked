@@ -99,6 +99,7 @@ public:
 	XMFLOAT3 size;
 	XMFLOAT3 pos;
 	static std::vector<cySchematic*> m_schematics;
+	std::vector<chunkLoader::chunkobjects_t> m_chunkPreviews;
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
 	unordered_map<blockpos_t, uint8_t, blockpos_t> m_Torches;
 	std::vector<cyChunk::meshLoc> meshObjects;
@@ -112,6 +113,7 @@ public:
 	hovertype_t hoverGizmo(const wiECS::Entity entity);
 	void RenderSchematic(const float relX, const float relY, const float relZ);
 	void getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks);
+	void generateChunkPreview(void);
 
 private:
 	void loadCustomBlocks(void);

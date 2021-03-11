@@ -125,6 +125,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
 				material.SetAlphaRef(0.5f);
+				material.SetSubsurfaceScatteringAmount(2);
 			}
 			material.SetUseWind(true);
 			if (material.textures[MaterialComponent::NORMALMAP].name.empty())

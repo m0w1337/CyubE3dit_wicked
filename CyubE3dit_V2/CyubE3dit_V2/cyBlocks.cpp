@@ -276,6 +276,7 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseWind(true);
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetCastShadow(false);
 		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseVertexColors(false);
+		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetSubsurfaceScatteringAmount(2);
 	}
 }
 

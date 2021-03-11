@@ -7,7 +7,6 @@
 
 class chunkLoader {
 public:
-	static constexpr uint8_t MAX_THREADS  = 32;
 	static constexpr uint32_t THREAD_IDLE = 1;
 	static constexpr uint32_t THREAD_BUSY = 2;
 	//static constexpr uint32_t THREAD_SHUTDOWN = 3;
@@ -64,25 +63,27 @@ public:
 	void shutdown(void);
 	void spawnThreads(uint8_t numthreads);
 	void checkChunks(void);
-	chunkobjects_t RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
+	static chunkobjects_t RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
 
 	static void addMaskedChunk(const cyImportant::chunkpos_t chunkPos);
+	static void clearMaskedChunk(void);
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
 	unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t> m_visibleChunks;
-	atomic<uint32_t> m_threadstate[MAX_THREADS];
-	cyImportant::chunkpos_t m_threadChunkPos[MAX_THREADS];
+	atomic<uint32_t> m_threadstate[cyImportant::MAX_THREADS];
+	cyImportant::chunkpos_t m_threadChunkPos[cyImportant::MAX_THREADS];
 	atomic<uint8_t> m_shutdown;
 	thread m_checkThread;
-	thread m_thread[MAX_THREADS];
+	thread m_thread[cyImportant::MAX_THREADS];
 	uint8_t m_numthreads;
 
 private:
 	static std::vector<cyImportant::chunkpos_t> maskedChunks;
+	static std::vector<cyImportant::chunkpos_t> pendingChunks;
 	static mutex maskMutex;
 	static const uint8_t LOD_MAX = 2;
 	inline void removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll = false);
 	void addChunks(uint8_t threadNum);
-	inline void employThread(cyImportant::chunkpos_t coords);
-	inline void placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);
-	inline void placeTorches(const std::vector<torch_t>& torches, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);
+	inline bool employThread(cyImportant::chunkpos_t coords);
+	static inline void placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);
+	static inline void placeTorches(const std::vector<torch_t>& torches, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);
 };

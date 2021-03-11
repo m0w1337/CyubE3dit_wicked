@@ -154,6 +154,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 				wiBackLog::Toggle();
 			}
+			if (wiInput::Press((wiInput::BUTTON)'P')) {
+				wiProfiler::SetEnabled(!wiProfiler::IsEnabled());
+			}
+			if (wiInput::Press((wiInput::BUTTON)'I')) {
+				mainComp.infoDisplay.active = !mainComp.infoDisplay.active;
+			}
 			if (wiInput::Press((wiInput::BUTTON)'F')) {
 				if (mainComp.m_headLight != INVALID_ENTITY) {
 					LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);

@@ -6,12 +6,13 @@ using namespace wiScene;
 extern mutex m;
 
 std::vector<cyImportant::chunkpos_t> chunkLoader::maskedChunks;
+std::vector<cyImportant::chunkpos_t> chunkLoader::pendingChunks;
 mutex chunkLoader::maskMutex;
 
 void chunkLoader::spawnThreads(uint8_t numthreads) {
 	m_shutdown = 0;
-	if (numthreads > MAX_THREADS) {
-		numthreads = MAX_THREADS;
+	if (numthreads > cyImportant::MAX_THREADS) {
+		numthreads = cyImportant::MAX_THREADS;
 	}
 	m_numthreads = numthreads;
 	for (uint8_t i = 0; i < m_numthreads; i++) {
@@ -44,6 +45,13 @@ void chunkLoader::addMaskedChunk(const cyImportant::chunkpos_t chunkPos) {
 	maskMutex.unlock();
 }
 
+void chunkLoader::clearMaskedChunk(void) {
+	maskMutex.lock();
+	pendingChunks = maskedChunks;
+	maskedChunks.clear();
+	maskMutex.unlock();
+}
+
 void chunkLoader::checkChunks(void) {
 	cyImportant::chunkpos_t ghostpos, coords, lastghostpos,exactGhostPos;
 	cyImportant* world	  = settings::getWorld();
@@ -71,6 +79,15 @@ void chunkLoader::checkChunks(void) {
 				}
 			}
 		}
+		for (size_t i = 0; i < pendingChunks.size(); i++) {
+			auto it = m_visibleChunks.find(pendingChunks[i]);
+			if (it != m_visibleChunks.end()) {
+				while (!employThread(pendingChunks[i])) {
+					Sleep(4);
+				}
+			}
+		}
+		pendingChunks.clear();
 		maskMutex.unlock();
 		uint32_t viewDist = settings::getViewDist();
 		if (!world->isStopped()) {
@@ -133,7 +150,7 @@ void chunkLoader::checkChunks(void) {
 						}
 						if (changed > 100) {
 							changed	   = 1;
-							ghostpos.x = (int32_t)(campos.x);  //to move the center for chunkloading a little towards the view direction, to load more chunks in this direction --> add:  camlook.x * (viewDist * 4)
+							ghostpos.x = (int32_t)(campos.x);
 							ghostpos.y = -(int32_t)(campos.z);
 							ghostpos.x &= 0xFFFFFFE0;
 							ghostpos.y &= 0xFFFFFFE0;
@@ -151,7 +168,7 @@ void chunkLoader::checkChunks(void) {
 				} else {
 					removeFarChunks(exactGhostPos);
 					settings::numVisChunks = m_visibleChunks.size();
-					Sleep(100);
+					Sleep(20);
 				}
 			} else {
 				Sleep(50);
@@ -192,31 +209,40 @@ void chunkLoader::checkChunks(void) {
 
 void chunkLoader::addChunks(uint8_t threadNum) {
 	chunkobjects_t chunkObj;
+	uint32_t chunkID;
+	
 	while (m_shutdown < 2) {
 		if (m_threadstate[threadNum] == THREAD_BUSY) {
 			cyImportant* world = settings::getWorld();
 			cyImportant::chunkpos_t coords, zero;
 			coords = m_threadChunkPos[threadNum];
 			if (world->isValid()) {
-				uint32_t chunkID;
-				cyChunk chunk;
-				cyChunk chunkL;
-				cyChunk chunkR;
-				cyChunk chunkU;
-				cyChunk chunkD;
 				zero.x = (uint32_t)(world->m_playerpos.x / 100);
 				zero.y = (uint32_t)(world->m_playerpos.y / 100);
 
 				if (world->getChunkID(coords.x + zero.x, coords.y + zero.y, &chunkID)) {
+					cyChunk chunk;
+					cyChunk chunkL;
+					cyChunk chunkR;
+					cyChunk chunkU;
+					cyChunk chunkD;
 					chunk.loadChunk(world->db[threadNum], chunkID);
 					if (world->getChunkID(coords.x + 16 + zero.x, coords.y + zero.y, &chunkID))
 						chunkL.loadChunk(world->db[threadNum], chunkID, true);
+					else
+						chunkL.airChunk();
 					if (world->getChunkID(coords.x - 16 + zero.x, coords.y + zero.y, &chunkID))
 						chunkR.loadChunk(world->db[threadNum], chunkID, true);
+					else
+						chunkR.airChunk();
 					if (world->getChunkID(coords.x + zero.x, coords.y + zero.y + 16, &chunkID))
 						chunkU.loadChunk(world->db[threadNum], chunkID, true);
+					else
+						chunkU.airChunk();
 					if (world->getChunkID(coords.x + zero.x, coords.y + zero.y - 16, &chunkID))
 						chunkD.loadChunk(world->db[threadNum], chunkID, true);
+					else
+						chunkD.airChunk();
 					chunkObj = chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, coords.x, -coords.y);
 					//m_visibleChunks[coords] = chunkObj;
 					m_threadstate[threadNum] = chunkObj.chunkObj;
@@ -242,7 +268,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 			diff						 = diff - ghostpos;
 			float dist					 = (diff.x * diff.x + diff.y * diff.y);
 			float viewDist				 = (settings::getViewDist() * settings::getViewDist() * 16 * 16);
-			if (cleanAll || dist > viewDist) {
+			if (cleanAll || dist > viewDist) {	//remove far chunks
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
 						wiECS::Entity meshEnt = obj->meshID;
@@ -255,14 +281,17 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 				} else {
 					it = m_visibleChunks.erase(it);
 				}
-			} else {
+			} else { //Manage LODs
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
-					if (dist > viewDist / 4) {
+					if (dist > viewDist / 8) {
 						if (it->second.lod != LOD_MAX) {
 							it->second.lod = LOD_MAX;
+							//wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.chunkObj); does not really help with framerate... ?
+							//mesh->SetCastShadow(false);
+							wiScene::ObjectComponent* mesh = nullptr;
 							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
 								m.lock();
-								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+								mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
 								if (mesh != nullptr) {
 									mesh->SetCastShadow(false);
 									mesh->SetRenderable(false);
@@ -273,9 +302,12 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 					} else if (dist > viewDist / 16) {
 						if (it->second.lod != LOD_MAX - 1) {
 							it->second.lod = LOD_MAX-1;
+							//wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.chunkObj);	does not really help with framerate... ?
+							//mesh->SetCastShadow(true);
+							wiScene::ObjectComponent* mesh = nullptr;
 							for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
 								m.lock();
-								wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+								mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
 								if (mesh != nullptr) {
 									mesh->SetCastShadow(false);
 									mesh->SetRenderable(true);
@@ -295,9 +327,12 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 						}*/
 					} else if (it->second.lod) {
 						it->second.lod = 0;
+						//wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.chunkObj);
+						//mesh->SetCastShadow(true);
+						wiScene::ObjectComponent* mesh = nullptr;
 						for (size_t iii = 0; iii < it->second.meshes.size(); iii++) {
 							m.lock();
-							wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
+							mesh = wiScene::GetScene().objects.GetComponent(it->second.meshes[iii]);
 							if (mesh != nullptr) {
 								mesh->SetCastShadow(true);
 								mesh->SetRenderable(true);
@@ -354,6 +389,8 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 		surfaceHeight = min(surfaceHeight, southChunk.m_surfaceheight);
 		if (surfaceHeight > 25)
 			surfaceHeight -= 25;
+		else
+			surfaceHeight = 0;
 	} else {
 
 		if (chunk.m_lowestZ > 2)
@@ -363,41 +400,42 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 	}
 
 	wiScene::Scene tmpScene;
-	for (int_fast16_t z = min(chunk.m_highestZ + 2, 799); z > surfaceHeight; z -= stepsize) {
+
+	for (int_fast16_t z = min(chunk.m_highestZ + 20, 799); z > surfaceHeight; z -= stepsize) {
 		for (uint_fast8_t x = 0; x < 32; x += stepsize) {
 			for (uint_fast8_t y = 0; y < 32; y += stepsize) {
 				uint8_t blocktype = (uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * z);
 				if (cyBlocks::m_regBlockTypes[blocktype] <= cyBlocks::BLOCKTYPE_ALPHA) {
 					uint8_t neighbour[6];
 					if (z < 799)
-						neighbour[0] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * (z + stepsize))];
+						neighbour[cyBlocks::FACE_TOP] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * (z + stepsize))];
 					else
-						neighbour[0] = cyBlocks::BLOCKTYPE_VOID;
+						neighbour[cyBlocks::FACE_TOP] = cyBlocks::BLOCKTYPE_VOID;
 
 					if (z > 1)
-						neighbour[1] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * (z - stepsize))];
+						neighbour[cyBlocks::FACE_BOTTOM] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * y + 32 * 32 * (z - stepsize))];
 					else
-						neighbour[1] = cyBlocks::BLOCKTYPE_VOID;
+						neighbour[cyBlocks::FACE_BOTTOM] = cyBlocks::BLOCKTYPE_VOID;
 
 					if (y < 32 - stepsize)
-						neighbour[4] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * (y + stepsize) + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_BACK] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * (y + stepsize) + 32 * 32 * z)];
 					else
-						neighbour[4] = cyBlocks::m_regBlockTypes[(uint8_t) * (northChunk.m_chunkdata + 4 + x + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_BACK] = cyBlocks::m_regBlockTypes[(uint8_t) * (northChunk.m_chunkdata + 4 + x + 32 * 32 * z)];
 
 					if (y >= 0 + stepsize)
-						neighbour[5] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * (y - stepsize) + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_FRONT] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + x + 32 * (y - stepsize) + 32 * 32 * z)];
 					else
-						neighbour[5] = cyBlocks::m_regBlockTypes[(uint8_t) * (southChunk.m_chunkdata + 4 + x + 32 * 31 + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_FRONT] = cyBlocks::m_regBlockTypes[(uint8_t) * (southChunk.m_chunkdata + 4 + x + 32 * 31 + 32 * 32 * z)];
 
 					if (x < 32 - stepsize)
-						neighbour[3] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + stepsize + x + 32 * y + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_RIGHT] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 + stepsize + x + 32 * y + 32 * 32 * z)];
 					else
-						neighbour[3] = cyBlocks::m_regBlockTypes[(uint8_t) * (eastChunk.m_chunkdata + 4 + 32 * y + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_RIGHT] = cyBlocks::m_regBlockTypes[(uint8_t) * (eastChunk.m_chunkdata + 4 + 32 * y + 32 * 32 * z)];
 
 					if (x >= 0 + stepsize)
-						neighbour[2] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 - stepsize + x + 32 * y + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_LEFT] = cyBlocks::m_regBlockTypes[(uint8_t) * (chunk.m_chunkdata + 4 - stepsize + x + 32 * y + 32 * 32 * z)];
 					else
-						neighbour[2] = cyBlocks::m_regBlockTypes[(uint8_t) * (westChunk.m_chunkdata + 4 + 31 + 32 * y + 32 * 32 * z)];
+						neighbour[cyBlocks::FACE_LEFT] = cyBlocks::m_regBlockTypes[(uint8_t) * (westChunk.m_chunkdata + 4 + 31 + 32 * y + 32 * 32 * z)];
 
 					uint8_t antitile = 0;
 
@@ -522,6 +560,9 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
 				layer.layerMask			= LAYER_TREE;
 				TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
+				tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2, chunk.trees[i].pos.z / 2 - 0.25, relY + 16 - chunk.trees[i].pos.y / 2));
+				tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
+				tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
 				switch (chunk.trees[i].type) {
 					case 0:	 //leaf trees (light wood)
 						object.meshID = cyBlocks::m_treeMeshes[((chunk.trees[i].pos.x + chunk.trees[i].pos.y + chunk.trees[i].pos.z) % 3)];
@@ -535,13 +576,14 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 					case 5:
 						object.meshID = cyBlocks::m_treeMeshes[4];
 						break;
-					default:  //desert grass 6,7
+					case 6:	//desert grass 6,7
+						tf.Scale(XMFLOAT3(chunk.trees[i].scale.x * 2, chunk.trees[i].scale.z * 2, chunk.trees[i].scale.y * 2));
+						object.meshID = cyBlocks::m_treeMeshes[5];
+					default:  
 						object.meshID = cyBlocks::m_treeMeshes[5];
 						break;
 				}
-				tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2, chunk.trees[i].pos.z / 2 - 0.25, relY + 16 - chunk.trees[i].pos.y / 2));
-				tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
-				tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
+				
 				tf.UpdateTransform();
 				object.parentObject = entity;
 				object.SetRenderable(false);	//load the Mesh with lowest LOD to prevent flicker
@@ -665,7 +707,7 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 	}
 }
 
-inline void chunkLoader::employThread(cyImportant::chunkpos_t coords) {
+inline bool chunkLoader::employThread(cyImportant::chunkpos_t coords) {
 	for (uint8_t thread = 0; thread < m_numthreads; thread++) {
 		if (m_threadstate[thread] != THREAD_BUSY) {
 			if (m_threadstate[thread] != THREAD_IDLE) {
@@ -686,9 +728,10 @@ inline void chunkLoader::employThread(cyImportant::chunkpos_t coords) {
 			m_threadChunkPos[thread]		 = coords;
 			m_threadstate[thread]			 = THREAD_BUSY;
 			m_visibleChunks[coords].chunkObj = 0xFFFFFFFE;
-			break;
+			return true;
 		}
 	}
+	return false;
 }
 
 

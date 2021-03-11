@@ -93,7 +93,8 @@ void cySchematic::addSchematic(std::string filename) {
 	cySchematic* schem = new cySchematic(filename);
 	std::vector<wiECS::Entity> affected;
 	schem->RenderSchematic(0, 0, 110);
-	schem->getAffectedChunks(affected);
+	//schem->getAffectedChunks(affected);
+	schem->generateChunkPreview();
 	m_schematics.push_back(schem);
 }
 
@@ -513,17 +514,123 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 
 void cySchematic::getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks) {
 	affectedChunks.clear();
+	chunkLoader::clearMaskedChunk();
 	settings::worldOffset_t offset;
 	offset.x		 = settings::getWorld()->m_playerpos.x / 100;
 	offset.y		 = settings::getWorld()->m_playerpos.y/100;
 	uint32_t chunkID = 0;
 	if (settings::getWorld()->isValid()) {
-		for (float x = 0; x < size.x; x += 16) {
-			for (float y = 0; y < size.y; y += 16) {
-				if (settings::getWorld()->getChunkID(offset.x + pos.x + x, offset.y + pos.y - y, &chunkID)) {
+		for (float x = floor(pos.x/16); x <= ceil((pos.x + size.x)/16); x += 1) {
+			for (float y = floor(pos.y/16); y <= ceil((pos.y + size.y)/16); y += 1) {
+				if (settings::getWorld()->getChunkID(offset.x + x*16, offset.y - y*16, &chunkID)) {
 					affectedChunks.push_back(chunkID);
 				}
-				chunkLoader::addMaskedChunk(settings::getWorld()->getChunkPos(pos.x + x, pos.y - y));
+				chunkLoader::addMaskedChunk(settings::getWorld()->getChunkPos(x*16, - y*16));
+			}
+		}
+	}
+}
+
+
+void cySchematic::generateChunkPreview(void) {
+	cyImportant::chunkpos_t zero, chunkPos;
+	uint32_t chunkID;
+	
+	cyImportant* world = settings::getWorld();
+
+	zero.x = world->m_playerpos.x / 100;
+	zero.y = world->m_playerpos.y / 100;
+
+	if (world->isValid()) {
+		chunkLoader::clearMaskedChunk();
+		wiScene::Scene& scene = wiScene::GetScene();
+		for (size_t i = 0; i < m_chunkPreviews.size(); i++) {
+			wiScene::ObjectComponent* obj = scene.objects.GetComponent(m_chunkPreviews[i].chunkObj);
+			if (obj != nullptr) {
+				wiECS::Entity meshEnt			  = obj->meshID;
+				m.lock();
+				scene.Component_RemoveChildren(m_chunkPreviews[i].chunkObj);
+				scene.Entity_Remove(m_chunkPreviews[i].chunkObj);
+				scene.Entity_Remove(meshEnt);
+				m.unlock();
+			}
+		}
+		m_chunkPreviews.clear();
+
+		for (float x = floor((pos.x - 0.5) / 16); x <= ceil((pos.x + size.x + 0.5) / 16); x += 1) {
+			for (float y = floor((pos.y - 0.5) / 16); y <= ceil((pos.y + size.y + 0.5) / 16); y += 1) {
+				chunkPos = world->getChunkPos(x * 16, -y * 16);
+				cyChunk chunk;
+				cyChunk chunkL;
+				cyChunk chunkR;
+				cyChunk chunkU;
+				cyChunk chunkD;
+				if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y, &chunkID)) {
+					chunk.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID);
+					for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5) {
+						for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5) {
+							for (float schZ = pos.z; schZ < pos.z+size.z; schZ += 0.5) {
+								chunk.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
+							}
+						}
+					}
+					chunk.m_lowestZ = min(chunk.m_lowestZ, (uint16_t)(pos.z * 2));
+					chunk.m_highestZ = max(chunk.m_highestZ, (uint16_t)((pos.z + size.z) * 2));
+					if (world->getChunkID(chunkPos.x + 16 + zero.x, chunkPos.y + zero.y, &chunkID)) {
+						chunkL.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
+						for (float schX = max(pos.x, (float)chunkPos.x + 16); schX < min(pos.x + size.x, (float)chunkPos.x + 32); schX += 0.5) {
+							for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5) {
+								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
+									chunkL.replaceWithAir((uint8_t)((schX - chunkPos.x - 16) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
+								}
+							}
+						}
+					}
+					else
+						chunkL.airChunk();
+					if (world->getChunkID(chunkPos.x - 16 + zero.x, chunkPos.y + zero.y, &chunkID)) {
+						chunkR.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
+						for (float schX = max(pos.x, (float)chunkPos.x - 16); schX < min(pos.x + size.x, (float)chunkPos.x); schX += 0.5) {
+							for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5) {
+								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
+									chunkR.replaceWithAir((uint8_t)((schX - chunkPos.x + 16) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
+								}
+							}
+						}
+					}
+						
+					else
+						chunkR.airChunk();
+					if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y + 16, &chunkID)) {
+						chunkU.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
+						for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5) {
+							for (float schY = max(pos.y, -(float)chunkPos.y - 16); schY < min(pos.y + size.y, -(float)chunkPos.y); schY += 0.5) {
+								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
+									chunkU.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y - 16) * 2), (uint16_t)((schZ)*2));
+								}
+							}
+						}
+					}
+						
+					else
+						chunkU.airChunk();
+					if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y - 16, &chunkID)) {
+						chunkD.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
+						for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5) {
+							for (float schY = max(pos.y, -(float)chunkPos.y + 16); schY < min(pos.y + size.y, -(float)chunkPos.y +32); schY += 0.5) {
+								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
+									chunkD.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y + 16) * 2), (uint16_t)((schZ)*2));
+								}
+							}
+						}
+					}
+						
+					else
+						chunkD.airChunk();
+					m_chunkPreviews.push_back(chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, chunkPos.x, -chunkPos.y));
+
+					chunkLoader::addMaskedChunk(chunkPos);
+				}
 			}
 		}
 	}

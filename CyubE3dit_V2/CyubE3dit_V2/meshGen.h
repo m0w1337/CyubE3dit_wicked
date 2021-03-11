@@ -72,10 +72,10 @@ public:
 		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
 		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
 		mesh->vertex_normals.emplace_back(XMFLOAT3(1, 0, 0));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
-		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, 1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, -1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, -1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, -1));
+		mesh->vertex_normals.emplace_back(XMFLOAT3(0, 0, -1));
 
 	}
 

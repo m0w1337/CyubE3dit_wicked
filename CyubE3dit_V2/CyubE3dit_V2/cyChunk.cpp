@@ -5,7 +5,6 @@ using namespace std;
 
 cyChunk::cyChunk(void) {
 	m_chunkdata = (char*)malloc(32 * 32 * 800 + 4);
-	memset(m_chunkdata, cyBlocks::m_voidID, 32 * 32 * 800 + 4);
 }
 
 void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
@@ -19,8 +18,8 @@ void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 		Sleep(1);
 		rc = sqlite3_blob_open(db, "main", "CHUNKDATA", "DATA", chunkID, 0, &pChunkBlob);
 		if (rc) {
-			//std::string str(sqlite3_errmsg(db));
-			//wiBackLog::post(str.c_str());
+			std::string str(sqlite3_errmsg(db));
+			wiBackLog::post(str.c_str());
 			if (fast)
 				solidChunk();
 			else
@@ -32,12 +31,13 @@ void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 	int32_t chunksize	   = 0;
 	int32_t compressedSize = sqlite3_blob_bytes(pChunkBlob) - 4;
 	sqlite3_blob_read(pChunkBlob, &chunksize, 4, compressedSize);
-	if (chunksize) {
+	if (chunksize >= 32*32*800 + 4) {
 		char* compressedData = (char*)malloc(compressedSize);
 		sqlite3_blob_read(pChunkBlob, compressedData, compressedSize, 0);
 		sqlite3_blob_close(pChunkBlob);
+		memset(m_chunkdata, cyBlocks::m_voidID, 32 * 32 * 800 + 4);
 		if (fast) {	 //only decompress the block data, if fast is chosen
-			m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
+			//m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
 			LZ4_decompress_fast(compressedData, m_chunkdata, 32 * 32 * 800 + 4);
 		} else {
 			m_chunkdata = (char*)realloc(m_chunkdata, chunksize);
@@ -70,12 +70,16 @@ void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 		wiBackLog::post("Empty BLOB");
 	}
 }
+
+void cyChunk::replaceWithAir(uint8_t x, uint8_t y, uint16_t z) {
+	m_chunkdata[4 + x + 32 * y + 32 * 32 * z] = cyBlocks::m_voidID;
+}
 void cyChunk::airChunk(void) {
-	m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
+	//m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
 	memset(m_chunkdata, cyBlocks::m_voidID, 32 * 32 * 800 + 4);
 }
 void cyChunk::solidChunk(void) {
-	m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
+	//m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
 	memset(m_chunkdata, 0, 32 * 32 * 800 + 4);
 }
 

@@ -9,6 +9,8 @@ constexpr uint32_t POS_NUMCHUNKS = 8;
 
 class cyImportant {
 public:
+	static constexpr uint8_t MAX_THREADS   = 30;
+	static constexpr uint8_t DBHANDLE_MAIN = MAX_THREADS;
 	explicit cyImportant(void);
 	struct playerpos_t {
 		double x;
@@ -73,7 +75,7 @@ public:
 	uint32_t m_seed;
 	uint32_t m_numChunks;
 	unordered_map<chunkpos_t, uint32_t, chunkpos_t> m_chunkMap;
-	sqlite3* db[32];
+	sqlite3* db[MAX_THREADS + 1];
 	void loadWorldInfo(const std::string Worldname, bool cleanWorld = true);
 	bool isValid(void);
 	bool isStopped(void);

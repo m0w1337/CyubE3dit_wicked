@@ -995,7 +995,7 @@ static void InitMaterial(material_t *material) {
   material->shininess = static_cast<real_t>(1.0);
   material->ior = static_cast<real_t>(1.0);
 
-  material->roughness = static_cast<real_t>(0.4);
+  material->roughness = static_cast<real_t>(0.9);
   material->metallic = static_cast<real_t>(0.01);
   material->sheen = static_cast<real_t>(0.0);
   material->clearcoat_thickness = static_cast<real_t>(0.0);

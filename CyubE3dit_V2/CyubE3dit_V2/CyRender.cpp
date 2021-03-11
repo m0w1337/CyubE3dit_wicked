@@ -71,23 +71,23 @@ void CyMainComponent::CreateScene(void) {
 	}
 	// Add some nice weather, not just black:
 	auto& weather	  = scene.weathers.Create(CreateEntity());
-	weather.fogStart  = 5;
-	weather.fogEnd	  = 20000;
+	weather.fogStart  = 100;
+	weather.fogEnd	  = 250;
 	weather.fogHeight = 0;
-	weather.horizon	  = XMFLOAT3(.9f, .9f, .9f);
-	weather.zenith	  = XMFLOAT3(0.9f, 0.9f, 0.9f);
-	weather.ambient	  = XMFLOAT3(.8f, .8f, .8f);
-	//weather.skyMapName = "images/sky.dds";
-	weather.SetRealisticSky(true);
+	weather.horizon	  = XMFLOAT3(.9f, .9f, 1.f);
+	weather.zenith	  = XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.ambient	  = XMFLOAT3(.5f, .6f, .7f);
+	weather.skyMapName = "images/sky.dds";
+	weather.SetRealisticSky(false);
 	weather.cloudiness = 0.6f;
 	weather.cloudSpeed = 0.01f;
 
-	weather.windSpeed	   = 4.5f;
+	weather.windSpeed	   = 7.5f;
 	weather.windRandomness = 1.5f;
-	weather.windWaveSize   = 2.5f;
+	weather.windWaveSize   = 0.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.6, 0.6, .6f), 18, 1000);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 15, 100);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -152,10 +152,10 @@ void CyMainComponent::CreateScene(void) {
 	wiScene::MaterialComponent* dustmat							= wiScene::GetScene().materials.GetComponent(m_dust);
 	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
 	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_dust.dds");
-	infoDisplay.active											= true;
-	infoDisplay.watermark  = true;
-	infoDisplay.resolution = true;
-	infoDisplay.fpsinfo	   = true;
+	//infoDisplay.active											= true;
+	//infoDisplay.watermark  = true;
+	//infoDisplay.resolution = true;
+	//infoDisplay.fpsinfo	   = true;
 	m_probe				   = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
 	cyImportant* world	   = settings::getWorld();
 	TransformComponent ctransform;
@@ -381,8 +381,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 		}
 		PROCESS_MEMORY_COUNTERS_EX pmc;
 		GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
-		ss << "Physical RAM used: " + to_string(pmc.WorkingSetSize / 1000000) + " MB" << endl;
-		ss << "Virtual RAM used: " + to_string(pmc.PrivateUsage / 1000000) + " MB" << endl;
+		ss << "RAM used: " + to_string((pmc.PrivateUsage - pmc.WorkingSetSize) / 1000000) + " MB" << endl;
 		ss.precision(2);
 		wiFont::Draw(ss.str(), wiFontParams(4, 4, infoDisplay.size, WIFALIGN_LEFT, WIFALIGN_TOP, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
 	}
@@ -525,7 +524,7 @@ void CyRender::Load() {
 	wiRenderer::SetVoxelRadianceVoxelSize(0.2f);
 	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
 	wiRenderer::SetOcclusionCullingEnabled(false);
-	wiProfiler::SetEnabled(true);
+	wiProfiler::SetEnabled(false);
 	setAO(AO_MSAO);
 	setAOPower(0.2);
 	setFXAAEnabled(false);
@@ -658,6 +657,7 @@ void CyRender::Update(float dt) {
 	static XMFLOAT4 originalMouse = XMFLOAT4(0, 0, 0, 0);
 	static float Accel			  = 0.0;
 	static bool camControlStart	  = true;
+	static bool schDraged	  = false;
 	lasttime += dt * 4;
 	sinepulse = std::sinf(lasttime);
 	if (lasttime > 100) {
@@ -676,6 +676,7 @@ void CyRender::Update(float dt) {
 	{
 		camControlStart = false;
 		if (drag != cySchematic::HOVER_NONE) {
+			schDraged		 = true;
 			XMFLOAT4 pointer = wiInput::GetPointer();
 			XMVECTOR plane, planeNormal;
 			TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->hoverEntities[drag].entity);
@@ -746,9 +747,9 @@ void CyRender::Update(float dt) {
 			//transform->ApplyTransform();
 			transform->Translate(delta);
 			transform->UpdateTransform();
-			cySchematic::m_schematics[dragID]->pos.x = transform->GetPosition().x;
-			cySchematic::m_schematics[dragID]->pos.z = transform->GetPosition().y;
-			cySchematic::m_schematics[dragID]->pos.y = transform->GetPosition().z;
+			cySchematic::m_schematics[dragID]->pos.x += delta.x;
+			cySchematic::m_schematics[dragID]->pos.z += delta.y;
+			cySchematic::m_schematics[dragID]->pos.y += delta.z;
 			originalMouse							 = pointer;
 		} else {
 			hovered.entity = wiECS::INVALID_ENTITY;
@@ -768,6 +769,12 @@ void CyRender::Update(float dt) {
 			wiInput::HidePointer(true);
 		}
 	} else {
+		if (schDraged) {
+			schDraged = false;
+			wiJobSystem::context ctx;
+			wiJobSystem::Execute(ctx, [](wiJobArgs args) { cySchematic::m_schematics[dragID]->generateChunkPreview(); });
+			
+		}
 		camControlStart = true;
 		wiInput::HidePointer(false);
 		if (rendererWnd.GetPickType()) {
