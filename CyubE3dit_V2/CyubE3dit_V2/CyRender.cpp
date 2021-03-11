@@ -74,12 +74,12 @@ void CyMainComponent::CreateScene(void) {
 	weather.fogStart  = 100;
 	weather.fogEnd	  = 250;
 	weather.fogHeight = 0;
-	weather.horizon	  = XMFLOAT3(.9f, .9f, 1.f);
-	weather.zenith	  = XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.ambient	  = XMFLOAT3(.5f, .6f, .7f);
+	weather.horizon	   = XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.zenith	   = XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.ambient	   = XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
 	weather.skyMapName = "images/sky.dds";
 	weather.SetRealisticSky(false);
-	weather.cloudiness = 0.6f;
+	weather.cloudiness = 1.0f;
 	weather.cloudSpeed = 0.01f;
 
 	weather.windSpeed	   = 7.5f;
@@ -87,7 +87,7 @@ void CyMainComponent::CreateScene(void) {
 	weather.windWaveSize   = 0.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 15, 100);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 3, 100);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -131,14 +131,18 @@ void CyMainComponent::CreateScene(void) {
 	m_dust							 = wiScene::GetScene().Entity_CreateEmitter("Dust", XMFLOAT3(0, 10, 0));
 	wiScene::wiEmittedParticle* dust = wiScene::GetScene().emitters.GetComponent(m_dust);
 	dust->SetVolumeEnabled(true);
-	dust->shaderType = wiScene::wiEmittedParticle::SOFT;
-	dust->SetMaxParticleCount(4096);
-	dust->life													= 10.0;
+	dust->shaderType = wiScene::wiEmittedParticle::SOFT_LIGHTING;
+	dust->SetMaxParticleCount(100000);
+	dust->life													= 14.0;
 	dust->random_life											= 1.f;
 	dust->random_factor											= 1.f;
-	dust->count													= 4096;
-	dust->normal_factor											= 0.4;
-	dust->size													= .005f;
+	dust->count													= 81920;
+	dust->normal_factor											= 0.f;
+	dust->size													= .01f;
+	dust->drag													= 0.9;
+	dust->velocity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed , -1, weather.windDirection.z * weather.windSpeed );
+	dust->gravity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed, -(8.f - weather.windSpeed/6), weather.windDirection.z * weather.windSpeed);
+	dust->random_color											= 0.8f;
 	/*
 	dust->mass													= 1.7;
 	dust->SPH_h													= 20.0f;
@@ -150,8 +154,10 @@ void CyMainComponent::CreateScene(void) {
 		*/
 	dust->SetDepthCollisionEnabled(true);
 	wiScene::MaterialComponent* dustmat							= wiScene::GetScene().materials.GetComponent(m_dust);
-	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
-	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_dust.dds");
+	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_rain.dds");
+	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_rain.dds";
+	dustmat->SetEmissiveStrength(100);
+	dustmat->SetEmissiveColor(XMFLOAT4(.7,.8,1,1));
 	//infoDisplay.active											= true;
 	//infoDisplay.watermark  = true;
 	//infoDisplay.resolution = true;
@@ -529,7 +535,7 @@ void CyRender::Load() {
 	setAOPower(0.2);
 	setFXAAEnabled(false);
 	setEyeAdaptionEnabled(false);
-	wiScene::GetCamera().zNearP = 0.1f;
+	wiScene::GetCamera().zNearP = 0.5f;
 	wiScene::GetCamera().zFarP	= 3500.f;
 	label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - sneak peek");

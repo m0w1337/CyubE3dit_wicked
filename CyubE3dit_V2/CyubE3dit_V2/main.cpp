@@ -141,7 +141,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
 			wiScene::Scene& scn = wiScene::GetScene();
-			if (GetTickCount() - lasttick > 500 && settings::torchlights == true) {
+			if (GetTickCount() - lasttick > 50 && settings::torchlights == true) {
 				lasttick = GetTickCount();
 				for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
 					if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
@@ -194,8 +194,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				transform->UpdateTransform();
 				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_dust);
 				transform->ClearTransform();
-				transform->Scale(XMFLOAT3(10,10,10));
-				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
+				transform->Scale(XMFLOAT3(7,1,7));
+				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 4.0f, 0.f));
 				transform->SetDirty();
 				transform->UpdateTransform();
 				if (CyMainComponent::m_probe != wiECS::INVALID_ENTITY) {
