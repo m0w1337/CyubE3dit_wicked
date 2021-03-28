@@ -89,6 +89,7 @@ public:
 	void solidChunk(void);
 	void addMesh(meshLoc mesh);
 	void replaceWithAir(uint8_t x, uint8_t y, uint16_t z);
+	void replaceCubeWithAir(uint8_t x1, uint8_t y1, uint16_t z1, uint8_t x2, uint8_t y2, uint16_t z2);
 	~cyChunk(void);
 
 protected:

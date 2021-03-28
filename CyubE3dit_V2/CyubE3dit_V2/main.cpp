@@ -10,6 +10,8 @@
 #include "sqlite3.h"
 #include <dbghelp.h>
 #include "cyVersion.h"
+#include "cySchematic.h"
+#include "SimplexNoise.h"
 
 using namespace std;
 using namespace wiECS;
@@ -127,11 +129,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	loader.spawnThreads(numChunkThreads);
 	DWORD lasttick = 0;
+	SimplexNoise noise;
 	while (msg.message != WM_QUIT)
 	{
 		
 		
-		if (wiInput::Press((wiInput::BUTTON)'M')) {
+		if (wiInput::Press(wiInput::KEYBOARD_BUTTON_ESCAPE)) {
+			
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
@@ -140,14 +144,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			m.lock();
 			mainComp.Run();	 // run the update - render loop (mandatory)
 			m.unlock();
+			if (cySchematic::m_schematics.size() > 0) {
+				if (!cySchematic::updating) {
+					cySchematic::updating = true;
+					cySchematic::updateDirtyPreviews();
+				}
+			}
 			wiScene::Scene& scn = wiScene::GetScene();
-			if (GetTickCount() - lasttick > 50 && settings::torchlights == true) {
+			if (GetTickCount() - lasttick > 100 && settings::torchlights == true) {
 				lasttick = GetTickCount();
 				for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
 					if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
 						scn.lights[i].energy = 6 + ((float)rand() / RAND_MAX) * 4;
 					}
 				}
+				wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
+				weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
 			}
 			
 			if (wiInput::Press((wiInput::BUTTON)'H')) {
@@ -194,7 +206,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				transform->UpdateTransform();
 				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_dust);
 				transform->ClearTransform();
-				transform->Scale(XMFLOAT3(7,1,7));
+				transform->Scale(XMFLOAT3(10,7,10));
 				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 4.0f, 0.f));
 				transform->SetDirty();
 				transform->UpdateTransform();

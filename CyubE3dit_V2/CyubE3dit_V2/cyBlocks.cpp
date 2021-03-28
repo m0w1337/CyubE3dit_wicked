@@ -73,6 +73,8 @@ void cyBlocks::loadMeshes(void) {
 	m_toolMeshes[TOOL_YAXIS] = ImportModel_OBJ("data\\meshes\\yAxis.obj", wiScene::GetScene(), 0);
 	m_toolMeshes[TOOL_ZAXIS] = ImportModel_OBJ("data\\meshes\\zAxis.obj", wiScene::GetScene(), 0);
 	m_toolMeshes[TOOL_PLANE] = ImportModel_OBJ("data\\meshes\\plane.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.obj", wiScene::GetScene(), 0,0.6);
+	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.obj", wiScene::GetScene(), 0,0.6);
 
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));

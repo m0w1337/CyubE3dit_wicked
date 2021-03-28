@@ -69,7 +69,7 @@ private:
 // Transform the data from OBJ space to engine-space:
 static const bool transform_to_LH = true;
 
-wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t windMode) {
+wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t windMode, float emissiveStrength) {
 	string directory, name;
 	wiHelper::SplitPath(fileName, directory, name);
 
@@ -104,24 +104,26 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 		vector<Entity> materialLibrary = {};
 		for (auto& obj_material : obj_materials)
 		{
-			Entity materialEntity		= scene.Entity_CreateMaterial(obj_material.name);
-			MaterialComponent& material = *scene.materials.GetComponent(materialEntity);
+			Entity materialEntity									= scene.Entity_CreateMaterial(obj_material.name);
+			MaterialComponent& material								= *scene.materials.GetComponent(materialEntity);
 			material.textures[MaterialComponent::EMISSIVEMAP].name	= obj_material.emissive_texname;
-			material.emissiveColor		= XMFLOAT4(obj_material.emission[0], obj_material.emission[1], obj_material.emission[2], 1);
-			material.baseColor		  = XMFLOAT4(obj_material.diffuse[0], obj_material.diffuse[1], obj_material.diffuse[2], 1);
-			material.textures[MaterialComponent::BASECOLORMAP].name	= obj_material.diffuse_texname;
-			material.textures[MaterialComponent::OCCLUSIONMAP].name	= obj_material.displacement_texname;
+			material.emissiveColor									= XMFLOAT4(obj_material.emission[0], obj_material.emission[1], obj_material.emission[2], 1);
+			material.baseColor										= XMFLOAT4(obj_material.diffuse[0], obj_material.diffuse[1], obj_material.diffuse[2], 1);
+			material.textures[MaterialComponent::BASECOLORMAP].name = obj_material.diffuse_texname;
+			material.textures[MaterialComponent::OCCLUSIONMAP].name = obj_material.displacement_texname;
+			material.SetEmissiveStrength(emissiveStrength);
 			//material.emissiveColor.x = obj_material.emission[0];
 			//material.emissiveColor.y = obj_material.emission[1];
 			//material.emissiveColor.z = obj_material.emission[2];
 			//material.emissiveColor.w = max(obj_material.emission[0], max(obj_material.emission[1], obj_material.emission[2]));
-			material.refraction = obj_material.ior;
-			material.metalness		 = obj_material.metallic;
-			material.textures[MaterialComponent::NORMALMAP].name = obj_material.normal_texname;
+			material.refraction									  = 1 - obj_material.ior;
+			material.metalness									  = obj_material.metallic;
+			material.textures[MaterialComponent::NORMALMAP].name  = obj_material.normal_texname;
 			material.textures[MaterialComponent::SURFACEMAP].name = obj_material.specular_texname;
-			material.roughness		 = obj_material.roughness;
-			material.reflectance	 = 0.0f;
-			
+			material.roughness									  = obj_material.roughness;
+			material.reflectance								  = 0.0f;
+			material.SetTransmissionAmount(1 - obj_material.dissolve);
+
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
 				material.SetAlphaRef(0.5f);
@@ -134,7 +136,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			}
 			if (material.textures[MaterialComponent::SURFACEMAP].name.empty())
 			{
-				material.textures[MaterialComponent::SURFACEMAP].name  = obj_material.specular_highlight_texname;
+				material.textures[MaterialComponent::SURFACEMAP].name = obj_material.specular_highlight_texname;
 			}
 
 			if (!material.textures[MaterialComponent::SURFACEMAP].name.empty())
@@ -278,12 +280,12 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 								case 2:
 									if (pos.y > 1.0f && abs(pos.x) > 0.5f && abs(pos.z) > 0.5f) {
 										if (obj_materials[materialIndex].alpha_texname != "") {
-											mesh.vertex_windweights.push_back(100);// * pos.z);
+											mesh.vertex_windweights.push_back(100);	 // * pos.z);
 										} else {
-											mesh.vertex_windweights.push_back(6);// * pos.x);
+											mesh.vertex_windweights.push_back(6);  // * pos.x);
 										}
 
-									} else if(pos.y > 0.3f) {
+									} else if (pos.y > 0.3f) {
 										mesh.vertex_windweights.push_back(5);
 									} else {
 										mesh.vertex_windweights.push_back(0);
@@ -291,7 +293,6 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 									break;
 							}
 							if (windMode == 1) {
-								
 							}
 						}
 						mesh.indices.push_back(uniqueVertices[vertexHash]);

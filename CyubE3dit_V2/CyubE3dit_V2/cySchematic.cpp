@@ -5,6 +5,7 @@
 using namespace std;
 using namespace wiScene;
 extern mutex m;
+bool cySchematic::updating = false;
 std::vector<cySchematic*> cySchematic::m_schematics;
 
 cySchematic::cySchematic(string filename) {
@@ -89,42 +90,122 @@ cySchematic& cySchematic::getSchematic(wiECS::Entity antity) {
 	
 }*/
 
+void cySchematic::clearAllSchematics(void) {
+	for (size_t i = 0; i < m_schematics.size(); i++) {
+		wiScene::Scene& scene		  = wiScene::GetScene();
+		wiScene::ObjectComponent* obj = scene.objects.GetComponent(m_schematics[i]->mainEntity);
+		wiECS::Entity meshEnt		  = obj->meshID;
+		m_schematics[i]->mainEntity;
+		scene.Component_RemoveChildren(m_schematics[i]->mainEntity);
+		scene.Entity_Remove(m_schematics[i]->mainEntity);
+		scene.Entity_Remove(meshEnt);
+		delete m_schematics[i];
+		chunkLoader::clearMaskedChunk();
+		for (size_t ii = 0; ii < m_schematics[i]->m_chunkPreviews.size(); ii++) {
+			wiScene::ObjectComponent* obj = scene.objects.GetComponent(m_schematics[i]->m_chunkPreviews[ii].chunkObj);
+			if (obj != nullptr) {
+				wiECS::Entity meshEnt = obj->meshID;
+				//m.lock();
+				scene.Component_RemoveChildren(m_schematics[i]->m_chunkPreviews[ii].chunkObj);
+				scene.Entity_Remove(m_schematics[i]->m_chunkPreviews[ii].chunkObj);
+				scene.Entity_Remove(meshEnt);
+				//m.unlock();
+			}
+		}
+	}
+	m_schematics.clear();
+}
+
+void cySchematic::clearSchematic(void) {
+	wiScene::Scene& scene		  = wiScene::GetScene();
+	wiScene::ObjectComponent* obj = scene.objects.GetComponent(mainEntity);
+	wiECS::Entity meshEnt		  = obj->meshID;
+	mainEntity;
+	scene.Component_RemoveChildren(mainEntity);
+	scene.Entity_Remove(mainEntity);
+	scene.Entity_Remove(meshEnt);
+	for (size_t i = 0; i < m_schematics.size(); i++) {
+		if (m_schematics[i] == this) {
+			m_schematics.erase(m_schematics.begin() + i);
+			break;
+		}
+	}
+	
+	chunkLoader::clearMaskedChunk();
+	for (size_t ii = 0; ii < m_chunkPreviews.size(); ii++) {
+		wiScene::ObjectComponent* obj = scene.objects.GetComponent(m_chunkPreviews[ii].chunkObj);
+		if (obj != nullptr) {
+			wiECS::Entity meshEnt = obj->meshID;
+			//m.lock();
+			scene.Component_RemoveChildren(m_chunkPreviews[ii].chunkObj);
+			scene.Entity_Remove(m_chunkPreviews[ii].chunkObj);
+			scene.Entity_Remove(meshEnt);
+			//m.unlock();
+		}
+	}
+	delete this;
+}
+
 void cySchematic::addSchematic(std::string filename) {
 	cySchematic* schem = new cySchematic(filename);
 	std::vector<wiECS::Entity> affected;
-	schem->RenderSchematic(0, 0, 110);
+	CameraComponent cam = wiScene::GetCamera();
+	XMFLOAT3 schempos	= cam.Eye;
+	XMFLOAT3 camlook	= cam.At;
+
+	schem->pos.x = ceilf(schempos.x - schem->size.x / 2 + camlook.x * schem->size.x);
+	schem->pos.y = ceilf(schempos.z - schem->size.z / 2 + camlook.z * schem->size.z);
+	schem->pos.z = ceilf(schempos.y - schem->size.y / 2 + camlook.y * schem->size.y);
+	if (schem->pos.z < 0.5) {
+		schem->pos.z = 0.5;
+	} else if (schem->pos.z + schem->size.z > 399.5) {
+		schem->pos.z = 399.5 - schem->size.z;
+	}
+
+	schem->RenderSchematic();
 	//schem->getAffectedChunks(affected);
-	schem->generateChunkPreview();
+	schem->m_dirty = true;
 	m_schematics.push_back(schem);
+}
+
+void cySchematic::updateDirtyPreviews(void) {
+	for (size_t i = 0; i < m_schematics.size(); i++) {
+		if (m_schematics[i]->m_dirty) {
+			m_schematics[i]->m_dirty = false;
+			m_schematics[i]->generateChunkPreview();
+		}
+	}
+	updating = false;
 }
 
 cySchematic::hovertype_t cySchematic::hoverGizmo(const wiECS::Entity entity) {
 	hovertype_t ret = HOVER_NONE;
+	m_activeGizmo	= HOVER_NONE;
 	for (size_t i = 0; i < HOVER_NUMELEMENTS; i++) {
 		if (hoverEntities[i].entity != wiECS::INVALID_ENTITY) {
-
 			if (hoverEntities[i].entity == entity) {
 				wiScene::GetScene().objects.GetComponent(entity)->color = hoverEntities[i].hovercolor;
+				wiScene::GetScene().objects.GetComponent(entity)->emissiveColor = hoverEntities[i].hovercolor;
+				m_activeGizmo											= i;
 				ret														= (hovertype_t)i;
 			} else {
-				wiScene::GetScene().objects.GetComponent(hoverEntities[i].entity)->color = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.f);
+				wiScene::GetScene().objects.GetComponent(hoverEntities[i].entity)->color = hoverEntities[i].nohovercolor;
+				wiScene::GetScene().objects.GetComponent(hoverEntities[i].entity)->emissiveColor = XMFLOAT4(0, 0, 0, 0);
 			}
 		}
 	}
-	if (ret == HOVER_ROTCC || ret == HOVER_ROTCW) {	 //Disable drag on rotation gizmos
-		ret = HOVER_NONE;
-	}
+	//if (ret >= HOVER_ROTCW) {	 //Disable drag on rotation and button gizmos
+	//	ret = HOVER_NONE;
+	//}
 	return ret;
 }
 
-void cySchematic::RenderSchematic(const float relX, const float relY, const float relZ) {
+void cySchematic::RenderSchematic(void) {
 	chunkLoader::face_t tmpface;
 	vector<chunkLoader::face_t> faces;
 	vector<torch_t> torches;
 	uint8_t stepsize = 1;
-	pos.x			 = relX;
-	pos.y			 = relY;
-	pos.z			 = relZ;
+
 	blockpos_t bsize(size.x * 2, size.y * 2, size.z * 2);
 	if (m_chunkdata == nullptr) {
 		mainEntity = wiECS::INVALID_ENTITY;
@@ -299,7 +380,7 @@ void cySchematic::RenderSchematic(const float relX, const float relY, const floa
 						object->meshID = cyBlocks::m_treeMeshes[5];
 						break;
 				}
-				tf->Translate(XMFLOAT3(relX + trees[i].pos.x / 2.0f, relZ + trees[i].pos.z / 2.0f - 0.25, relY + size.y - trees[i].pos.y / 2.0f));
+				tf->Translate(XMFLOAT3(pos.x + trees[i].pos.x / 2.0f, pos.z + trees[i].pos.z / 2.0f - 0.25, pos.y + size.y - trees[i].pos.y / 2.0f));
 				tf->Scale(XMFLOAT3(trees[i].scale.x, trees[i].scale.z, trees[i].scale.y));
 				tf->RotateRollPitchYaw(XMFLOAT3(0, trees[i].yaw, 0));
 				tf->UpdateTransform();
@@ -310,7 +391,7 @@ void cySchematic::RenderSchematic(const float relX, const float relY, const floa
 		placeTorches(torches, tmpScene);
 		attachGizmos(tmpScene);
 		tf = tmpScene.transforms.GetComponent(mainEntity);
-		tf->Translate(XMFLOAT3(relX, relZ, relY));
+		tf->Translate(XMFLOAT3(pos.x, pos.z, pos.y));
 		tf->UpdateTransform();
 		m.lock();
 		wiScene::GetScene().Merge(tmpScene);
@@ -411,8 +492,9 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_ROTCW].entity	  = objEnt;
-	hoverEntities[HOVER_ROTCW].hovercolor = XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_ROTCW].entity		= objEnt;
+	hoverEntities[HOVER_ROTCW].hovercolor	= XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_ROTCW].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
 	objEnt				 = tmpScene.Entity_CreateObject("ccArrow");
@@ -427,8 +509,9 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_ROTCC].entity	  = objEnt;
-	hoverEntities[HOVER_ROTCC].hovercolor = XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_ROTCC].entity		= objEnt;
+	hoverEntities[HOVER_ROTCC].hovercolor	= XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_ROTCC].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
 	arrowsize			 = (size.x + size.y + size.z) / 75.0f;
@@ -439,12 +522,14 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ORIGIN];
 	object->parentObject = mainEntity;
+	object->color		 = XMFLOAT4(0.5, 0.5, 0.5, 1.0);
 	tf->Translate(XMFLOAT3(-0.75, -0.75, -0.25));
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_ORIGIN].entity	   = objEnt;
-	hoverEntities[HOVER_ORIGIN].hovercolor = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.f);
+	hoverEntities[HOVER_ORIGIN].entity		 = objEnt;
+	hoverEntities[HOVER_ORIGIN].hovercolor	 = XMFLOAT4(1.f, 1.f, 1.f, 1.f);
+	hoverEntities[HOVER_ORIGIN].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
 	objEnt				 = tmpScene.Entity_CreateObject("xAxis");
@@ -459,8 +544,9 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_X_AXIS].entity	   = objEnt;
-	hoverEntities[HOVER_X_AXIS].hovercolor = XMFLOAT4(0.0f, 0.4f, 0.8f, 1.f);
+	hoverEntities[HOVER_X_AXIS].entity		 = objEnt;
+	hoverEntities[HOVER_X_AXIS].hovercolor	 = XMFLOAT4(0.0f, 0.4f, 0.8f, 1.f);
+	hoverEntities[HOVER_X_AXIS].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
 	objEnt				 = tmpScene.Entity_CreateObject("yAxis");
@@ -475,8 +561,9 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_Y_AXIS].entity	   = objEnt;
-	hoverEntities[HOVER_Y_AXIS].hovercolor = XMFLOAT4(0.5f, 0.8f, 0.0f, 1.f);
+	hoverEntities[HOVER_Y_AXIS].entity		 = objEnt;
+	hoverEntities[HOVER_Y_AXIS].hovercolor	 = XMFLOAT4(0.5f, 0.8f, 0.0f, 1.f);
+	hoverEntities[HOVER_Y_AXIS].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
 	objEnt				 = tmpScene.Entity_CreateObject("zAxis");
@@ -491,8 +578,44 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_Z_AXIS].entity	   = objEnt;
-	hoverEntities[HOVER_Z_AXIS].hovercolor = XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_Z_AXIS].entity		 = objEnt;
+	hoverEntities[HOVER_Z_AXIS].hovercolor	 = XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_Z_AXIS].nohovercolor = object->color;
+	tmpScene.Component_Attach(objEnt, mainEntity);
+
+	objEnt				 = tmpScene.Entity_CreateObject("planeXZ");
+	object				 = tmpScene.objects.GetComponent(objEnt);
+	layer				 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask	 = LAYER_SCHEMATIC;
+	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
+	object->parentObject = mainEntity;
+	object->color		 = XMFLOAT4(0.9, 0.9, 0.9, 1.0);
+	tf->Translate(XMFLOAT3(-0.75, -0.75, -0.25));
+	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+	tf->UpdateTransform();
+	hoverEntities[HOVER_XZ_PLANE].entity	   = objEnt;
+	hoverEntities[HOVER_XZ_PLANE].hovercolor   = XMFLOAT4(0.5f, 0.8f, 0.0f, 1.f);
+	hoverEntities[HOVER_XZ_PLANE].nohovercolor = object->color;
+	tmpScene.Component_Attach(objEnt, mainEntity);
+
+	objEnt				 = tmpScene.Entity_CreateObject("planeYZ");
+	object				 = tmpScene.objects.GetComponent(objEnt);
+	layer				 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask	 = LAYER_SCHEMATIC;
+	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
+	object->parentObject = mainEntity;
+	object->color		 = XMFLOAT4(0.9, 0.9, 0.9, 1.0);
+	tf->RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
+	tf->Translate(XMFLOAT3(-0.75, -0.75, -0.25));
+	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+	tf->UpdateTransform();
+	hoverEntities[HOVER_YZ_PLANE].entity	   = objEnt;
+	hoverEntities[HOVER_YZ_PLANE].hovercolor   = XMFLOAT4(0.0f, 0.4f, 0.8f, 1.f);
+	hoverEntities[HOVER_YZ_PLANE].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
 	objEnt				 = tmpScene.Entity_CreateObject("planeXY");
@@ -502,14 +625,54 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene) {
 	tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 	object->parentObject = mainEntity;
-	object->color		 = XMFLOAT4(0.5, 0.5, 0.5, 1.0);
-	tf->Translate(XMFLOAT3(-0.25, -0.25, 0.3));
+	object->color		 = XMFLOAT4(0.9, 0.9, 0.9, 1.0);
+	tf->RotateRollPitchYaw(XMFLOAT3(-PI / 2, -PI / 2, 0));
+	tf->Translate(XMFLOAT3(-0.75, -0.75, -0.25));
 	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
 	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
 	tf->UpdateTransform();
-	hoverEntities[HOVER_XZ_PLANE].entity	 = objEnt;
-	hoverEntities[HOVER_XZ_PLANE].hovercolor = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.f);
+	hoverEntities[HOVER_XY_PLANE].entity	   = objEnt;
+	hoverEntities[HOVER_XY_PLANE].hovercolor   = XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
+	hoverEntities[HOVER_XY_PLANE].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
+
+
+	objEnt				 = tmpScene.Entity_CreateObject("check");
+	object				 = tmpScene.objects.GetComponent(objEnt);
+	layer				 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask	 = LAYER_SCHEMATIC;
+	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_CHECK];
+	object->parentObject = mainEntity;
+	object->color		 = XMFLOAT4(0.2, 0.6, 0.2, 1.0);
+	tf->RotateRollPitchYaw(XMFLOAT3(0, 0,PI));
+	tf->Translate(XMFLOAT3(size.x - arrowsize/10, size.z + 3, size.y / 2));
+	tf->Scale(XMFLOAT3(arrowsize/10, arrowsize/10, arrowsize/10));
+	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+	tf->UpdateTransform();
+	hoverEntities[HOVER_CHECK].entity	   = objEnt;
+	hoverEntities[HOVER_CHECK].hovercolor	= XMFLOAT4(0.02f, .6f, 0.0f, 1.f);
+	hoverEntities[HOVER_CHECK].nohovercolor = object->color;
+	tmpScene.Component_Attach(objEnt, mainEntity);
+
+	objEnt				 = tmpScene.Entity_CreateObject("cross");
+	object				 = tmpScene.objects.GetComponent(objEnt);
+	layer				 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask	 = LAYER_SCHEMATIC;
+	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_CROSS];
+	object->parentObject = mainEntity;
+	object->color		 = XMFLOAT4(0.6, 0.2, 0.2, 1.0);
+	tf->RotateRollPitchYaw(XMFLOAT3(-0, 0, PI));
+	tf->Translate(XMFLOAT3(arrowsize / 10, size.z + 3, size.y / 2));
+	tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize /10, arrowsize / 10));
+	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+	tf->UpdateTransform();
+	hoverEntities[HOVER_CROSS].entity	   = objEnt;
+	hoverEntities[HOVER_CROSS].hovercolor	= XMFLOAT4(0.6f, 0.0f, 0.02f, 1.f);
+	hoverEntities[HOVER_CROSS].nohovercolor = object->color;
+	tmpScene.Component_Attach(objEnt, mainEntity);
+
 }
 
 void cySchematic::getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks) {
@@ -517,44 +680,37 @@ void cySchematic::getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks) 
 	chunkLoader::clearMaskedChunk();
 	settings::worldOffset_t offset;
 	offset.x		 = settings::getWorld()->m_playerpos.x / 100;
-	offset.y		 = settings::getWorld()->m_playerpos.y/100;
+	offset.y		 = settings::getWorld()->m_playerpos.y / 100;
 	uint32_t chunkID = 0;
 	if (settings::getWorld()->isValid()) {
-		for (float x = floor(pos.x/16); x <= ceil((pos.x + size.x)/16); x += 1) {
-			for (float y = floor(pos.y/16); y <= ceil((pos.y + size.y)/16); y += 1) {
-				if (settings::getWorld()->getChunkID(offset.x + x*16, offset.y - y*16, &chunkID)) {
+		for (float x = floor(pos.x / 16); x <= ceil((pos.x + size.x) / 16); x += 1) {
+			for (float y = floor(pos.y / 16); y <= ceil((pos.y + size.y) / 16); y += 1) {
+				if (settings::getWorld()->getChunkID(offset.x + x * 16, offset.y - y * 16, &chunkID)) {
 					affectedChunks.push_back(chunkID);
 				}
-				chunkLoader::addMaskedChunk(settings::getWorld()->getChunkPos(x*16, - y*16));
+				chunkLoader::addMaskedChunk(settings::getWorld()->getChunkPos(x * 16, -y * 16));
 			}
 		}
 	}
 }
 
-
 void cySchematic::generateChunkPreview(void) {
 	cyImportant::chunkpos_t zero, chunkPos;
 	uint32_t chunkID;
-	
+
 	cyImportant* world = settings::getWorld();
 
 	zero.x = world->m_playerpos.x / 100;
 	zero.y = world->m_playerpos.y / 100;
 
 	if (world->isValid()) {
-		chunkLoader::clearMaskedChunk();
 		wiScene::Scene& scene = wiScene::GetScene();
-		for (size_t i = 0; i < m_chunkPreviews.size(); i++) {
-			wiScene::ObjectComponent* obj = scene.objects.GetComponent(m_chunkPreviews[i].chunkObj);
-			if (obj != nullptr) {
-				wiECS::Entity meshEnt			  = obj->meshID;
-				m.lock();
-				scene.Component_RemoveChildren(m_chunkPreviews[i].chunkObj);
-				scene.Entity_Remove(m_chunkPreviews[i].chunkObj);
-				scene.Entity_Remove(meshEnt);
-				m.unlock();
-			}
-		}
+		for (uint8_t i = 0; i < HOVER_NUMELEMENTS; i++) {
+			scene.objects.GetComponent(hoverEntities[i].entity)->SetRenderable(false);
+		}	
+		chunkLoader::clearMaskedChunk();
+		std::vector<chunkLoader::chunkobjects_t> OLDchunkPreviews = m_chunkPreviews;
+		
 		m_chunkPreviews.clear();
 
 		for (float x = floor((pos.x - 0.5) / 16); x <= ceil((pos.x + size.x + 0.5) / 16); x += 1) {
@@ -569,12 +725,13 @@ void cySchematic::generateChunkPreview(void) {
 					chunk.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID);
 					for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5) {
 						for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5) {
-							for (float schZ = pos.z; schZ < pos.z+size.z; schZ += 0.5) {
+							for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
 								chunk.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
+								//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 							}
 						}
 					}
-					chunk.m_lowestZ = min(chunk.m_lowestZ, (uint16_t)(pos.z * 2));
+					chunk.m_lowestZ	 = min(chunk.m_lowestZ, (uint16_t)(pos.z * 2));
 					chunk.m_highestZ = max(chunk.m_highestZ, (uint16_t)((pos.z + size.z) * 2));
 					if (world->getChunkID(chunkPos.x + 16 + zero.x, chunkPos.y + zero.y, &chunkID)) {
 						chunkL.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
@@ -582,11 +739,11 @@ void cySchematic::generateChunkPreview(void) {
 							for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5) {
 								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
 									chunkL.replaceWithAir((uint8_t)((schX - chunkPos.x - 16) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
+									//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x - 16) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 								}
 							}
 						}
-					}
-					else
+					} else
 						chunkL.airChunk();
 					if (world->getChunkID(chunkPos.x - 16 + zero.x, chunkPos.y + zero.y, &chunkID)) {
 						chunkR.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
@@ -594,11 +751,12 @@ void cySchematic::generateChunkPreview(void) {
 							for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5) {
 								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
 									chunkR.replaceWithAir((uint8_t)((schX - chunkPos.x + 16) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
+									//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x + 16) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 								}
 							}
 						}
 					}
-						
+
 					else
 						chunkR.airChunk();
 					if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y + 16, &chunkID)) {
@@ -607,24 +765,25 @@ void cySchematic::generateChunkPreview(void) {
 							for (float schY = max(pos.y, -(float)chunkPos.y - 16); schY < min(pos.y + size.y, -(float)chunkPos.y); schY += 0.5) {
 								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
 									chunkU.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y - 16) * 2), (uint16_t)((schZ)*2));
+									//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y - 16) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 								}
 							}
 						}
 					}
-						
+
 					else
 						chunkU.airChunk();
 					if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y - 16, &chunkID)) {
 						chunkD.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
 						for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5) {
-							for (float schY = max(pos.y, -(float)chunkPos.y + 16); schY < min(pos.y + size.y, -(float)chunkPos.y +32); schY += 0.5) {
+							for (float schY = max(pos.y, -(float)chunkPos.y + 16); schY < min(pos.y + size.y, -(float)chunkPos.y + 32); schY += 0.5) {
 								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
 									chunkD.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y + 16) * 2), (uint16_t)((schZ)*2));
 								}
 							}
 						}
 					}
-						
+
 					else
 						chunkD.airChunk();
 					m_chunkPreviews.push_back(chunkLoader::RenderChunk(chunk, chunkU, chunkL, chunkD, chunkR, chunkPos.x, -chunkPos.y));
@@ -633,5 +792,19 @@ void cySchematic::generateChunkPreview(void) {
 				}
 			}
 		}
+		for (size_t i = 0; i < OLDchunkPreviews.size(); i++) {
+			wiScene::ObjectComponent* obj = scene.objects.GetComponent(OLDchunkPreviews[i].chunkObj);
+			if (obj != nullptr) {
+				wiECS::Entity meshEnt = obj->meshID;
+				m.lock();
+				scene.Component_RemoveChildren(OLDchunkPreviews[i].chunkObj);
+				scene.Entity_Remove(OLDchunkPreviews[i].chunkObj);
+				scene.Entity_Remove(meshEnt);
+				m.unlock();
+			}
+		}
+		for (uint8_t i = 0; i < HOVER_NUMELEMENTS; i++) {
+			scene.objects.GetComponent(hoverEntities[i].entity)->SetRenderable(true);
+		}	
 	}
 }

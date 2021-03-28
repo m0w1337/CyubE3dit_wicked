@@ -46,6 +46,8 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 	}
 }
 
+
+
 bool cyImportant::getChunkID(const double x, const double y, uint32_t* chunkID) {
 	chunkpos_t pos;
 	pos.x = round(x / 16) * 16 - 8;

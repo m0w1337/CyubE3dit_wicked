@@ -66,28 +66,28 @@ void CyLoadingScreen::Update(float dt) {
 void CyMainComponent::CreateScene(void) {
 	Scene& scene				= wiScene::GetScene();
 	wiScene::GetScene().weather = WeatherComponent();
-	if (wiLua::GetLuaState() != nullptr) {
-		wiLua::KillProcesses();
-	}
+	//if (wiLua::GetLuaState() != nullptr) {
+	//	wiLua::KillProcesses();
+	//}
 	// Add some nice weather, not just black:
-	auto& weather	  = scene.weathers.Create(CreateEntity());
-	weather.fogStart  = 100;
-	weather.fogEnd	  = 250;
-	weather.fogHeight = 0;
-	weather.horizon	   = XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.zenith	   = XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.ambient	   = XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
+	auto& weather	   = scene.weathers.Create(CreateEntity());
+	weather.fogStart   = 10;
+	weather.fogEnd	   = 650;
+	weather.fogHeight  = 0;
+	weather.horizon	   = XMFLOAT3(0.9f, 0.9f, 1.f);	 //XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.zenith	   = XMFLOAT3(0.9f, 0.9f, 1.f);	 //XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.ambient	   = XMFLOAT3(.5f, .6f, .7f);	 //XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
 	weather.skyMapName = "images/sky.dds";
 	weather.SetRealisticSky(false);
-	weather.cloudiness = 1.0f;
+	weather.cloudiness = 0.3f;
 	weather.cloudSpeed = 0.01f;
 
-	weather.windSpeed	   = 7.5f;
+	weather.windSpeed	   = 4.5f;
 	weather.windRandomness = 1.5f;
 	weather.windWaveSize   = 0.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 3, 100);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 13, 100);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -96,6 +96,7 @@ void CyMainComponent::CreateScene(void) {
 	transform.SetDirty();
 	transform.UpdateTransform();
 	light->SetCastShadow(true);
+	//light->SetVolumetricsEnabled(true);
 	light->lensFlareRimTextures.resize(6);
 	light->lensFlareNames.resize(6);
 	light->lensFlareRimTextures[0] = wiResourceManager::Load("images/flare0.jpg");
@@ -131,18 +132,20 @@ void CyMainComponent::CreateScene(void) {
 	m_dust							 = wiScene::GetScene().Entity_CreateEmitter("Dust", XMFLOAT3(0, 10, 0));
 	wiScene::wiEmittedParticle* dust = wiScene::GetScene().emitters.GetComponent(m_dust);
 	dust->SetVolumeEnabled(true);
-	dust->shaderType = wiScene::wiEmittedParticle::SOFT_LIGHTING;
-	dust->SetMaxParticleCount(100000);
-	dust->life													= 14.0;
-	dust->random_life											= 1.f;
-	dust->random_factor											= 1.f;
-	dust->count													= 81920;
-	dust->normal_factor											= 0.f;
-	dust->size													= .01f;
-	dust->drag													= 0.9;
-	dust->velocity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed , -1, weather.windDirection.z * weather.windSpeed );
-	dust->gravity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed, -(8.f - weather.windSpeed/6), weather.windDirection.z * weather.windSpeed);
-	dust->random_color											= 0.8f;
+	dust->shaderType = wiScene::wiEmittedParticle::SOFT;
+	dust->SetMaxParticleCount(4096);
+	dust->life			= 8.0;
+	dust->random_life	= 2.f;
+	dust->random_factor = 1.f;
+	dust->count			= 4096;
+	dust->normal_factor = 0.4f;
+	dust->size			= .002f;
+	dust->velocity		= XMFLOAT3(weather.windDirection.x * weather.windSpeed / 2, 0, weather.windDirection.z * weather.windSpeed / 2);
+	//dust->drag													= 0.91;
+	//dust->velocity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed/4 , -1, weather.windDirection.z * weather.windSpeed/4 );
+	//dust->gravity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed, -(7.f - weather.windSpeed/6), weather.windDirection.z * weather.windSpeed);
+	dust->random_color = 0.1f;
+	//dust->motionBlurAmount										= 10;
 	/*
 	dust->mass													= 1.7;
 	dust->SPH_h													= 20.0f;
@@ -154,16 +157,15 @@ void CyMainComponent::CreateScene(void) {
 		*/
 	dust->SetDepthCollisionEnabled(true);
 	wiScene::MaterialComponent* dustmat							= wiScene::GetScene().materials.GetComponent(m_dust);
-	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_rain.dds");
-	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_rain.dds";
-	dustmat->SetEmissiveStrength(100);
-	dustmat->SetEmissiveColor(XMFLOAT4(.7,.8,1,1));
+	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_dust.dds");
+	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
+	//dustmat->SetBaseColor(XMFLOAT4(0.3,0.4,0.6,1.0));
 	//infoDisplay.active											= true;
 	//infoDisplay.watermark  = true;
 	//infoDisplay.resolution = true;
 	//infoDisplay.fpsinfo	   = true;
-	m_probe				   = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
-	cyImportant* world	   = settings::getWorld();
+	m_probe			   = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	cyImportant* world = settings::getWorld();
 	TransformComponent ctransform;
 	settings::newWorld	= "";
 	settings::thisWorld = "";
@@ -398,7 +400,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 
 	wiProfiler::EndRange(range);  // Compose
 }
-
+/*
 void CyRender::ResizeBuffers() {
 	RenderPath3D::ResizeBuffers();
 
@@ -454,26 +456,27 @@ void CyRender::ResizeBuffers() {
 			hr = device->CreateRenderPass(&desc, &renderpass_selectionOutline[1]);
 			assert(hr);
 		}
-		/*{
-			RenderPassDesc desc;
-			desc.attachments.push_back(RenderPassAttachment::RenderTarget(&rtGbuffer[GBUFFER_COLOR_ROUGHNESS], RenderPassAttachment::LOADOP_LOAD));
-			desc.attachments.push_back(
-				RenderPassAttachment::DepthStencil(
-					&depthBuffer_Main,
-					RenderPassAttachment::LOADOP_LOAD,
-					RenderPassAttachment::STOREOP_STORE,
-					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
-					IMAGE_LAYOUT_DEPTHSTENCIL,
-					IMAGE_LAYOUT_DEPTHSTENCIL_READONLY));
-			if (getMSAASampleCount() > 1)
-			{
-				desc.attachments.push_back(RenderPassAttachment::Resolve(&rtGbuffer_resolved[GBUFFER_COLOR_ROUGHNESS]));
-			}
-			hr = device->CreateRenderPass(&desc, &renderpass_composeOutline);
-			assert(hr);
-		}*/
+		//{
+		//	RenderPassDesc desc;
+		//	desc.attachments.push_back(RenderPassAttachment::RenderTarget(&rtGbuffer[GBUFFER_COLOR_ROUGHNESS], RenderPassAttachment::LOADOP_LOAD));
+		//	desc.attachments.push_back(
+		//		RenderPassAttachment::DepthStencil(
+		//			&depthBuffer_Main,
+		//			RenderPassAttachment::LOADOP_LOAD,
+		//			RenderPassAttachment::STOREOP_STORE,
+		//			IMAGE_LAYOUT_DEPTHSTENCIL_READONLY,
+		//			IMAGE_LAYOUT_DEPTHSTENCIL,
+		//			IMAGE_LAYOUT_DEPTHSTENCIL_READONLY));
+		//	if (getMSAASampleCount() > 1)
+		//	{
+		//		desc.attachments.push_back(RenderPassAttachment::Resolve(&rtGbuffer_resolved[GBUFFER_COLOR_ROUGHNESS]));
+		//	}
+		//	hr = device->CreateRenderPass(&desc, &renderpass_composeOutline);
+		//	assert(hr);
+		//}
 	}
 }
+*/
 
 void CyRender::ResizeLayout() {
 	RenderPath3D::ResizeLayout();
@@ -490,6 +493,8 @@ void CyRender::ResizeLayout() {
 	xOffset += 10 + rendererWnd_Toggle.scale.x;
 	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	xOffset += 10 + loadSchBtn.scale.x;
+	saveSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	xOffset += 10 + saveSchBtn.scale.x;
 	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - postprocessWnd_Toggle.scale.y - 15));
 }
@@ -516,12 +521,13 @@ void CyRender::Load() {
 	setMSAASampleCount(1);
 	setDitherEnabled(true);
 	setSharpenFilterEnabled(true);
-	setSharpenFilterAmount(0.17f);
+	setSharpenFilterAmount(-0.17f);
 	wiRenderer::SetTransparentShadowsEnabled(false);
 	wiRenderer::SetShadowProps2D(2048, 4);
 	setVolumetricCloudsEnabled(false);
 	setExposure(1.5f);
-	wiRenderer::SetTemporalAAEnabled(true);
+	wiRenderer::SetTemporalAAEnabled(false);
+	resolutionScale = 1.2f;
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetVoxelRadianceEnabled(true);
 	wiRenderer::SetVoxelRadianceNumCones(2);
@@ -533,9 +539,9 @@ void CyRender::Load() {
 	wiProfiler::SetEnabled(false);
 	setAO(AO_MSAO);
 	setAOPower(0.2);
-	setFXAAEnabled(false);
+	setFXAAEnabled(true);
 	setEyeAdaptionEnabled(false);
-	wiScene::GetCamera().zNearP = 0.5f;
+	wiScene::GetCamera().zNearP = 0.25f;
 	wiScene::GetCamera().zFarP	= 3500.f;
 	label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - sneak peek");
@@ -641,6 +647,7 @@ void CyRender::Load() {
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
 	loadSchBtn.SetSize(XMFLOAT2(120, 20));
 	loadSchBtn.OnClick([&](wiEventArgs args) {
+		loadSchBtn.SetEnabled(false);
 		wiHelper::FileDialogParams params;
 		params.description = "CyubeVR schematic";
 		params.extensions.push_back("cySch");
@@ -649,13 +656,26 @@ void CyRender::Load() {
 	});
 	GetGUI().AddWidget(&loadSchBtn);
 
+	saveSchBtn.Create("Save schematic");
+	saveSchBtn.SetTooltip("Select a portion of your world to save as schematic.");
+	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	saveSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	saveSchBtn.SetSize(XMFLOAT2(120, 20));
+	saveSchBtn.OnClick([&](wiEventArgs args) {
+		//cySchematic::addSelection();
+	});
+	GetGUI().AddWidget(&loadSchBtn);
+
 	RenderPath3D::Load();
 	ResizeBuffers();
 }
 
 void CyRender::Update(float dt) {
-	static cySchematic::hovertype_t drag = cySchematic::HOVER_NONE;
-	static size_t dragID				 = 0;
+	static cySchematic::hovertype_t drag	= cySchematic::HOVER_NONE;
+	static size_t dragID					= 0;
+	static cySchematic::hovertype_t clicked = cySchematic::HOVER_NONE;
+	dragID									= 0;
 	static XMVECTOR deltaV;
 	static wiECS::Entity lastHovered = wiECS::INVALID_ENTITY;
 	CameraComponent& camera			 = wiScene::GetCamera();
@@ -663,7 +683,7 @@ void CyRender::Update(float dt) {
 	static XMFLOAT4 originalMouse = XMFLOAT4(0, 0, 0, 0);
 	static float Accel			  = 0.0;
 	static bool camControlStart	  = true;
-	static bool schDraged	  = false;
+	static bool schDraged		  = false;
 	lasttime += dt * 4;
 	sinepulse = std::sinf(lasttime);
 	if (lasttime > 100) {
@@ -678,110 +698,177 @@ void CyRender::Update(float dt) {
 	XMFLOAT4 currentMouse = wiInput::GetPointer();
 	float xDif = 0, yDif = 0;
 
-	if (wiInput::Down(wiInput::MOUSE_BUTTON_LEFT) && !GetGUI().GetActiveWidget())
-	{
-		camControlStart = false;
+	if (wiInput::Down(wiInput::MOUSE_BUTTON_LEFT) && !GetGUI().GetActiveWidget()) {
 		if (drag != cySchematic::HOVER_NONE) {
-			schDraged		 = true;
-			XMFLOAT4 pointer = wiInput::GetPointer();
-			XMVECTOR plane, planeNormal;
-			TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->hoverEntities[drag].entity);
-			XMVECTOR pos				  = transform->GetPositionV();
-			XMVECTOR B, axis, wrong;
+			schDraged = true;
 			switch (drag) {
-				case cySchematic::HOVER_X_AXIS:
-					axis		= XMVectorSet(1, 0, 0, 0);
-					B			= pos + XMVectorSet(1, 0, 0, 0);
-					wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
-					planeNormal = XMVector3Cross(wrong, axis);
+				case cySchematic::HOVER_CHECK:
+					clicked = drag;
 					break;
-				case cySchematic::HOVER_Y_AXIS:
-					axis		= XMVectorSet(0, 0, 1, 0);
-					B			= pos + XMVectorSet(0, 0, 1, 0);
-					wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
-					planeNormal = XMVector3Cross(wrong, axis);
+				case cySchematic::HOVER_CROSS:
+					clicked = drag;
 					break;
-				case cySchematic::HOVER_Z_AXIS:
-					axis		= XMVectorSet(0, 1, 0, 0);
-					B			= pos + XMVectorSet(0, 1, 0, 0);
-					wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
-					planeNormal = XMVector3Cross(wrong, axis);
+				case cySchematic::HOVER_ROTCC:
+					clicked = drag;
 					break;
-				case cySchematic::HOVER_ORIGIN:
-					planeNormal = wiScene::GetCamera().GetAt();
-					break;
-				case cySchematic::HOVER_XY_PLANE:
-					planeNormal = XMVectorSet(0, 1, 0, 0);
-					break;
-				case cySchematic::HOVER_XZ_PLANE:
-					planeNormal = XMVectorSet(0, 0, 1, 0);
-					break;
-				case cySchematic::HOVER_YZ_PLANE:
-					planeNormal = XMVectorSet(1, 0, 0, 0);
-					break;
-					break;
-			}
-			plane = XMPlaneFromPointNormal(pos, XMVector3Normalize(planeNormal));
-
-			RAY ray				  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
-			XMVECTOR rayOrigin	  = XMLoadFloat3(&ray.origin);
-			XMVECTOR rayDir		  = XMLoadFloat3(&ray.direction);
-			XMVECTOR intersection = XMPlaneIntersectLine(plane, rayOrigin, rayOrigin + rayDir * wiScene::GetCamera().zFarP);
-
-			ray						  = wiRenderer::GetPickRay((long)originalMouse.x, (long)originalMouse.y);
-			rayOrigin				  = XMLoadFloat3(&ray.origin);
-			rayDir					  = XMLoadFloat3(&ray.direction);
-			XMVECTOR intersectionPrev = XMPlaneIntersectLine(plane, rayOrigin, rayOrigin + rayDir * wiScene::GetCamera().zFarP);
-
-			switch (drag) {
-				case cySchematic::HOVER_X_AXIS:
-				case cySchematic::HOVER_Y_AXIS:
-				case cySchematic::HOVER_Z_AXIS:
-					XMVECTOR P	   = wiMath::GetClosestPointToLine(pos, B, intersection);
-					XMVECTOR PPrev = wiMath::GetClosestPointToLine(pos, B, intersectionPrev);
-					deltaV += P - PPrev;
+				case cySchematic::HOVER_ROTCW:
+					clicked = drag;
 					break;
 				default:
-					deltaV += intersection - intersectionPrev;
+					camControlStart	 = false;
+					XMFLOAT4 pointer = wiInput::GetPointer();
+					XMVECTOR plane, planeNormal;
+					TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->hoverEntities[drag].entity);
+					if (transform != nullptr) {
+						XMVECTOR pos = transform->GetPositionV();
+						XMVECTOR B, axis, wrong;
+						switch (drag) {
+							case cySchematic::HOVER_X_AXIS:
+								axis		= XMVectorSet(1, 0, 0, 0);
+								B			= pos + XMVectorSet(1, 0, 0, 0);
+								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
+								planeNormal = XMVector3Cross(wrong, axis);
+								break;
+							case cySchematic::HOVER_Y_AXIS:
+								axis		= XMVectorSet(0, 0, 1, 0);
+								B			= pos + XMVectorSet(0, 0, 1, 0);
+								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
+								planeNormal = XMVector3Cross(wrong, axis);
+								break;
+							case cySchematic::HOVER_Z_AXIS:
+								axis		= XMVectorSet(0, 1, 0, 0);
+								B			= pos + XMVectorSet(0, 1, 0, 0);
+								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
+								planeNormal = XMVector3Cross(wrong, axis);
+								break;
+							case cySchematic::HOVER_ORIGIN:
+								planeNormal = wiScene::GetCamera().GetAt();
+								break;
+							case cySchematic::HOVER_XY_PLANE:
+								planeNormal = XMVectorSet(0, 1, 0, 0);
+								break;
+							case cySchematic::HOVER_XZ_PLANE:
+								planeNormal = XMVectorSet(0, 0, 1, 0);
+								break;
+							case cySchematic::HOVER_YZ_PLANE:
+								planeNormal = XMVectorSet(1, 0, 0, 0);
+								break;
+							default:
+								break;
+						}
+						plane = XMPlaneFromPointNormal(pos, XMVector3Normalize(planeNormal));
+
+						RAY ray				  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+						XMVECTOR rayOrigin	  = XMLoadFloat3(&ray.origin);
+						XMVECTOR rayDir		  = XMLoadFloat3(&ray.direction);
+						XMVECTOR intersection = XMPlaneIntersectLine(plane, rayOrigin, rayOrigin + rayDir * wiScene::GetCamera().zFarP);
+
+						ray						  = wiRenderer::GetPickRay((long)originalMouse.x, (long)originalMouse.y);
+						rayOrigin				  = XMLoadFloat3(&ray.origin);
+						rayDir					  = XMLoadFloat3(&ray.direction);
+						XMVECTOR intersectionPrev = XMPlaneIntersectLine(plane, rayOrigin, rayOrigin + rayDir * wiScene::GetCamera().zFarP);
+
+						switch (drag) {
+							case cySchematic::HOVER_X_AXIS:
+							case cySchematic::HOVER_Y_AXIS:
+							case cySchematic::HOVER_Z_AXIS:
+								XMVECTOR P	   = wiMath::GetClosestPointToLine(pos, B, intersection);
+								XMVECTOR PPrev = wiMath::GetClosestPointToLine(pos, B, intersectionPrev);
+								deltaV += P - PPrev;
+								break;
+							default:
+								deltaV += intersection - intersectionPrev;
+						}
+						XMFLOAT3 delta;
+						delta.x	  = roundf(XMVectorGetX(deltaV) * 2) / 2;
+						delta.y	  = roundf(XMVectorGetY(deltaV) * 2) / 2;
+						delta.z	  = roundf(XMVectorGetZ(deltaV) * 2) / 2;
+						deltaV	  = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
+						transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
+						//transform->ApplyTransform();
+						transform->Translate(delta);
+						transform->UpdateTransform();
+						cySchematic::m_schematics[dragID]->pos.x += delta.x;
+						cySchematic::m_schematics[dragID]->pos.z += delta.y;
+						cySchematic::m_schematics[dragID]->pos.y += delta.z;
+						originalMouse = pointer;
+					} else {  //hovered element was deleted -> clear drag request
+						drag = cySchematic::HOVER_NONE;
+					}
+					break;
 			}
-			XMFLOAT3 delta;
-			delta.x	  = roundf(XMVectorGetX(deltaV) * 2) / 2;
-			delta.y	  = roundf(XMVectorGetY(deltaV) * 2) / 2;
-			delta.z	  = roundf(XMVectorGetZ(deltaV) * 2) / 2;
-			deltaV	  = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
-			transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
-			//transform->ApplyTransform();
-			transform->Translate(delta);
-			transform->UpdateTransform();
-			cySchematic::m_schematics[dragID]->pos.x += delta.x;
-			cySchematic::m_schematics[dragID]->pos.z += delta.y;
-			cySchematic::m_schematics[dragID]->pos.y += delta.z;
-			originalMouse							 = pointer;
 		} else {
 			hovered.entity = wiECS::INVALID_ENTITY;
+		}
+
+	} else if (wiInput::Down(wiInput::MOUSE_BUTTON_RIGHT))
+	{
+		camControlStart = false;
 
 #if 1
-			// Mouse delta from previous frame:
-			xDif = currentMouse.x - originalMouse.x;
-			yDif = currentMouse.y - originalMouse.y;
+		// Mouse delta from previous frame:
+		xDif = currentMouse.x - originalMouse.x;
+		yDif = currentMouse.y - originalMouse.y;
 #else
-			// Mouse delta from hardware read:
-			xDif = wiInput::GetMouseState().delta_position.x;
-			yDif = wiInput::GetMouseState().delta_position.y;
+		// Mouse delta from hardware read:
+		xDif = wiInput::GetMouseState().delta_position.x;
+		yDif = wiInput::GetMouseState().delta_position.y;
 #endif
-			xDif = 0.1f * xDif * (1.0f / 60.0f);
-			yDif = 0.1f * yDif * (1.0f / 60.0f);
-			wiInput::SetPointer(originalMouse);
-			wiInput::HidePointer(true);
-		}
+		xDif = 0.1f * xDif * (1.0f / 60.0f);
+		yDif = 0.1f * yDif * (1.0f / 60.0f);
+		wiInput::SetPointer(originalMouse);
+		wiInput::HidePointer(true);
 	} else {
+		if (cySchematic::m_schematics.size() > 0) {
+			for (size_t i = 0; i < cySchematic::m_schematics.size(); i++) {
+				wiScene::Scene& scene	   = wiScene::GetScene();
+				RAY pickRay				   = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+				wiScene::PickResult SchHov = wiScene::Pick(pickRay, RENDERTYPE_TRANSPARENT | RENDERTYPE_OPAQUE, LAYER_SCHEMATIC);
+				drag					   = cySchematic::m_schematics[i]->hoverGizmo(SchHov.entity);
+				dragID					   = i;
+				XMMATRIX sca			   = XMMatrixScaling(cySchematic::m_schematics[i]->size.x / 2, cySchematic::m_schematics[i]->size.z / 2, cySchematic::m_schematics[i]->size.y / 2);
+				XMMATRIX tra			   = XMMatrixTranslation(cySchematic::m_schematics[i]->pos.x + cySchematic::m_schematics[i]->size.x / 2 - 0.25f, cySchematic::m_schematics[i]->pos.z + cySchematic::m_schematics[i]->size.z / 2 - 0.25f, cySchematic::m_schematics[i]->pos.y + cySchematic::m_schematics[i]->size.y / 2 + 0.25f);
+				XMFLOAT4X4 hoverBox;
+				XMStoreFloat4x4(&hoverBox, sca * tra);
+				wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
+			}
+		}
 		if (schDraged) {
 			schDraged = false;
-			wiJobSystem::context ctx;
-			wiJobSystem::Execute(ctx, [](wiJobArgs args) { cySchematic::m_schematics[dragID]->generateChunkPreview(); });
-			
+			switch (clicked) {
+				case cySchematic::HOVER_CHECK:
+					if (clicked == drag) {
+						//save here!!
+					}
+					break;
+				case cySchematic::HOVER_CROSS:
+					if (clicked == drag) {
+						cySchematic::m_schematics[dragID]->clearSchematic();
+						if (cySchematic::m_schematics.size() == 0) {
+							loadSchBtn.SetEnabled(true);
+						}
+					}
+					break;
+				case cySchematic::HOVER_ROTCC:
+					if (clicked == drag) {
+						//rotate here!!
+					}
+					break;
+				case cySchematic::HOVER_ROTCW:
+					if (clicked == drag) {
+						//rotate here!!
+					}
+					break;
+				default:
+					cySchematic::m_schematics[dragID]->m_dirty = true;
+					break;
+			}
+			clicked = cySchematic::HOVER_NONE;
+			drag	= cySchematic::HOVER_NONE;	//clear hover state as it won't be updated if no schematic is present
 		}
+
 		camControlStart = true;
+
 		wiInput::HidePointer(false);
 		if (rendererWnd.GetPickType()) {
 			RAY pickRay		  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
@@ -810,20 +897,6 @@ void CyRender::Update(float dt) {
 				object->color = XMFLOAT4(1, 1, 1, 1);
 			}
 			lastHovered = hovered.entity;
-		}
-		if (cySchematic::m_schematics.size() > 0) {
-			for (size_t i = 0; i < cySchematic::m_schematics.size(); i++) {
-				wiScene::Scene& scene	   = wiScene::GetScene();
-				RAY pickRay				   = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
-				wiScene::PickResult SchHov = wiScene::Pick(pickRay, 1, LAYER_SCHEMATIC);
-				drag					   = cySchematic::m_schematics[i]->hoverGizmo(SchHov.entity);
-				dragID					   = i;
-				XMMATRIX sca			   = XMMatrixScaling(cySchematic::m_schematics[i]->size.x / 2, cySchematic::m_schematics[i]->size.z / 2, cySchematic::m_schematics[i]->size.y / 2);
-				XMMATRIX tra			   = XMMatrixTranslation(cySchematic::m_schematics[i]->pos.x + cySchematic::m_schematics[i]->size.x / 2 - 0.25f, cySchematic::m_schematics[i]->pos.z + cySchematic::m_schematics[i]->size.z / 2 - 0.25f, cySchematic::m_schematics[i]->pos.y + cySchematic::m_schematics[i]->size.y / 2 + 0.25f);
-				XMFLOAT4X4 hoverBox;
-				XMStoreFloat4x4(&hoverBox, sca * tra);
-				wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
-			}
 		}
 	}
 
@@ -856,19 +929,15 @@ void CyRender::Update(float dt) {
 	// FPS Camera
 	const float clampedDT = min(dt, 0.15f);	 // if dt > 100 millisec, don't allow the camera to jump too far...
 	bool btn			  = false;
-	//static XMVECTOR move = XMVectorSet(0, 0, 0, 0);
-	//static float moveY = 0.f;
-	XMVECTOR moveNew = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
-	float moveNewY	 = 0.f;
+	XMVECTOR moveNew	  = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
+	float moveNewY		  = 0.f;
 
 	Accel += clampedDT * 1.1f;
 	if (Accel > 3.5) {
 		Accel = 3.5;
 	}
 	const float speed = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0) + rightTrigger.x * 10.0f) * Accel * settings::camspeed * clampedDT;
-	//if (!wiInput::Down(wiInput::KEYBOARD_BUTTON_LCONTROL))
-	//{
-	// Only move camera if control not pressed
+
 	if (wiInput::Down((wiInput::BUTTON)'A')) {
 		moveNew += XMVectorSet(-1, 0, 0, 0);
 		btn = true;
@@ -891,11 +960,8 @@ void CyRender::Update(float dt) {
 		btn		 = true;
 	}
 	moveNew += XMVector3Normalize(moveNew);
-	//}
 	moveNew *= speed;
 	moveNewY *= speed;
-	//move	   = XMVectorLerp(move, moveNew, 0.20f * clampedDT );	// smooth the movement a bit
-	//moveY	   = wiMath::Lerp(moveY, moveNewY, 0.20f * clampedDT);  // smooth the movement a bit
 	float moveLength = XMVectorGetX(XMVector3Length(moveNew)) + abs(moveNewY);
 	if (moveLength < 0.0001f)
 	{
@@ -908,48 +974,12 @@ void CyRender::Update(float dt) {
 		Accel = 0;
 	}
 	wiScene::TransformComponent camera_transform;
-	//if (moveLength < 10) {	//Ignore when movement is too far
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
 		camera_transform.MatrixTransform(wiScene::GetCamera().GetInvView());
 		camera_transform.UpdateTransform();
 		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
 		XMVECTOR move_rot = XMVector3TransformNormal(moveNew, camRot);
-		/*
-		if (settings::collision == true && !wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
-			int ccd_max	  = 20;
-			XMVECTOR step = XMVectorSet(0, 0, 0, 0);
-			SPHERE sphere;
-			sphere.center = camera_transform.GetPosition();
-			sphere.radius = 0.22;
-			for (int ccd = 0; ccd < ccd_max; ++ccd)
-			{
-				step = move_rot / ccd_max;
-				//step = step * 0.016;
-				XMFLOAT3 cTransf;
-				XMStoreFloat3(&cTransf, step);
-				sphere.center.x += cTransf.x;
-				sphere.center.y += cTransf.y;
-				sphere.center.z += cTransf.z;
-				wiScene::SceneIntersectSphereResult intersect = SceneIntersectSphere(sphere, 1);
-				if (intersect.entity)
-				{
-					// Modify player velocity to slide on contact surface:
-					XMVECTOR velocity_length	 = XMVector3Length(move_rot);
-					XMVECTOR velocity_normalized = XMVector3Normalize(move_rot);
-					XMVECTOR collisionNormal	 = XMLoadFloat3(&(intersect.normal));
-					XMVECTOR undesired_motion	 = collisionNormal * XMVector3Dot(velocity_normalized, collisionNormal);
-					XMVECTOR desired_motion		 = XMVectorSubtract(velocity_normalized, undesired_motion);
-					move_rot					 = desired_motion * velocity_length;
-					// Remove penetration (penetration epsilon added to handle infinitely small penetration):
-					XMStoreFloat3(&cTransf, (collisionNormal * (intersect.depth + 0.0001)));
-					sphere.center.x += cTransf.x;
-					sphere.center.y += cTransf.y;
-					sphere.center.z += cTransf.z;
-				}
-			}
-		}
-		*/
 
 		if (settings::camMode && XMVectorGetX(XMVector3Length(moveNew)) > 0.0001) {
 			moveLength = XMVectorGetX(XMVector3Length(move_rot));
@@ -993,383 +1023,4 @@ void CyRender::Update(float dt) {
 		Accel = 0;
 	}
 	RenderPath3D::Update(dt);
-}
-
-void CyRender::Compose(wiGraphics::CommandList cmd) const {
-	RenderPath3D::Compose(cmd);
-}
-
-void CyRender::Render() const {
-
-	GraphicsDevice* device = wiRenderer::GetDevice();
-	wiJobSystem::context ctx;
-	CommandList cmd;
-
-	// Preparing the frame:
-	cmd = device->BeginCommandList();
-	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
-		RenderFrameSetUp(cmd);
-	});
-
-	static const uint32_t drawscene_flags =
-		wiRenderer::DRAWSCENE_OPAQUE |
-		wiRenderer::DRAWSCENE_HAIRPARTICLE |
-		wiRenderer::DRAWSCENE_TESSELLATION |
-		wiRenderer::DRAWSCENE_OCCLUSIONCULLING;
-	static const uint32_t drawscene_flags_reflections =
-		wiRenderer::DRAWSCENE_OPAQUE;
-
-	// Depth prepass + Occlusion culling + AO:
-	cmd = device->BeginCommandList();
-	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
-		GraphicsDevice* device = wiRenderer::GetDevice();
-
-		wiRenderer::UpdateCameraCB(
-			*camera,
-			camera_previous,
-			camera_reflection,
-			cmd);
-
-		device->RenderPassBegin(&renderpass_depthprepass, cmd);
-
-		device->EventBegin("Opaque Z-prepass", cmd);
-		auto range = wiProfiler::BeginRangeGPU("Z-Prepass", cmd);
-
-		Viewport vp;
-		vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
-		vp.Height = (float)depthBuffer_Main.GetDesc().Height;
-		device->BindViewports(1, &vp, cmd);
-		wiRenderer::DrawScene(visibility_main, RENDERPASS_PREPASS, cmd, drawscene_flags);
-		wiRenderer::DrawSkyVelocity(cmd);
-
-		wiProfiler::EndRange(range);
-		device->EventEnd(cmd);
-
-		wiRenderer::OcclusionCulling_Render(*camera, visibility_main, cmd);
-
-		device->RenderPassEnd(cmd);
-
-		// Create the top mip of depth pyramid from main depth buffer:
-		if (getMSAASampleCount() > 1)
-		{
-			wiRenderer::ResolveMSAADepthBuffer(depthBuffer_Copy, depthBuffer_Main, cmd);
-		} else
-		{
-			wiRenderer::CopyTexture2D(depthBuffer_Copy, 0, 0, 0, depthBuffer_Main, 0, cmd);
-		}
-
-		wiRenderer::Postprocess_DepthPyramid(depthBuffer_Copy, rtLinearDepth, cmd);
-
-		RenderAO(cmd);
-
-		if (wiRenderer::GetVariableRateShadingClassification() && device->CheckCapability(GRAPHICSDEVICE_CAPABILITY_VARIABLE_RATE_SHADING_TIER2))
-		{
-			wiRenderer::ComputeShadingRateClassification(
-				GetGbuffer_Read(),
-				rtLinearDepth,
-				rtShadingRate,
-				debugUAV,
-				cmd);
-		}
-
-		if (getVolumetricCloudsEnabled())
-		{
-			wiRenderer::Postprocess_VolumetricClouds(
-				volumetriccloudResources,
-				rtLinearDepth,
-				depthBuffer_Copy,
-				cmd);
-		}
-	});
-
-	// Planar reflections depth prepass + Light culling:
-	if (visibility_main.IsRequestedPlanarReflections())
-	{
-		cmd = device->BeginCommandList();
-		wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
-			GraphicsDevice* device = wiRenderer::GetDevice();
-
-			wiRenderer::UpdateCameraCB(
-				camera_reflection,
-				camera_reflection,
-				camera_reflection,
-				cmd);
-
-			device->EventBegin("Planar reflections Z-Prepass", cmd);
-			auto range = wiProfiler::BeginRangeGPU("Planar Reflections Z-Prepass", cmd);
-
-			Viewport vp;
-			vp.Width  = (float)depthBuffer_Reflection.GetDesc().Width;
-			vp.Height = (float)depthBuffer_Reflection.GetDesc().Height;
-			device->BindViewports(1, &vp, cmd);
-
-			device->RenderPassBegin(&renderpass_reflection_depthprepass, cmd);
-
-			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_PREPASS, cmd, drawscene_flags_reflections);
-
-			device->RenderPassEnd(cmd);
-
-			wiProfiler::EndRange(range);  // Planar Reflections
-			device->EventEnd(cmd);
-			wiRenderer::ComputeTiledLightCulling(
-				tiledLightResources,
-				depthBuffer_Reflection,
-				debugUAV,
-				cmd);
-		});
-	}
-
-	// Shadow maps:
-	if (getShadowsEnabled())
-	{
-		cmd = device->BeginCommandList();
-		wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
-			wiRenderer::DrawShadowmaps(visibility_main, cmd);
-		});
-	}
-
-	// Updating textures:
-	cmd = device->BeginCommandList();
-	wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
-		wiRenderer::BindCommonResources(cmd);
-		wiRenderer::RefreshDecalAtlas(*scene, cmd);
-		wiRenderer::RefreshLightmapAtlas(*scene, cmd);
-		wiRenderer::RefreshEnvProbes(visibility_main, cmd);
-		wiRenderer::RefreshImpostors(*scene, cmd);
-	});
-
-	// Voxel GI:
-	if (wiRenderer::GetVoxelRadianceEnabled())
-	{
-		cmd = device->BeginCommandList();
-		wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
-			wiRenderer::VoxelRadiance(visibility_main, cmd);
-		});
-	}
-
-	// Planar reflections:
-	if (visibility_main.IsRequestedPlanarReflections())
-	{
-		cmd = device->BeginCommandList();
-		wiJobSystem::Execute(ctx, [cmd, this](wiJobArgs args) {
-			GraphicsDevice* device = wiRenderer::GetDevice();
-
-			wiRenderer::UpdateCameraCB(
-				camera_reflection,
-				camera_reflection,
-				camera_reflection,
-				cmd);
-
-			device->EventBegin("Planar reflections", cmd);
-			auto range = wiProfiler::BeginRangeGPU("Planar Reflections", cmd);
-
-			Viewport vp;
-			vp.Width  = (float)depthBuffer_Reflection.GetDesc().Width;
-			vp.Height = (float)depthBuffer_Reflection.GetDesc().Height;
-			device->BindViewports(1, &vp, cmd);
-
-			device->UnbindResources(TEXSLOT_DEPTH, 1, cmd);
-
-			device->RenderPassBegin(&renderpass_reflection, cmd);
-
-			device->BindResource(PS, &tiledLightResources.entityTiles_Opaque, TEXSLOT_RENDERPATH_ENTITYTILES, cmd);
-			device->BindResource(PS, wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_REFLECTION, cmd);
-			device->BindResource(PS, wiTextureHelper::getWhite(), TEXSLOT_RENDERPATH_AO, cmd);
-			device->BindResource(PS, wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_SSR, cmd);
-			device->BindResource(PS, wiTextureHelper::getUINT4(), TEXSLOT_RENDERPATH_RTSHADOW, cmd);
-			wiRenderer::DrawScene(visibility_reflection, RENDERPASS_MAIN, cmd, drawscene_flags_reflections);
-			wiRenderer::DrawSky(*scene, cmd);
-
-			device->RenderPassEnd(cmd);
-
-			wiProfiler::EndRange(range);  // Planar Reflections
-			device->EventEnd(cmd);
-		});
-	}
-
-	// Lighting effects:
-	cmd = device->BeginCommandList();
-	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
-		GraphicsDevice* device = wiRenderer::GetDevice();
-
-		wiRenderer::UpdateCameraCB(
-			*camera,
-			camera_previous,
-			camera_reflection,
-			cmd);
-
-		{
-			auto range = wiProfiler::BeginRangeGPU("Entity Culling", cmd);
-			wiRenderer::ComputeTiledLightCulling(
-				tiledLightResources,
-				depthBuffer_Copy,
-				debugUAV,
-				cmd);
-			wiProfiler::EndRange(range);
-		}
-
-		RenderSSR(cmd);
-
-		if (wiRenderer::GetScreenSpaceShadowsEnabled())
-		{
-			wiRenderer::Postprocess_ScreenSpaceShadow(
-				screenspaceshadowResources,
-				depthBuffer_Copy,
-				rtLinearDepth,
-				tiledLightResources.entityTiles_Opaque,
-				rtShadow,
-				cmd,
-				getScreenSpaceShadowRange(),
-				getScreenSpaceShadowSampleCount());
-		}
-
-		if (wiRenderer::GetRaytracedShadowsEnabled())
-		{
-			wiRenderer::Postprocess_RTShadow(
-				rtshadowResources,
-				*scene,
-				depthBuffer_Copy,
-				rtLinearDepth,
-				depthBuffer_Copy1,
-				tiledLightResources.entityTiles_Opaque,
-				GetGbuffer_Read(),
-				rtShadow,
-				cmd);
-		}
-	});
-
-	// Opaque scene:
-	cmd = device->BeginCommandList();
-	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
-		GraphicsDevice* device = wiRenderer::GetDevice();
-		device->EventBegin("Opaque Scene", cmd);
-
-		device->RenderPassBegin(&renderpass_main, cmd);
-
-		auto range = wiProfiler::BeginRangeGPU("Opaque Scene", cmd);
-
-		Viewport vp;
-		vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
-		vp.Height = (float)depthBuffer_Main.GetDesc().Height;
-		device->BindViewports(1, &vp, cmd);
-
-		if (wiRenderer::GetRaytracedShadowsEnabled() || wiRenderer::GetScreenSpaceShadowsEnabled())
-		{
-			device->BindResource(PS, &rtShadow, TEXSLOT_RENDERPATH_RTSHADOW, cmd);
-		} else
-		{
-			device->BindResource(PS, wiTextureHelper::getUINT4(), TEXSLOT_RENDERPATH_RTSHADOW, cmd);
-		}
-
-		device->BindResource(PS, &tiledLightResources.entityTiles_Opaque, TEXSLOT_RENDERPATH_ENTITYTILES, cmd);
-		device->BindResource(PS, getReflectionsEnabled() ? &rtReflection : wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_REFLECTION, cmd);
-		device->BindResource(PS, getAOEnabled() ? &rtAO : wiTextureHelper::getWhite(), TEXSLOT_RENDERPATH_AO, cmd);
-		device->BindResource(PS, getSSREnabled() || getRaytracedReflectionEnabled() ? &rtSSR : wiTextureHelper::getTransparent(), TEXSLOT_RENDERPATH_SSR, cmd);
-		wiRenderer::DrawScene(visibility_main, RENDERPASS_MAIN, cmd, drawscene_flags);
-		wiRenderer::DrawSky(*scene, cmd);
-
-		wiProfiler::EndRange(range);  // Opaque Scene
-
-		RenderOutline(cmd);
-
-		// Upsample + Blend the volumetric clouds on top:
-		if (getVolumetricCloudsEnabled())
-		{
-			device->EventBegin("Volumetric Clouds Upsample + Blend", cmd);
-			wiRenderer::Postprocess_Upsample_Bilateral(
-				volumetriccloudResources.texture_reproject[device->GetFrameCount() % 2],
-				rtLinearDepth,
-				*GetGbuffer_Read(GBUFFER_COLOR),  // only desc is taken if pixel shader upsampling is used
-				cmd,
-				true  // pixel shader upsampling
-			);
-			device->EventEnd(cmd);
-		}
-
-		device->RenderPassEnd(cmd);
-
-		device->EventEnd(cmd);
-
-		// Selection outline:
-
-		if (GetDepthStencil() != nullptr)
-		{
-			//Viewport vp;
-			// We will specify the stencil ref in user-space, don't care about engine stencil refs here:
-			//	Otherwise would need to take into account engine ref and draw multiple permutations of stencil refs.
-			vp.Width  = (float)rt_selectionOutline[0].GetDesc().Width;
-			vp.Height = (float)rt_selectionOutline[0].GetDesc().Height;
-			device->BindViewports(1, &vp, cmd);
-
-			wiImageParams fx;
-			fx.enableFullScreen();
-			fx.stencilComp	  = STENCILMODE::STENCILMODE_EQUAL;
-			fx.stencilRefMode = STENCILREFMODE_USER;
-
-			// Materials outline:
-			{
-				device->RenderPassBegin(&renderpass_selectionOutline[0], cmd);
-
-				// Draw solid blocks of selected materials
-				fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_MATERIAL;
-				wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
-
-				device->RenderPassEnd(cmd);
-			}
-
-			// Objects outline:
-			{
-				device->UnbindResources(TEXSLOT_ONDEMAND0, 1, cmd);
-				device->RenderPassBegin(&renderpass_selectionOutline[1], cmd);
-
-				// Draw solid blocks of selected objects
-				fx.stencilRef = EDITORSTENCILREF_HIGHLIGHT_OBJECT;
-				wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
-
-				device->RenderPassEnd(cmd);
-			}
-			device->RenderPassBegin(&renderpass_composeOutline, cmd);
-			vp.Width  = (float)depthBuffer_Main.GetDesc().Width;
-			vp.Height = (float)depthBuffer_Main.GetDesc().Height;
-			device->BindViewports(1, &vp, cmd);
-
-			const float selectionColorIntensity = sinepulse * 0.5f + 0.5f;
-			float opacity						= wiMath::Lerp(0.0f, 0.3f, selectionColorIntensity);
-			XMFLOAT4 col						= selectionColor2;
-			col.w *= opacity;
-			wiRenderer::Postprocess_Outline(rt_selectionOutline[0], cmd, 0.1f, 0.5f, col);
-			col = selectionColor;
-			col.w *= opacity + 0.2;
-			wiRenderer::Postprocess_Outline(rt_selectionOutline[1], cmd, 0.1f, 1.0f, col);
-			device->RenderPassEnd(cmd);
-		}
-		//END selection_outline
-	});
-
-	// Transparents, post processes, etc:
-	cmd = device->BeginCommandList();
-	wiJobSystem::Execute(ctx, [this, cmd](wiJobArgs args) {
-		GraphicsDevice* device = wiRenderer::GetDevice();
-
-		wiRenderer::UpdateCameraCB(
-			*camera,
-			camera_previous,
-			camera_reflection,
-			cmd);
-		wiRenderer::BindCommonResources(cmd);
-
-		RenderLightShafts(cmd);
-
-		RenderVolumetrics(cmd);
-
-		RenderSceneMIPChain(cmd);
-
-		RenderTransparents(cmd);
-
-		RenderPostprocessChain(cmd);
-	});
-
-	RenderPath2D::Render();
-
-	wiJobSystem::Wait(ctx);
 }

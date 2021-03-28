@@ -5,8 +5,6 @@
 class cySchematic {
 public:
 	typedef enum hovertype_e{
-		HOVER_ROTCW,
-		HOVER_ROTCC,
 		HOVER_X_AXIS,
 		HOVER_Y_AXIS,
 		HOVER_Z_AXIS,
@@ -14,6 +12,10 @@ public:
 		HOVER_XZ_PLANE,
 		HOVER_YZ_PLANE,
 		HOVER_ORIGIN,
+		HOVER_ROTCW,
+		HOVER_ROTCC,
+		HOVER_CHECK,
+		HOVER_CROSS,
 		HOVER_NUMELEMENTS,
 		HOVER_NONE
 	} hovertype_t;
@@ -95,6 +97,7 @@ public:
 	struct hoverAttr_s {
 		wiECS::Entity entity;
 		XMFLOAT4 hovercolor;
+		XMFLOAT4 nohovercolor;
 	};
 	XMFLOAT3 size;
 	XMFLOAT3 pos;
@@ -106,14 +109,20 @@ public:
 	std::vector<cyChunk::treeLoc> trees;
 	wiECS::Entity mainEntity;
 	struct hoverAttr_s hoverEntities[HOVER_NUMELEMENTS];
+	uint8_t m_activeGizmo;
 	bool m_isAirChunk;
 	char* m_chunkdata;
+	bool m_dirty;
+	static bool updating;
 	cySchematic(string filename);
 	static void addSchematic(std::string filename);
 	hovertype_t hoverGizmo(const wiECS::Entity entity);
-	void RenderSchematic(const float relX, const float relY, const float relZ);
+	void RenderSchematic(void);
 	void getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks);
 	void generateChunkPreview(void);
+	void clearSchematic(void);
+	static void clearAllSchematics(void);
+	static void updateDirtyPreviews(void);
 
 private:
 	void loadCustomBlocks(void);

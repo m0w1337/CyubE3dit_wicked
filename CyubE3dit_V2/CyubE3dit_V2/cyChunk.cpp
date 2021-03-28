@@ -14,18 +14,19 @@ void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 	m_isAirChunk	= true;
 	m_surfaceheight = 799;
 	rc				= sqlite3_blob_open(db, "main", "CHUNKDATA", "DATA", chunkID, 0, &pChunkBlob);
-	if (rc) {
-		Sleep(1);
-		rc = sqlite3_blob_open(db, "main", "CHUNKDATA", "DATA", chunkID, 0, &pChunkBlob);
-		if (rc) {
+	while (rc) {
+		if (sqlite3_errmsg(db) == std::string("database is locked")) {
+			Sleep(2);
 			std::string str(sqlite3_errmsg(db));
+			wiBackLog::post("retry...");
 			wiBackLog::post(str.c_str());
-			if (fast)
-				solidChunk();
-			else
-				airChunk();
-			return;
+			rc = sqlite3_blob_open(db, "main", "CHUNKDATA", "DATA", chunkID, 0, &pChunkBlob);
+		} else {
+			break;
 		}
+	}
+	if (rc) {
+		//check for chunk file here
 	}
 
 	int32_t chunksize	   = 0;
@@ -67,12 +68,21 @@ void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 			solidChunk();
 		else
 			airChunk();
-		wiBackLog::post("Empty BLOB");
 	}
 }
 
 void cyChunk::replaceWithAir(uint8_t x, uint8_t y, uint16_t z) {
 	m_chunkdata[4 + x + 32 * y + 32 * 32 * z] = cyBlocks::m_voidID;
+}
+void cyChunk::replaceCubeWithAir(uint8_t x1, uint8_t y1, uint16_t z1, uint8_t x2, uint8_t y2, uint16_t z2) {
+	for (uint8_t x = x1; x < x2; x++) {
+		for (uint8_t y = y1; y < y2; y++) {
+			for (uint16_t z = z1; z < z2; z++) {
+				m_chunkdata[4 + x + 32 * y + 32 * 32 * z] = cyBlocks::m_voidID;
+			}
+		}
+	}
+	
 }
 void cyChunk::airChunk(void) {
 	//m_chunkdata = (char*)realloc(m_chunkdata, 32 * 32 * 800 + 4);
