@@ -69,7 +69,7 @@ private:
 // Transform the data from OBJ space to engine-space:
 static const bool transform_to_LH = true;
 
-wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t windMode, float emissiveStrength) {
+wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t windMode, uint8_t windweight, float emissiveStrength) {
 	string directory, name;
 	wiHelper::SplitPath(fileName, directory, name);
 
@@ -106,6 +106,8 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 		{
 			Entity materialEntity									= scene.Entity_CreateMaterial(obj_material.name);
 			MaterialComponent& material								= *scene.materials.GetComponent(materialEntity);
+			if (obj_material.illum == 3)
+				material.SetCustomShaderID(material.SHADERTYPE_PBR_PLANARREFLECTION);
 			material.textures[MaterialComponent::EMISSIVEMAP].name	= obj_material.emissive_texname;
 			material.emissiveColor									= XMFLOAT4(obj_material.emission[0], obj_material.emission[1], obj_material.emission[2], 1);
 			material.baseColor										= XMFLOAT4(obj_material.diffuse[0], obj_material.diffuse[1], obj_material.diffuse[2], 1);
@@ -127,7 +129,8 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
 				material.SetAlphaRef(0.5f);
-				material.SetSubsurfaceScatteringAmount(2);
+				material.SetSubsurfaceScatteringColor(XMFLOAT3(material.baseColor.x, material.baseColor.y, material.baseColor.z));
+				material.SetSubsurfaceScatteringAmount(1);
 			}
 			material.SetUseWind(true);
 			if (material.textures[MaterialComponent::NORMALMAP].name.empty())
@@ -272,7 +275,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 									break;
 								case 1:
 									if (pos.y > 0.1f) {
-										mesh.vertex_windweights.push_back(150);
+										mesh.vertex_windweights.push_back(windweight);
 									} else {
 										mesh.vertex_windweights.push_back(0);
 									}

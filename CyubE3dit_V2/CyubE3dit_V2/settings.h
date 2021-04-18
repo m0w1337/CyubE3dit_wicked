@@ -21,7 +21,12 @@ public:
 	static bool collision;
 	static float camspeed_slow;
 	static float camspeed;
+	static bool sound;
+	static uint32_t rendermask;
 	static bool pauseChunkloader;
+	
+	static void save(void);
+	static void load(void);
 
 static inline cyImportant* getWorld() {
 	return &world;

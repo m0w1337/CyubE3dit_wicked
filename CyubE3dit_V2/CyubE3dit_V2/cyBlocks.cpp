@@ -20,6 +20,11 @@ std::string cyBlocks::m_regBlockNames[256] = {""};
 wiScene::Scene& cyBlocks::m_scene		   = wiScene::GetScene();
 std::unordered_map<uint32_t, cyBlocks::cBlock_t> cyBlocks::m_cBlockTypes;
 
+std::shared_ptr<wiResource> cyBlocks::emitter_dust_material;
+std::shared_ptr<wiResource> cyBlocks::emitter_smoke_material;
+std::shared_ptr<wiResource> cyBlocks::emitter_fire_material;
+std::shared_ptr<wiResource> cyBlocks::emitter_flare_material;
+
 void cyBlocks::LoadRegBlocks(void) {
 	m_fallbackMat = m_scene.Entity_CreateMaterial("fallbackMat");
 	ifstream file;
@@ -67,22 +72,27 @@ void cyBlocks::LoadRegBlocks(void) {
 }
 
 void cyBlocks::loadMeshes(void) {
-	m_toolMeshes[TOOL_ROT]= ImportModel_OBJ("data\\meshes\\rotCW.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_ROT]	  = ImportModel_OBJ("data\\meshes\\rotCW.obj", wiScene::GetScene(), 0);
 	m_toolMeshes[TOOL_ORIGIN] = ImportModel_OBJ("data\\meshes\\originOnly.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_XAXIS] = ImportModel_OBJ("data\\meshes\\xAxis.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_YAXIS] = ImportModel_OBJ("data\\meshes\\yAxis.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_ZAXIS] = ImportModel_OBJ("data\\meshes\\zAxis.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_PLANE] = ImportModel_OBJ("data\\meshes\\plane.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.obj", wiScene::GetScene(), 0,0.6);
-	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.obj", wiScene::GetScene(), 0,0.6);
+	m_toolMeshes[TOOL_XAXIS]  = ImportModel_OBJ("data\\meshes\\xAxis.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_YAXIS]  = ImportModel_OBJ("data\\meshes\\yAxis.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_ZAXIS]  = ImportModel_OBJ("data\\meshes\\zAxis.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_PLANE]  = ImportModel_OBJ("data\\meshes\\plane.obj", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.obj", wiScene::GetScene(), 0, 0.6);
+	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.obj", wiScene::GetScene(), 0, 0.6);
 
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b_lod0.obj", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.obj", wiScene::GetScene(), 2));
 	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.obj", wiScene::GetScene(), 0));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.obj", wiScene::GetScene(), 1));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.obj", wiScene::GetScene(), 1, 130));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dbush.obj", wiScene::GetScene(), 1, 40));
 
+	emitter_dust_material  = wiResourceManager::Load("images/particle_dust.dds");
+	emitter_smoke_material = wiResourceManager::Load("images/particle_smoke.png");
+	emitter_fire_material  = wiResourceManager::Load("images/fire.jpg");
+	emitter_flare_material = wiResourceManager::Load("images/ripple.png");
 }
 
 void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype) {
@@ -167,12 +177,13 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	wiScene::MaterialComponent* material;
 
 	for (uint8_t ft = 0; ft < 6; ft++) {
+		m_regBlockMats[id][ft] = wiECS::INVALID_ENTITY;
 		try {
-			tex						   = it.value().at(i).at("texture" + std::to_string(ft));
-			m_regBlockMats[id][ft]	   = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
-			material				   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
+			tex					   = it.value().at(i).at("texture" + std::to_string(ft));
+			m_regBlockMats[id][ft] = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
+			material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
 			material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, .0f));
-			material->textures[MaterialComponent::BASECOLORMAP].name = "images/" + tex;
+			material->textures[MaterialComponent::BASECOLORMAP].name	 = "images/" + tex;
 			material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/" + tex);
 			/*if ((id == 1 && ft == 0) || blocktype == 0 || blocktype == 13 || blocktype == 12 || blocktype == 25 || blocktype == 26 || blocktype == 67) {
 				material->SetUseVertexColors(true);
@@ -205,12 +216,12 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				m_regBlockFlags[id][ft] &= ~cyBlocks::BLOCKFLAG_ANTITILE;
 			}
 			try {
-				tex						= it.value().at(i).at("normal" + std::to_string(ft));
-				material->textures[MaterialComponent::NORMALMAP].name	 = "images/" + tex;
+				tex														  = it.value().at(i).at("normal" + std::to_string(ft));
+				material->textures[MaterialComponent::NORMALMAP].name	  = "images/" + tex;
 				material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load("images/" + tex);
 				material->SetNormalMapStrength(1.0);
-				tex						 = it.value().at(i).at("surface" + std::to_string(ft));
-				material->textures[MaterialComponent::SURFACEMAP].name	  = "images/" + tex;
+				tex														   = it.value().at(i).at("surface" + std::to_string(ft));
+				material->textures[MaterialComponent::SURFACEMAP].name	   = "images/" + tex;
 				material->textures[MaterialComponent::SURFACEMAP].resource = wiResourceManager::Load("images/" + tex);
 				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
 				material->SetParallaxOcclusionMapping(1.0);
@@ -223,8 +234,8 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			catch (...) {
 			}
 			try {
-				tex						   = it.value().at(i).at("occlusion" + std::to_string(ft));
-				material->textures[MaterialComponent::OCCLUSIONMAP].name	   = "images/" + tex;
+				tex															 = it.value().at(i).at("occlusion" + std::to_string(ft));
+				material->textures[MaterialComponent::OCCLUSIONMAP].name	 = "images/" + tex;
 				material->textures[MaterialComponent::OCCLUSIONMAP].resource = wiResourceManager::Load("images/" + tex);
 				material->SetParallaxOcclusionMapping(1.0);
 				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
@@ -232,8 +243,8 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			catch (...) {
 			}
 			try {
-				tex						  = it.value().at(i).at("glow" + std::to_string(ft));
-				material->textures[MaterialComponent::EMISSIVEMAP].name	   = "images/" + tex;
+				tex															= it.value().at(i).at("glow" + std::to_string(ft));
+				material->textures[MaterialComponent::EMISSIVEMAP].name		= "images/" + tex;
 				material->textures[MaterialComponent::EMISSIVEMAP].resource = wiResourceManager::Load("images/" + tex);
 				material->SetEmissiveStrength(15.0f);
 			}
@@ -272,13 +283,17 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			}
 		}
 	} else {
-		//m_scene.materials.GetComponent(m_regBlockMats[id][0])->userBlendMode = BLENDMODE_ALPHA;
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetAlphaRef(0.2f);
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetReceiveShadow(false);
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseWind(true);
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetCastShadow(false);
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetUseVertexColors(false);
-		m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetSubsurfaceScatteringAmount(2);
+		for (uint8_t ft = 0; ft < 6; ft++) {
+			if (m_regBlockMats[id][ft] != wiECS::INVALID_ENTITY) {
+				//m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetSubsurfaceScatteringColor(XMFLOAT3(0.3,0.8,0));
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetAlphaRef(0.3f);
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetReceiveShadow(true);
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetUseWind(true);
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetCastShadow(false);
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetUseVertexColors(true);
+				//m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetSubsurfaceScatteringAmount(1.);
+			}
+		}
 	}
 }
 
@@ -350,9 +365,9 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 				uint32_t tmpID	= 0;
 				uint8_t tmpMode = 0;
 				wiScene::MaterialComponent* material;
-				bool tmpNormals = false;
+				bool tmpNormals		  = false;
 				uint32_t tmpAnimation = 0;
-				uint8_t ok		= 0;
+				uint8_t ok			  = 0;
 				ifstream file;
 				file.open(entry.path().wstring() + L"\\Properties.json", fstream::in);
 				if (file.is_open()) {
@@ -366,7 +381,7 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 						} else if (iequals(it.key(), "uniqueid")) {
 							tmpID = it.value();
 							ok |= 2;
-						} else if (iequals(it.key(),"animationspeed")) {
+						} else if (iequals(it.key(), "animationspeed")) {
 							tmpAnimation = it.value();
 						} else if (iequals(it.key(), "textures")) {
 							for (json::iterator it2 = it.value().begin(); it2 != it.value().end(); ++it2) {
@@ -387,22 +402,22 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 						for (const auto& texdir : fs::directory_iterator(entry.path().wstring() + L"\\Textures")) {
 							if (texdir.is_regular_file()) {
 								if (iequals(texdir.path().filename().string(), "all.dds") || iequals(texdir.path().filename().string(), "up.dds") || iequals(texdir.path().filename().string(), "updown.dds")) {
-									m_cBlockTypes[tmpID].material[0] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[0]);
-									material->textures[MaterialComponent::BASECOLORMAP].name	   = texdir.path().string();
+									m_cBlockTypes[tmpID].material[0]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[0]);
+									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									if (tmpAnimation) {
 										material->texAnimDirection = XMFLOAT2(0.25, 0.25);
 										material->texMulAdd		   = XMFLOAT4(0.25, 0.25, 0, 0);
-										material->texAnimFrameRate = (float)tmpAnimation/30;
+										material->texAnimFrameRate = (float)tmpAnimation / 30;
 									}
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
 									material->SetEmissiveStrength(0.0f);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "down.dds")) {
-									m_cBlockTypes[tmpID].material[1] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[1]);
+									m_cBlockTypes[tmpID].material[1]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[1]);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
@@ -410,8 +425,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->SetEmissiveStrength(0.0f);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "sides.dds")) {
-									m_cBlockTypes[tmpID].material[2] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
+									m_cBlockTypes[tmpID].material[2]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
@@ -419,8 +434,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->SetEmissiveStrength(0.0f);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "left.dds")) {
-									m_cBlockTypes[tmpID].material[3] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[3]);
+									m_cBlockTypes[tmpID].material[3]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[3]);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
@@ -428,8 +443,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->SetEmissiveStrength(0.0f);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "right.dds")) {
-									m_cBlockTypes[tmpID].material[2] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
+									m_cBlockTypes[tmpID].material[2]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
@@ -437,8 +452,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->SetEmissiveStrength(0.0f);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "front.dds")) {
-									m_cBlockTypes[tmpID].material[5] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[5]);
+									m_cBlockTypes[tmpID].material[5]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[5]);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
@@ -446,8 +461,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->SetEmissiveStrength(0.0f);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "back.dds")) {
-									m_cBlockTypes[tmpID].material[4] = m_scene.Entity_CreateMaterial("");
-									material						 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[4]);
+									m_cBlockTypes[tmpID].material[4]							 = m_scene.Entity_CreateMaterial("");
+									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[4]);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
@@ -464,49 +479,49 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 						if (texdir.is_regular_file()) {
 							if (iequals(texdir.path().filename().string(), "all_normal.dds") || iequals(texdir.path().filename().string(), "up_normal.dds") || iequals(texdir.path().filename().string(), "updown_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[0]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[0]);
-									material->textures[MaterialComponent::NORMALMAP].name	 = texdir.path().string();
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[0]);
+									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);
 								}
 							} else if (iequals(texdir.path().filename().string(), "down_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[1]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[1]);
-									material->textures[MaterialComponent::NORMALMAP].name	 = texdir.path().string();
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[1]);
+									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);
 								}
 							} else if (iequals(texdir.path().filename().string(), "sides_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[2]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
 									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);
 								}
 							} else if (iequals(texdir.path().filename().string(), "left_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[3]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[3]);
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[3]);
 									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);
 								}
 							} else if (iequals(texdir.path().filename().string(), "right_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[2]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[2]);
 									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);
 								}
 							} else if (iequals(texdir.path().filename().string(), "front_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[5]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[5]);
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[5]);
 									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);
 								}
 							} else if (iequals(texdir.path().filename().string(), "back_normal.dds")) {
 								if (m_cBlockTypes[tmpID].material[4]) {
-									material				= m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[4]);
+									material												  = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[4]);
 									material->textures[MaterialComponent::NORMALMAP].name	  = texdir.path().string();
 									material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load(texdir.path().string());
 									//material->SetNormalMapStrength(-3.0);

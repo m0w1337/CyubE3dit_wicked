@@ -85,7 +85,10 @@ public:
 	static std::vector<wiECS::Entity> m_treeMeshes;
 	static wiECS::Entity m_toolMeshes[TOOL_NUMTOOLS];
 	static bool m_loaded;
-
+	static std::shared_ptr<wiResource> emitter_dust_material;
+	static std::shared_ptr<wiResource> emitter_fire_material;
+	static std::shared_ptr<wiResource> emitter_flare_material;
+	static std::shared_ptr<wiResource> emitter_smoke_material;
 	static void LoadRegBlocks(void);
 	static void loadMeshes(void);
 	static void LoadCustomBlocks(void);

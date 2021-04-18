@@ -1,3 +1,4 @@
+
 #include "stdafx.h"
 #include "CyRender.h"
 #include "cyWorlds.h"
@@ -11,6 +12,8 @@
 #include "windows.h"
 #include "psapi.h"
 
+#include "Utility/replace_new.h"
+
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
@@ -18,15 +21,15 @@ using namespace wiGraphics;
 wiECS::Entity CyMainComponent::m_headLight = 0;
 wiECS::Entity CyMainComponent::m_probe	   = 0;
 wiECS::Entity CyMainComponent::m_dust	   = 0;
+wiAudio::Sound CyMainComponent::fireSound;
+wiAudio::SoundInstance CyMainComponent::fireSoundinstance;
+wiAudio::SoundInstance3D CyMainComponent::soundinstance3D;
+bool CyMainComponent::fireSoundIsPlaying = false;
 
 void CyMainComponent::Initialize() {
+	settings::load();
 	MainComponent::Initialize();
-
-	infoDisplay.active					= true;
-	infoDisplay.watermark				= true;
-	infoDisplay.fpsinfo					= true;
-	infoDisplay.resolution				= true;
-	infoDisplay.heap_allocation_counter = true;
+	infoDisplay.active = false;
 	//renderer.Load();
 	//pathRenderer.Load();
 	loader.Load();
@@ -65,24 +68,42 @@ void CyLoadingScreen::Update(float dt) {
 
 void CyMainComponent::CreateScene(void) {
 	Scene& scene				= wiScene::GetScene();
+	renderer.setlayerMask(settings::rendermask);
 	wiScene::GetScene().weather = WeatherComponent();
+	static wiAudio::Sound windSound;
+	static wiAudio::SoundInstance windSoundinstance;
+	wiAudio::CreateSound("sound/fireloop.ogg", &fireSound);
+	wiAudio::CreateSoundInstance(&fireSound, &fireSoundinstance);
+	wiAudio::CreateSound("sound/wind.ogg", &windSound);
+	wiAudio::CreateSoundInstance(&windSound, &windSoundinstance);
+	windSoundinstance.type = wiAudio::SUBMIX_TYPE_SOUNDEFFECT;
+	wiAudio::Play(&windSoundinstance);
+	wiAudio::SetVolume(1.,&windSoundinstance);
+	wiAudio::SetVolume(0.5, &fireSoundinstance);
+	wiAudio::SetSubmixVolume(wiAudio::SUBMIX_TYPE_MUSIC, 1.0);
+	wiAudio::SetSubmixVolume(wiAudio::SUBMIX_TYPE_SOUNDEFFECT, 1.0);
+	fireSoundinstance.type = wiAudio::SUBMIX_TYPE_SOUNDEFFECT;
+	
 	//if (wiLua::GetLuaState() != nullptr) {
 	//	wiLua::KillProcesses();
 	//}
 	// Add some nice weather, not just black:
 	auto& weather	   = scene.weathers.Create(CreateEntity());
-	weather.fogStart   = 10;
+	weather.fogStart   = 50;
 	weather.fogEnd	   = 650;
 	weather.fogHeight  = 0;
-	weather.horizon	   = XMFLOAT3(0.9f, 0.9f, 1.f);	 //XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.zenith	   = XMFLOAT3(0.9f, 0.9f, 1.f);	 //XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.ambient	   = XMFLOAT3(.5f, .6f, .7f);	 //XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
+	weather.horizon	   = XMFLOAT3(0.8f, 0.8f, .9f);	 //XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.zenith	   = XMFLOAT3(0.7f, 0.7f, .8f);	 //XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.ambient	   = XMFLOAT3(.7f, .7f, .9f);	 //XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
 	weather.skyMapName = "images/sky.dds";
+	weather.skyMap	   = wiResourceManager::Load("images/sky.dds");
 	weather.SetRealisticSky(false);
-	weather.cloudiness = 0.3f;
-	weather.cloudSpeed = 0.01f;
+	weather.cloudiness			= 0.3f;
+	weather.cloudSpeed			= 0.02f;
+	weather.colorGradingMapName = "images/colorGrading.png";
+	weather.colorGradingMap		= wiResourceManager::Load("images/colorGrading.png", wiResourceManager::IMPORT_COLORGRADINGLUT | wiResourceManager::IMPORT_RETAIN_FILEDATA);
 
-	weather.windSpeed	   = 4.5f;
+	weather.windSpeed	   = 2.5f;
 	weather.windRandomness = 1.5f;
 	weather.windWaveSize   = 0.5f;
 
@@ -137,15 +158,16 @@ void CyMainComponent::CreateScene(void) {
 	dust->life			= 8.0;
 	dust->random_life	= 2.f;
 	dust->random_factor = 1.f;
-	dust->count			= 4096;
+	dust->count			= 2048;
 	dust->normal_factor = 0.4f;
 	dust->size			= .002f;
-	dust->velocity		= XMFLOAT3(weather.windDirection.x * weather.windSpeed / 2, 0, weather.windDirection.z * weather.windSpeed / 2);
+	dust->velocity		= XMFLOAT3(weather.windDirection.x * weather.windSpeed / 3, 0, weather.windDirection.z * weather.windSpeed / 3);
 	//dust->drag													= 0.91;
 	//dust->velocity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed/4 , -1, weather.windDirection.z * weather.windSpeed/4 );
 	//dust->gravity												= XMFLOAT3(weather.windDirection.x * weather.windSpeed, -(7.f - weather.windSpeed/6), weather.windDirection.z * weather.windSpeed);
 	dust->random_color = 0.1f;
 	//dust->motionBlurAmount										= 10;
+
 	/*
 	dust->mass													= 1.7;
 	dust->SPH_h													= 20.0f;
@@ -155,17 +177,29 @@ void CyMainComponent::CreateScene(void) {
 
 	dust->SetSPHEnabled(true);
 		*/
-	dust->SetDepthCollisionEnabled(true);
+
+	dust->SetDepthCollisionEnabled(false);
 	wiScene::MaterialComponent* dustmat							= wiScene::GetScene().materials.GetComponent(m_dust);
-	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_dust.dds");
-	dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
+	dustmat->textures[MaterialComponent::BASECOLORMAP].resource = cyBlocks::emitter_dust_material;
+
+	/*FIREFLIES:
+	dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
+	dustmat->SetBaseColor(XMFLOAT4(1, 0.5, 0, 1.));
+	dustmat->SetEmissiveColor(XMFLOAT4(1, 1, 1, 1));
+	dustmat->SetEmissiveStrength(50.f);
+	*/
+
+	//wiResourceManager::Load("images/particle_dust.dds");
+	//dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
 	//dustmat->SetBaseColor(XMFLOAT4(0.3,0.4,0.6,1.0));
-	//infoDisplay.active											= true;
-	//infoDisplay.watermark  = true;
-	//infoDisplay.resolution = true;
-	//infoDisplay.fpsinfo	   = true;
-	m_probe			   = wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
-	cyImportant* world = settings::getWorld();
+	infoDisplay.active					= false;
+	infoDisplay.watermark				= true;
+	infoDisplay.resolution				= true;
+	infoDisplay.fpsinfo					= true;
+	infoDisplay.heap_allocation_counter = true;
+	infoDisplay.colorgrading_helper		= true;
+	m_probe								= wiScene::GetScene().Entity_CreateEnvironmentProbe("", XMFLOAT3(0.0f, 0.0f, 0.0f));
+	cyImportant* world					= settings::getWorld();
 	TransformComponent ctransform;
 	settings::newWorld	= "";
 	settings::thisWorld = "";
@@ -183,12 +217,14 @@ void CyMainComponent::Compose(CommandList cmd) {
 		GetActivePath()->Compose(cmd);
 	}
 
+	GraphicsDevice* device = wiRenderer::GetDevice();
+
 	if (fadeManager.IsActive())
 	{
 		// display fade rect
 		static wiImageParams fx;
-		fx.siz.x   = (float)wiRenderer::GetDevice()->GetScreenWidth();
-		fx.siz.y   = (float)wiRenderer::GetDevice()->GetScreenHeight();
+		fx.siz.x   = (float)device->GetScreenWidth();
+		fx.siz.y   = (float)device->GetScreenHeight();
 		fx.opacity = fadeManager.opacity;
 		wiImage::Draw(wiTextureHelper::getColor(fadeManager.color), fx, cmd);
 	}
@@ -214,19 +250,19 @@ void CyMainComponent::Compose(CommandList cmd) {
 #endif
 
 #ifdef WICKEDENGINE_BUILD_DX11
-			if (dynamic_cast<GraphicsDevice_DX11*>(wiRenderer::GetDevice()))
+			if (dynamic_cast<GraphicsDevice_DX11*>(device))
 			{
 				ss << "[DX11]";
 			}
 #endif
 #ifdef WICKEDENGINE_BUILD_DX12
-			if (dynamic_cast<GraphicsDevice_DX12*>(wiRenderer::GetDevice()))
+			if (dynamic_cast<GraphicsDevice_DX12*>(device))
 			{
 				ss << "[DX12]";
 			}
 #endif
 #ifdef WICKEDENGINE_BUILD_VULKAN
-			if (dynamic_cast<GraphicsDevice_Vulkan*>(wiRenderer::GetDevice()))
+			if (dynamic_cast<GraphicsDevice_Vulkan*>(device))
 			{
 				ss << "[Vulkan]";
 			}
@@ -235,7 +271,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 #ifdef _DEBUG
 			ss << "[DEBUG]";
 #endif
-			if (wiRenderer::GetDevice()->IsDebugDevice())
+			if (device->IsDebugDevice())
 			{
 				ss << "[debugdevice]";
 			}
@@ -243,7 +279,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 		}
 		if (infoDisplay.resolution)
 		{
-			ss << "Resolution: " << wiRenderer::GetDevice()->GetResolutionWidth() << " x " << wiRenderer::GetDevice()->GetResolutionHeight() << endl;
+			ss << "Resolution: " << device->GetResolutionWidth() << " x " << device->GetResolutionHeight() << " (" << device->GetDPI() << " dpi)" << endl;
 		}
 		if (infoDisplay.fpsinfo)
 		{
@@ -262,6 +298,12 @@ void CyMainComponent::Compose(CommandList cmd) {
 			ss.precision(2);
 			ss << fixed << 1.0f / displaydeltatime << " FPS" << endl;
 		}
+		if (infoDisplay.heap_allocation_counter)
+		{
+			ss << "Heap allocations per frame: " << number_of_allocs.load() << endl;
+			number_of_allocs.store(0);
+		}
+
 		ss << settings::numVisChunks << " Chunks visible" << endl;
 		cyImportant* world = settings::getWorld();
 		XMFLOAT3 position  = wiScene::GetCamera().Eye;
@@ -282,6 +324,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 		{
 			ss << "Warning: Graphics is in [debugdevice] mode, performance will be slow!" << endl;
 		}
+		/*
 		ss << "Entity pool usage: " + to_string((((float)wiECS::next * 100.0f) / UINT32_MAX)) + "%" << endl;
 		static int64_t id								 = -1;
 		static wiECS::Entity oldMat						 = 0;
@@ -311,7 +354,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 			XMStoreFloat4x4(&hoverBox, sca * tra);
 			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.8f, 0.8f, 2.f, 1.0f));
 		}
-
+		
 		if (oldMat != mat) {
 
 			oldMat = renderer.hovered.entity;
@@ -323,20 +366,10 @@ void CyMainComponent::Compose(CommandList cmd) {
 							blockname = cyBlocks::m_regBlockNames[i];
 							id		  = i;
 							break;
-							/*for (uint8_t iii = 0; iii < 6; iii++) {
-								if (cyBlocks::m_regBlockMats[i][iii]) {
-									highlightComp = scene.materials.GetComponent(cyBlocks::m_regBlockMats[i][iii]);
-								}
-							}*/
+							
 						}
 					}
-					/*if (i != id) {
-						for (uint8_t iii = 0; iii < 6; iii++) {
-							if (cyBlocks::m_regBlockMats[i][iii]) {
-								scene.materials.GetComponent(cyBlocks::m_regBlockMats[i][iii])->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
-							}
-						}
-					}*/
+					
 				}
 				if (id == -1) {
 					for (auto& it : cyBlocks::m_cBlockTypes) {
@@ -349,49 +382,32 @@ void CyMainComponent::Compose(CommandList cmd) {
 								}
 								id = it.first;
 								break;
-								/*for (uint8_t iii = 0; iii < 6; iii++) {
-									if (it.second.material[iii]) {
-										highlightComp = scene.materials.GetComponent(it.second.material[iii]);
-									}
-								}*/
+								
 							}
 						}
-						/*if (it.first != id) {
-							for (uint8_t iii = 0; iii < 6; iii++) {
-								if (it.second.material[iii]) {
-									scene.materials.GetComponent(it.second.material[iii])->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
-								}
-							}
-						}*/
+						
 					}
 				}
-			} /*else {
-				for (uint32_t i = 0; i < 256; i++) {
-					for (uint8_t iii = 0; iii < 6; iii++) {
-						if (cyBlocks::m_regBlockMats[i][iii]) {
-							scene.materials.GetComponent(cyBlocks::m_regBlockMats[i][iii])->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
-						}
-					}
-				}
-				for (auto& it : cyBlocks::m_cBlockTypes) {
-					for (uint8_t iii = 0; iii < 6; iii++) {
-						if (it.second.material[iii]) {
-							scene.materials.GetComponent(it.second.material[iii])->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f));
-						}
-					}
-				}
-			}*/
+			} 
 		}
 		if (renderer.hovered.entity != wiECS::INVALID_ENTITY) {
 			ss << "Hovered Chunk: " + scene.names.GetComponent(renderer.hovered.entity)->name << endl;
 			//highlightComp->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 1.0f, 0.1f * renderer.sinepulse));
 			ss << "Hovered Block: " + blockname + "(ID " + to_string(id) + ")" << endl;
 		}
+
 		PROCESS_MEMORY_COUNTERS_EX pmc;
 		GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
 		ss << "RAM used: " + to_string((pmc.PrivateUsage - pmc.WorkingSetSize) / 1000000) + " MB" << endl;
+		*/
 		ss.precision(2);
-		wiFont::Draw(ss.str(), wiFontParams(4, 4, infoDisplay.size, WIFALIGN_LEFT, WIFALIGN_TOP, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
+		if (infoDisplay.colorgrading_helper)
+		{
+			wiImage::Draw(wiTextureHelper::getColorGradeDefault(), wiImageParams(0, 0, 256.0f / device->GetDPIScaling(), 16.0f / device->GetDPIScaling()), cmd);
+			wiFont::Draw(ss.str(), wiFontParams(4, 40, infoDisplay.size, WIFALIGN_LEFT, WIFALIGN_TOP, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
+		} else {
+			wiFont::Draw(ss.str(), wiFontParams(4, 4, infoDisplay.size, WIFALIGN_LEFT, WIFALIGN_TOP, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
+		}
 	}
 
 	wiProfiler::DrawData(4, 180, cmd);
@@ -491,11 +507,16 @@ void CyRender::ResizeLayout() {
 	xOffset += 10 + postprocessWnd_Toggle.scale.x;
 	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	xOffset += 10 + rendererWnd_Toggle.scale.x;
+	visualsWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	xOffset += 10 + visualsWnd_Toggle.scale.x;
 	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	xOffset += 10 + loadSchBtn.scale.x;
 	saveSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 	xOffset += 10 + saveSchBtn.scale.x;
 	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	xOffset += 20 + PauseChunkLoading.scale.x;
+	saveButton.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	
 	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - postprocessWnd_Toggle.scale.y - 15));
 }
 
@@ -539,10 +560,10 @@ void CyRender::Load() {
 	wiProfiler::SetEnabled(false);
 	setAO(AO_MSAO);
 	setAOPower(0.2);
-	setFXAAEnabled(true);
+	setFXAAEnabled(false);
 	setEyeAdaptionEnabled(false);
-	wiScene::GetCamera().zNearP = 0.25f;
-	wiScene::GetCamera().zFarP	= 3500.f;
+	wiScene::GetCamera().zNearP = 0.15f;
+	wiScene::GetCamera().zFarP	= 2000.f;
 	label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - sneak peek");
 	label.SetColor(uiColor_idle, wiWidget::WIDGETSTATE::IDLE);
@@ -595,6 +616,10 @@ void CyRender::Load() {
 	postprocessWnd.Create(this);
 	GetGUI().AddWidget(&postprocessWnd);
 
+	visualsWnd = VisualsWindow();
+	visualsWnd.Create(this);
+	GetGUI().AddWidget(&visualsWnd);
+
 	viewDist.Create(settings::VIEWDIST_MIN, settings::VIEWDIST_MAX, settings::getViewDist(), settings::VIEWDIST_MAX / settings::VIEWDIST_MIN - 1, "View distance: ");
 	viewDist.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	viewDist.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
@@ -629,6 +654,7 @@ void CyRender::Load() {
 			PauseChunkLoading.SetText("Pause World loading");
 	});
 	GetGUI().AddWidget(&PauseChunkLoading);
+
 	postprocessWnd_Toggle.Create("PostProcess");
 	postprocessWnd_Toggle.SetTooltip("Postprocess settings");
 	postprocessWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
@@ -639,6 +665,17 @@ void CyRender::Load() {
 		postprocessWnd.SetVisible(!postprocessWnd.IsVisible());
 	});
 	GetGUI().AddWidget(&postprocessWnd_Toggle);
+
+	visualsWnd_Toggle.Create("Visuals");
+	visualsWnd_Toggle.SetTooltip("Visual quality settings");
+	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	visualsWnd_Toggle.SetSize(XMFLOAT2(120, 20));
+	visualsWnd_Toggle.OnClick([&](wiEventArgs args) {
+		visualsWnd.SetVisible(!visualsWnd.IsVisible());
+	});
+	GetGUI().AddWidget(&visualsWnd_Toggle);
 
 	loadSchBtn.Create("Load schematic");
 	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world");
@@ -665,8 +702,42 @@ void CyRender::Load() {
 	saveSchBtn.OnClick([&](wiEventArgs args) {
 		//cySchematic::addSelection();
 	});
-	GetGUI().AddWidget(&loadSchBtn);
+	GetGUI().AddWidget(&saveSchBtn);
+	/*
+	saveButton.Create("Save");
+	saveButton.SetTooltip("Save the current scene");
+	saveButton.SetColor(wiColor(0, 198, 101, 180), wiWidget::WIDGETSTATE::IDLE);
+	saveButton.SetColor(wiColor(0, 255, 140, 255), wiWidget::WIDGETSTATE::FOCUS);
+	saveButton.OnClick([&](wiEventArgs args) {
+		wiHelper::FileDialogParams params;
+		params.type		   = wiHelper::FileDialogParams::SAVE;
+		params.description = "Wicked Scene";
+		params.extensions.push_back("wiscene");
+		wiHelper::FileDialog(params, [this](std::string fileName) {
+			wiEvent::Subscribe_Once(SYSTEM_EVENT_THREAD_SAFE_POINT, [=](uint64_t userdata) {
+				std::string filename = fileName;
+				if (filename.substr(filename.length() - 8).compare(".wiscene") != 0)
+				{
+					filename += ".wiscene";
+				}
+				wiArchive archive(filename, false);
+				if (archive.IsOpen())
+				{
+					Scene& scene = wiScene::GetScene();
 
+					wiResourceManager::SetMode(wiResourceManager::MODE_ALLOW_RETAIN_FILEDATA);
+
+					scene.Serialize(archive);
+
+				} else
+				{
+					wiHelper::messageBox("Could not create " + fileName + "!");
+				}
+			});
+		});
+	});
+	GetGUI().AddWidget(&saveButton);
+	*/
 	RenderPath3D::Load();
 	ResizeBuffers();
 }
@@ -684,6 +755,8 @@ void CyRender::Update(float dt) {
 	static float Accel			  = 0.0;
 	static bool camControlStart	  = true;
 	static bool schDraged		  = false;
+	static float rotateAni		  = 0.f;
+	
 	lasttime += dt * 4;
 	sinepulse = std::sinf(lasttime);
 	if (lasttime > 100) {
@@ -716,6 +789,9 @@ void CyRender::Update(float dt) {
 					break;
 				default:
 					camControlStart	 = false;
+					bool dragX		 = false;
+					bool dragY		 = false;
+					bool dragZ		 = false;
 					XMFLOAT4 pointer = wiInput::GetPointer();
 					XMVECTOR plane, planeNormal;
 					TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->hoverEntities[drag].entity);
@@ -728,30 +804,45 @@ void CyRender::Update(float dt) {
 								B			= pos + XMVectorSet(1, 0, 0, 0);
 								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
 								planeNormal = XMVector3Cross(wrong, axis);
+								dragX		= true;
 								break;
 							case cySchematic::HOVER_Y_AXIS:
 								axis		= XMVectorSet(0, 0, 1, 0);
 								B			= pos + XMVectorSet(0, 0, 1, 0);
 								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
 								planeNormal = XMVector3Cross(wrong, axis);
+								dragY		= true;
 								break;
 							case cySchematic::HOVER_Z_AXIS:
 								axis		= XMVectorSet(0, 1, 0, 0);
 								B			= pos + XMVectorSet(0, 1, 0, 0);
 								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
 								planeNormal = XMVector3Cross(wrong, axis);
+								dragZ		= true;
 								break;
 							case cySchematic::HOVER_ORIGIN:
 								planeNormal = wiScene::GetCamera().GetAt();
+								dragX		= true;
+								dragY		= true;
+								dragZ		= true;
 								break;
 							case cySchematic::HOVER_XY_PLANE:
+							case cySchematic::HOVER_XY2_PLANE:
 								planeNormal = XMVectorSet(0, 1, 0, 0);
+								dragX		= true;
+								dragY		= true;
 								break;
 							case cySchematic::HOVER_XZ_PLANE:
+							case cySchematic::HOVER_XZ2_PLANE:
 								planeNormal = XMVectorSet(0, 0, 1, 0);
+								dragX		= true;
+								dragZ		= true;
 								break;
 							case cySchematic::HOVER_YZ_PLANE:
+							case cySchematic::HOVER_YZ2_PLANE:
 								planeNormal = XMVectorSet(1, 0, 0, 0);
+								dragY		= true;
+								dragZ		= true;
 								break;
 							default:
 								break;
@@ -780,17 +871,26 @@ void CyRender::Update(float dt) {
 								deltaV += intersection - intersectionPrev;
 						}
 						XMFLOAT3 delta;
-						delta.x	  = roundf(XMVectorGetX(deltaV) * 2) / 2;
-						delta.y	  = roundf(XMVectorGetY(deltaV) * 2) / 2;
-						delta.z	  = roundf(XMVectorGetZ(deltaV) * 2) / 2;
+
+						cySchematic::m_schematics[dragID]->drawGridLines(dragX, dragY, dragZ);
+						if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
+							delta.x = roundf(XMVectorGetX(deltaV) / cySchematic::m_schematics[dragID]->size.x) * cySchematic::m_schematics[dragID]->size.x;
+							delta.y = roundf(XMVectorGetY(deltaV) / cySchematic::m_schematics[dragID]->size.z) * cySchematic::m_schematics[dragID]->size.z;
+							delta.z = roundf(XMVectorGetZ(deltaV) / cySchematic::m_schematics[dragID]->size.y) * cySchematic::m_schematics[dragID]->size.y;
+						} else {
+							delta.x = roundf(XMVectorGetX(deltaV) * 2) / 2;
+							delta.y = roundf(XMVectorGetY(deltaV) * 2) / 2;
+							delta.z = roundf(XMVectorGetZ(deltaV) * 2) / 2;
+						}
 						deltaV	  = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
 						transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
-						//transform->ApplyTransform();
-						transform->Translate(delta);
-						transform->UpdateTransform();
-						cySchematic::m_schematics[dragID]->pos.x += delta.x;
-						cySchematic::m_schematics[dragID]->pos.z += delta.y;
-						cySchematic::m_schematics[dragID]->pos.y += delta.z;
+						if (transform->GetPosition().y + delta.y > 0 && transform->GetPosition().y + delta.y + cySchematic::m_schematics[dragID]->size.z < 400) {
+							transform->Translate(delta);
+							transform->UpdateTransform();
+							cySchematic::m_schematics[dragID]->pos.x += delta.x;
+							cySchematic::m_schematics[dragID]->pos.z += delta.y;
+							cySchematic::m_schematics[dragID]->pos.y += delta.z;
+						}
 						originalMouse = pointer;
 					} else {  //hovered element was deleted -> clear drag request
 						drag = cySchematic::HOVER_NONE;
@@ -823,7 +923,7 @@ void CyRender::Update(float dt) {
 			for (size_t i = 0; i < cySchematic::m_schematics.size(); i++) {
 				wiScene::Scene& scene	   = wiScene::GetScene();
 				RAY pickRay				   = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
-				wiScene::PickResult SchHov = wiScene::Pick(pickRay, RENDERTYPE_TRANSPARENT | RENDERTYPE_OPAQUE, LAYER_SCHEMATIC);
+				wiScene::PickResult SchHov = wiScene::Pick(pickRay, RENDERTYPE_TRANSPARENT | RENDERTYPE_OPAQUE, LAYER_GIZMO);
 				drag					   = cySchematic::m_schematics[i]->hoverGizmo(SchHov.entity);
 				dragID					   = i;
 				XMMATRIX sca			   = XMMatrixScaling(cySchematic::m_schematics[i]->size.x / 2, cySchematic::m_schematics[i]->size.z / 2, cySchematic::m_schematics[i]->size.y / 2);
@@ -839,6 +939,7 @@ void CyRender::Update(float dt) {
 				case cySchematic::HOVER_CHECK:
 					if (clicked == drag) {
 						//save here!!
+						cySchematic::m_schematics[dragID]->saveToWorld();
 					}
 					break;
 				case cySchematic::HOVER_CROSS:
@@ -851,16 +952,18 @@ void CyRender::Update(float dt) {
 					break;
 				case cySchematic::HOVER_ROTCC:
 					if (clicked == drag) {
+						cySchematic::m_schematics[dragID]->m_dirty = cySchematic::DIRTY_ROTCC;
 						//rotate here!!
 					}
 					break;
 				case cySchematic::HOVER_ROTCW:
 					if (clicked == drag) {
+						cySchematic::m_schematics[dragID]->m_dirty = cySchematic::DIRTY_ROTCW;
 						//rotate here!!
 					}
 					break;
 				default:
-					cySchematic::m_schematics[dragID]->m_dirty = true;
+					cySchematic::m_schematics[dragID]->m_dirty = cySchematic::DIRTY_DRAG;
 					break;
 			}
 			clicked = cySchematic::HOVER_NONE;
@@ -973,9 +1076,11 @@ void CyRender::Update(float dt) {
 	if (!btn) {
 		Accel = 0;
 	}
-	wiScene::TransformComponent camera_transform;
+
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
+		wiScene::TransformComponent camera_transform;
+		TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
 		camera_transform.MatrixTransform(wiScene::GetCamera().GetInvView());
 		camera_transform.UpdateTransform();
 		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
@@ -990,35 +1095,32 @@ void CyRender::Update(float dt) {
 		XMStoreFloat3(&_move, move_rot);
 		_move.y += moveNewY;
 		camera_transform.Translate(_move);
+		
+		lightT->Translate(_move);
+		lightT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 		if (camera.At.y > 0.95 && yDif < 0) {
 			camera_transform.RotateRollPitchYaw(XMFLOAT3(-yDif, 0, 0));
+			lightT->RotateRollPitchYaw(XMFLOAT3(-yDif, 0, 0));
 		} else if (camera.At.y < -0.95 && yDif > 0) {
 			camera_transform.RotateRollPitchYaw(XMFLOAT3(-yDif, 0, 0));
+			lightT->RotateRollPitchYaw(XMFLOAT3(-yDif, 0, 0));
 		}
 		camera_transform.UpdateTransform();
+		lightT->UpdateTransform();
 		camera.TransformCamera(camera_transform);
 		camera.UpdateCamera();
-
-		if (CyMainComponent::m_headLight != INVALID_ENTITY) {
-			TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
-			lightT->Translate(_move);
-			lightT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
-			lightT->SetDirty();
-			lightT->UpdateTransform();
-		}
 		if (CyMainComponent::m_dust != INVALID_ENTITY) {
 			TransformComponent* dust = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_dust);
 			dust->Translate(_move);
-			dust->SetDirty();
 			dust->UpdateTransform();
 		}
-		if (CyMainComponent::m_probe != INVALID_ENTITY) {
+		/*if (CyMainComponent::m_probe != INVALID_ENTITY) {
 			TransformComponent* probeT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_probe);
 			probeT->Translate(_move);
 			probeT->SetDirty();
 			probeT->UpdateTransform();
-		}
+		}*/
 	} else {
 		Accel = 0;
 	}

@@ -15,7 +15,7 @@
         "texture0": "Grass_AlbedoB.dds",
 		"normal0": "Grass_Normal.dds",
 		"occlusion0": "Grass_AO.dds",
-        "texture1": "dirt_Albedo.dds",
+        "texture1": "dirt_AlbedoB.dds",
 		"normal1": "dirt_Normal.dds",
 		"occlusion1": "dirt_AO.dds",
         "texture2": "grassEdge_AlbedoB.dds",
@@ -162,7 +162,7 @@
       {
         "id": 67,
         "textype": 1,
-        "texture0": "crystalore_a.dds",
+        "texture0": "crystalore_aB.dds",
 		"normal0": "crystalore_n.dds",
 		"glow0": "crystalore_g.dds",
 		"surface0": "crystalore_s.dds",
@@ -175,6 +175,8 @@
         "id": 5,
         "textype": 5,
         "texture0": "straws.png",
+		"texture1": "fern.png",
+		"texture2": "straws3.png",
         "text": "Grassblades"
       },
       {

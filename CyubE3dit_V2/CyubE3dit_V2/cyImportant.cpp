@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "cyImportant.h"
-
 #include <iostream>
 #include <filesystem>
 
@@ -9,7 +8,7 @@ namespace fs = std::filesystem;
 cyImportant::cyImportant(void) {
 	m_valid = false;
 	m_stopped = true;
-	for (uint8_t i = 0; i < 32; i++) {
+	for (uint8_t i = 0; i < MAX_THREADS + 1; i++) {
 		db[i] = nullptr;
 	}
 }
@@ -34,11 +33,12 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 	PWSTR path	  = NULL;
 	string dbpath = "";
 	m_filename.clear();
-
+	m_worldFolder.clear();
 	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &path) == S_OK)
 	{
-		m_filename = wstring(path) + L"\\cyubeVR\\Saved\\WorldData\\" + utf8_decode(Worldname);
-		m_filename = find_importantFile(m_filename);
+		m_worldFolder = wstring(path) + L"\\cyubeVR\\Saved\\WorldData\\" + utf8_decode(Worldname);
+		m_filename	  = find_importantFile(m_worldFolder);
+		m_worldFolder += L"\\";
 		dbpath	   = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";
 	}
 	if (m_filename.size() > 1) {
@@ -109,7 +109,7 @@ void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 		file.read(reinterpret_cast<char*>(&(m_playerpos.x)), sizeof(m_playerpos.x));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.y)), sizeof(m_playerpos.y));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.z)), sizeof(m_playerpos.z));
-		for (uint8_t i = 0; i < MAX_THREADS+1; i++) {	//make one more connection handle than threads to keep one connection for the main thread.
+		for (uint8_t i = 0; i < MAX_THREADS + 1; i++) {	 //make one more connection handle than threads to keep one connection for the main thread.
 			if (db[i] != nullptr) {
 				sqlite3_close(db[i]);
 				db[i] = nullptr;
@@ -118,7 +118,7 @@ void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 				if (sqlite3_open_v2(dbpath.c_str(), &(db[i]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READONLY, NULL)) {
 					MessageBox(NULL, L"ERROR", L"World database not found.", MB_ICONWARNING);
 					db[i] = nullptr;
-					while (i < wiJobSystem::GetThreadCount()) {
+					while (i < MAX_THREADS + 1) {
 						if (db[i] != nullptr) {
 							sqlite3_close(db[i]);
 							db[i] = nullptr;

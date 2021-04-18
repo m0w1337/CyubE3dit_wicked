@@ -9,8 +9,11 @@ public:
 		HOVER_Y_AXIS,
 		HOVER_Z_AXIS,
 		HOVER_XY_PLANE,
+		HOVER_XY2_PLANE,
 		HOVER_XZ_PLANE,
+		HOVER_XZ2_PLANE,
 		HOVER_YZ_PLANE,
+		HOVER_YZ2_PLANE,
 		HOVER_ORIGIN,
 		HOVER_ROTCW,
 		HOVER_ROTCC,
@@ -19,6 +22,13 @@ public:
 		HOVER_NUMELEMENTS,
 		HOVER_NONE
 	} hovertype_t;
+	typedef enum dirtytype_e {
+		NOT_DIRTY = 0,
+		DIRTY_NOTRENDERED,
+		DIRTY_ROTCC,
+		DIRTY_ROTCW,
+		DIRTY_DRAG
+	}dirtytype_t;
 	static constexpr float PI		  = 3.141592653589793238462643383279502884f;
 	static const uint32_t HEADER_SIZE = 20;
 	static const uint32_t MAGICBYTE = 0x13371337;
@@ -30,7 +40,7 @@ public:
 		  x(0),
 		  y(0),
 		  z(0){};
-		blockpos_t(const uint8_t& _x, const uint8_t& _y, const uint16_t& _z) :
+		blockpos_t(const uint32_t& _x, const uint32_t& _y, const uint32_t& _z) :
 		  x(_x),
 		  y(_y),
 		  z(_z){};
@@ -104,7 +114,7 @@ public:
 	static std::vector<cySchematic*> m_schematics;
 	std::vector<chunkLoader::chunkobjects_t> m_chunkPreviews;
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
-	unordered_map<blockpos_t, uint8_t, blockpos_t> m_Torches;
+	unordered_map<blockpos_t, uint8_t, blockpos_t> m_torches;
 	std::vector<cyChunk::meshLoc> meshObjects;
 	std::vector<cyChunk::treeLoc> trees;
 	wiECS::Entity mainEntity;
@@ -112,7 +122,7 @@ public:
 	uint8_t m_activeGizmo;
 	bool m_isAirChunk;
 	char* m_chunkdata;
-	bool m_dirty;
+	dirtytype_t m_dirty;
 	static bool updating;
 	cySchematic(string filename);
 	static void addSchematic(std::string filename);
@@ -123,9 +133,16 @@ public:
 	void clearSchematic(void);
 	static void clearAllSchematics(void);
 	static void updateDirtyPreviews(void);
+	void saveToWorld(void);
+	void rotate(bool _cclock = false);
+	void drawGridLines(const bool x, const bool y, const bool z);
 
 private:
+	uint8_t m_rotation;	//1,2,3 for 90,180,270 deg
 	void loadCustomBlocks(void);
+	void unRenderSchematic(void);
+	void rotateMemory(bool _cc);
 	inline void placeTorches(const std::vector<torch_t>& torches, wiScene::Scene& tmpScene);
+	void prepareSchematic(wiScene::Scene& tmpScene);
 	void attachGizmos(wiScene::Scene& tmpScene);
 };

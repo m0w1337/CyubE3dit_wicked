@@ -17,9 +17,6 @@ using namespace std;
 using namespace wiECS;
 using namespace wiScene;
 
-
-
-
 LONG WINAPI MyUnhandledExceptionFilter(EXCEPTION_POINTERS* ExceptionInfo) {
 	HANDLE hFile = CreateFile(
 		L"CrashDump.dmp",
@@ -45,10 +42,7 @@ LONG WINAPI MyUnhandledExceptionFilter(EXCEPTION_POINTERS* ExceptionInfo) {
 	return EXCEPTION_EXECUTE_HANDLER;
 }
 
-
 mutex m;
-
-
 
 #define MAX_LOADSTRING 100
 
@@ -93,10 +87,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_TEMPLATEWINDOWS));
 
 	// just show some basic info:
-	
+
 	mainComp.Initialize();
 
-	
 	// Reset all state that tests might have modified:
 	//file.open("debug.log", ofstream::out);
 	//wiBackLog::save(file);
@@ -105,8 +98,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	//cyBlocks.LoadRegBlocks();
 	//cyBlocks.LoadCustomBlocks();
 	// Reset camera position:
-	
-	
+
 	// Scene scene;
 
 	// wiBackLog::save(ofstream & file)
@@ -117,10 +109,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
     wiJobSystem::Wait(ctx);
     */
-	
+
 	MSG msg		= {0};
 	uint8_t ran = 0;
-	
 
 	chunkLoader loader;
 	uint8_t numChunkThreads = wiJobSystem::GetThreadCount();
@@ -128,14 +119,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		numChunkThreads = wiJobSystem::GetThreadCount() - 2;
 
 	loader.spawnThreads(numChunkThreads);
-	DWORD lasttick = 0;
+	DWORD lasttick = 0, lasttickEmitter = 0;
 	SimplexNoise noise;
+	XMFLOAT3 minPos;
+	float minDist = 25;
+
 	while (msg.message != WM_QUIT)
 	{
-		
-		
+
 		if (wiInput::Press(wiInput::KEYBOARD_BUTTON_ESCAPE)) {
-			
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
@@ -147,21 +139,65 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 			if (cySchematic::m_schematics.size() > 0) {
 				if (!cySchematic::updating) {
 					cySchematic::updating = true;
-					cySchematic::updateDirtyPreviews();
+					wiJobSystem::context ctx;
+					wiJobSystem::Execute(ctx, [](wiJobArgs args) { cySchematic::updateDirtyPreviews(); });
 				}
 			}
+			m.lock();
 			wiScene::Scene& scn = wiScene::GetScene();
 			if (GetTickCount() - lasttick > 100 && settings::torchlights == true) {
 				lasttick = GetTickCount();
 				for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
 					if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
 						scn.lights[i].energy = 6 + ((float)rand() / RAND_MAX) * 4;
+						if (wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.lights[i].position) < 50) {
+						}
 					}
 				}
-				wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
-				weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
+				//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
+				//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
+			} else if (GetTickCount() - lasttickEmitter > 250) {
+				lasttickEmitter = GetTickCount();
+				if (settings::rendermask & LAYER_EMITTER) {
+					minDist = 25;
+					for (uint32_t i = 1; i < scn.emitters.GetCount(); i++) {
+						float dist = wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.emitters[i].center);
+						if (dist < 25) {
+							if (dist < minDist) {
+								minDist = dist;
+								minPos	= scn.emitters[i].center;
+							}
+							if (scn.emitters[i].IsPaused()) {
+								scn.emitters[i].SetPaused(false);
+							}
+						} else if (dist > 30) {
+							if (!scn.emitters[i].IsPaused()) {
+								scn.emitters[i].SetPaused(true);
+							}
+						}
+						//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
+						//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
+					}
+				}
 			}
-			
+			m.unlock();
+
+			if (minDist < 25) {
+				if (!mainComp.fireSoundIsPlaying) {
+					wiAudio::Play(&mainComp.fireSoundinstance);
+					mainComp.fireSoundIsPlaying = true;
+				}
+				wiAudio::SoundInstance3D snd3d;
+				snd3d.listenerFront = wiScene::GetCamera().At;
+				snd3d.listenerPos	= wiScene::GetCamera().Eye;
+				snd3d.emitterRadius = 0.2;
+				snd3d.emitterFront	= wiScene::GetCamera().At;
+				snd3d.emitterPos	= minPos;
+				wiAudio::Update3D(&mainComp.fireSoundinstance, snd3d);
+			} else if (mainComp.fireSoundIsPlaying) {
+				wiAudio::Stop(&mainComp.fireSoundinstance);
+				mainComp.fireSoundIsPlaying = false;
+			}
 			if (wiInput::Press((wiInput::BUTTON)'H')) {
 				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 				wiBackLog::Toggle();
@@ -206,7 +242,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				transform->UpdateTransform();
 				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_dust);
 				transform->ClearTransform();
-				transform->Scale(XMFLOAT3(10,7,10));
+				transform->Scale(XMFLOAT3(10, 7, 10));
 				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 4.0f, 0.f));
 				transform->SetDirty();
 				transform->UpdateTransform();
@@ -218,9 +254,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 					transform->UpdateTransform();
 				}
 			}
-			
 		}
 	}
+	settings::save();
 	loader.shutdown();
 	loader.m_shutdown = 2;
 	return (int)msg.wParam;
@@ -300,7 +336,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			switch (wmId)
 			{
 				case IDM_ABOUT:
-					
+
 					DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 
 					break;
@@ -383,7 +419,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam) {
 		case WM_ERASEBKGND:
 			RECT rc;
 			GetClientRect(hDlg, &rc);
-			FillRect(hdc, &rc, brush); 
+			FillRect(hdc, &rc, brush);
 			return 1L;
 			break;
 		case WM_CTLCOLORSTATIC:

@@ -4,7 +4,7 @@
 #include "meshGen.h"
 #include "wiECS.h"
 #include "settings.h"
-
+#include "cyRender.h"
 class chunkLoader {
 public:
 	static constexpr uint32_t THREAD_IDLE = 1;
@@ -27,7 +27,11 @@ public:
 		float z;
 		uint8_t size;
 		bool operator<(const face_t& a) const {	 //Make it sortable by material
-			return material < a.material;
+
+			return material < a.material ||										// Compare final grade
+				   material == a.material && (									// If final grade same:
+												 face < a.face );
+			//return material < a.material;
 		}
 	};
 	struct torch_t {
@@ -63,7 +67,7 @@ public:
 	void shutdown(void);
 	void spawnThreads(uint8_t numthreads);
 	void checkChunks(void);
-	static chunkobjects_t RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY);
+	static chunkobjects_t RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY, bool _lod = true);
 
 	static void addMaskedChunk(const cyImportant::chunkpos_t chunkPos);
 	static void clearMaskedChunk(void);

@@ -1,6 +1,6 @@
 # Blender v2.91.0 OBJ File: ''
 # www.blender.org
-mtllib ChollaCactus_Cluster.mtl
+mtllib cactus.mtl
 o LOD0SG
 v -0.649318 -0.100000 0.420097
 v -0.645745 2.938670 0.302226

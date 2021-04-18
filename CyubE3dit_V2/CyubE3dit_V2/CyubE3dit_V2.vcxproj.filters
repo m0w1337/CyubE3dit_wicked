@@ -79,6 +79,9 @@
     <ClInclude Include="cySchematic.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="VisualsWindow.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -133,6 +136,9 @@
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="cySchematic.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="VisualsWindow.cpp">
       <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>

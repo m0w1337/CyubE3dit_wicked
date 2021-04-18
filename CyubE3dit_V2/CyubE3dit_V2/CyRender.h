@@ -1,10 +1,22 @@
 #pragma once
 #include "RenderPath3D_PathTracing.h"
 #include "RendererWindow.h"
+
 #include "PostprocessWindow.h"
+#include "VisualsWindow.h"
 #include "meshGen.h"
 #include "cyBlocks.h"
 
+enum LAYERMASKS {
+	LAYER_CHUNKMESH = 1,
+	LAYER_TREE		= 2,
+	LAYER_TORCH		= 4,
+	LAYER_SCHEMATIC = 8,
+	LAYER_MESH		= 16,
+	LAYER_FOILAGE	= 32,
+	LAYER_EMITTER	= 64,
+	LAYER_GIZMO		= 128
+};
 
 class CyLoadingScreen : public LoadingScreen {
 private:
@@ -27,7 +39,6 @@ private:
 	*/
 
 public:
-
 	/*enum EDITORSTENCILREF {
 		EDITORSTENCILREF_CLEAR				= 0x00,
 		EDITORSTENCILREF_HIGHLIGHT_OBJECT	= 0x01,
@@ -44,15 +55,17 @@ public:
 	wiComboBox camModeSelector;
 	RendererWindow rendererWnd;
 	PostprocessWindow postprocessWnd;
+	VisualsWindow visualsWnd;
 	wiButton rendererWnd_Toggle;
 	wiButton postprocessWnd_Toggle;
+	wiButton visualsWnd_Toggle;
 	wiButton loadSchBtn;
 	wiButton saveSchBtn;
+	wiButton saveButton;
 	wiButton PauseChunkLoading;
 	wiSlider viewDist;
 	wiLabel label;
 
-	
 	CyMainComponent* main;
 	wiScene::PickResult hovered;
 	void Load() override;
@@ -72,9 +85,8 @@ public:
 	void ResizeLayout() override;
 };
 */
-class CyMainComponent : public MainComponent
-{
-	
+class CyMainComponent : public MainComponent {
+
 public:
 	/*
 	enum EDITORSTENCILREF {
@@ -92,6 +104,11 @@ public:
 	static wiECS::Entity m_headLight;
 	static wiECS::Entity m_probe;
 	static wiECS::Entity m_dust;
+	static wiAudio::Sound fireSound;
+	static wiAudio::SoundInstance fireSoundinstance;
+	static wiAudio::SoundInstance3D soundinstance3D;
+	static bool fireSoundIsPlaying;
+
 	CyRender renderer;
 	CyLoadingScreen loader;
 	//CyPathRender pathRenderer;
@@ -99,4 +116,3 @@ public:
 	void CreateScene(void);
 	void Compose(wiGraphics::CommandList cmd) override;
 };
-

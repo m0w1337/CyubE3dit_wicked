@@ -296,6 +296,7 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="tiny_obj_loader.h" />
+    <ClInclude Include="VisualsWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="chunkLoader.cpp" />
@@ -327,6 +328,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Publish|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="VisualsWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TemplateWindows.rc" />

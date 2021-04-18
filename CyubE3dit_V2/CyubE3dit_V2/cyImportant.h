@@ -9,8 +9,9 @@ constexpr uint32_t POS_NUMCHUNKS = 8;
 
 class cyImportant {
 public:
-	static constexpr uint8_t MAX_THREADS   = 30;
+	static constexpr uint8_t MAX_THREADS   = 16;
 	static constexpr uint8_t DBHANDLE_MAIN = MAX_THREADS;
+	wstring m_worldFolder;
 	explicit cyImportant(void);
 	struct playerpos_t {
 		double x;
@@ -82,7 +83,6 @@ public:
 	bool getChunkID(const double x, const double y, uint32_t* chunkID);
 	inline bool getChunkIDFast(const chunkpos_t chunkPos, uint32_t* chunkID);
 	chunkpos_t getChunkPos(const double x, const double y);
-	bool copy_chunkFile(const uint32_t chunkID);
 
 	std::string utf8_encode(const std::wstring& wstr);
 	std::wstring utf8_decode(const std::string& str);
@@ -91,4 +91,5 @@ protected:
 	void loadData(const std::string dbpath, bool cleanWorld);
 	wstring find_importantFile(const std::wstring path);
 	wstring m_filename;
+	
 };

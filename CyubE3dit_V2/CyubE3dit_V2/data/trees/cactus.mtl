@@ -1,0 +1,13 @@
+# Wavefront Object Material File
+# Generated using SpeedTree tools
+
+newmtl ChollaCactus_Cluster_Mat
+Ka 0.0000 0.0000 0.0000
+Kd 1.0000 1.0000 1.0000
+Ks 0.8000 0.8000 0.8000
+Ke 0.0000 0.0000 0.0000
+map_Kd cactusColor.png
+map_d cactusColor.png
+map_bump cactusNormal.png
+
+

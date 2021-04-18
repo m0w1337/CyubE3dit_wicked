@@ -54,21 +54,21 @@ void chunkLoader::clearMaskedChunk(void) {
 }
 
 void chunkLoader::checkChunks(void) {
-	cyImportant::chunkpos_t ghostpos, coords, lastghostpos,exactGhostPos;
+	cyImportant::chunkpos_t ghostpos, coords, lastghostpos, exactGhostPos;
 	cyImportant* world	  = settings::getWorld();
 	uint32_t changed	  = 0;
 	lastghostpos.x		  = -1000;
 	lastghostpos.y		  = -1000;
 	wiScene::Scene& scene = wiScene::GetScene();
 	while (m_shutdown == 0) {
-		
+
 		maskMutex.lock();
 		for (size_t i = 0; i < maskedChunks.size(); i++) {
 			auto it = m_visibleChunks.find(maskedChunks[i]);
 			if (it != m_visibleChunks.end()) {
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY && it->second.chunkObj != 0xFFFFFFFE) {
 					m.lock();
-					wiScene::Scene& scene = wiScene::GetScene();
+					wiScene::Scene& scene		  = wiScene::GetScene();
 					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
 					//if (obj != nullptr) {
 					wiECS::Entity meshEnt = obj->meshID;
@@ -116,8 +116,8 @@ void chunkLoader::checkChunks(void) {
 							for (uint32_t ii = ((r - 4) > i) ? (1 + r - 4 - i) : 0; ii <= r - i; ii++) {
 								if (i * i + ii * ii <= (viewDist * viewDist) / 2) {
 									if (i || ii) {
-										coords.x = ghostpos.x + i * 16;
-										coords.y = ghostpos.y + ii * 16;
+										coords.x																								= ghostpos.x + i * 16;
+										coords.y																								= ghostpos.y + ii * 16;
 										std::unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t>::iterator visChunk = m_visibleChunks.find(coords);
 										if (visChunk == m_visibleChunks.end()) {
 											changed++;
@@ -129,11 +129,11 @@ void chunkLoader::checkChunks(void) {
 										if (visChunk == m_visibleChunks.end()) {
 											changed++;
 											employThread(coords);
-										} 
+										}
 									}
 									if (i && ii) {
-										coords.x = ghostpos.x - i * 16;
-										coords.y = ghostpos.y + ii * 16;
+										coords.x																								= ghostpos.x - i * 16;
+										coords.y																								= ghostpos.y + ii * 16;
 										std::unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t>::iterator visChunk = m_visibleChunks.find(coords);
 										if (visChunk == m_visibleChunks.end()) {
 											changed++;
@@ -145,7 +145,7 @@ void chunkLoader::checkChunks(void) {
 										if (visChunk == m_visibleChunks.end()) {
 											changed++;
 											employThread(coords);
-										} 
+										}
 									}
 								}
 							}
@@ -204,7 +204,6 @@ void chunkLoader::checkChunks(void) {
 			m_visibleChunks.clear();
 			world->cleaned = true;
 		}
-		
 	}
 	m_shutdown = 2;
 }
@@ -212,7 +211,7 @@ void chunkLoader::checkChunks(void) {
 void chunkLoader::addChunks(uint8_t threadNum) {
 	chunkobjects_t chunkObj;
 	uint32_t chunkID;
-	
+
 	while (m_shutdown < 2) {
 		if (m_threadstate[threadNum] == THREAD_BUSY) {
 			cyImportant* world = settings::getWorld();
@@ -273,17 +272,17 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 			if (cleanAll || dist > viewDist) {	//remove far chunks
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 					wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
-						wiECS::Entity meshEnt = obj->meshID;
-						m.lock();
-						scene.Component_RemoveChildren(it->second.chunkObj);
-						scene.Entity_Remove(it->second.chunkObj);
-						scene.Entity_Remove(meshEnt);
-						m.unlock();
- 						it = m_visibleChunks.erase(it);
+					wiECS::Entity meshEnt		  = obj->meshID;
+					m.lock();
+					scene.Component_RemoveChildren(it->second.chunkObj);
+					scene.Entity_Remove(it->second.chunkObj);
+					scene.Entity_Remove(meshEnt);
+					m.unlock();
+					it = m_visibleChunks.erase(it);
 				} else {
 					it = m_visibleChunks.erase(it);
 				}
-			} else { //Manage LODs
+			} else {  //Manage LODs
 				if (it->second.chunkObj != wiECS::INVALID_ENTITY) {
 					if (dist > viewDist / 8) {
 						if (it->second.lod != LOD_MAX) {
@@ -303,7 +302,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 						}
 					} else if (dist > viewDist / 16) {
 						if (it->second.lod != LOD_MAX - 1) {
-							it->second.lod = LOD_MAX-1;
+							it->second.lod = LOD_MAX - 1;
 							//wiScene::ObjectComponent* mesh = wiScene::GetScene().objects.GetComponent(it->second.chunkObj);	does not really help with framerate... ?
 							//mesh->SetCastShadow(true);
 							wiScene::ObjectComponent* mesh = nullptr;
@@ -346,7 +345,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 				}
 				it++;
 			}
-				
+
 		} else {
 			it++;
 			for (uint8_t thread = 0; thread < m_numthreads; thread++) {
@@ -355,7 +354,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 						m_visibleChunks[m_threadChunkPos[thread]].chunkObj = m_threadstate[thread];
 						m_visibleChunks[m_threadChunkPos[thread]].lod	   = LOD_MAX;
 						m.lock();
-						for (size_t i = 0; i < wiScene::GetScene().objects.GetCount();i++)
+						for (size_t i = 0; i < wiScene::GetScene().objects.GetCount(); i++)
 						{
 							if (wiScene::GetScene().objects[i].parentObject == m_threadstate[thread] && wiScene::GetScene().objects.GetEntity(i) != m_threadstate[thread])
 							{
@@ -364,7 +363,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 							}
 						}
 						m.unlock();
-						m_threadstate[thread]							   = THREAD_IDLE;
+						m_threadstate[thread] = THREAD_IDLE;
 					}
 				}
 			}
@@ -372,7 +371,7 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 	}
 }
 
-chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY) {
+chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY, const bool _lod) {
 	face_t tmpface;
 	wiECS::Entity entity = wiECS::INVALID_ENTITY;
 	chunkobjects_t ret;
@@ -472,10 +471,10 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 					}
 				} else if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_DECOMESH) {
 					cyChunk::meshLoc mesh;
-					mesh.pos.x = x / 2.0f;
-					mesh.pos.y = y / 2.0f;
-					mesh.pos.z = z / 2.0f;
-					mesh.scale.x = (0.8 + wiRandom::getRandom(20)/50.f);
+					mesh.pos.x	 = x / 2.0f;
+					mesh.pos.y	 = y / 2.0f;
+					mesh.pos.z	 = z / 2.0f;
+					mesh.scale.x = (0.8f + wiRandom::getRandom(20) / 50.f);
 					mesh.scale.y = mesh.scale.x;
 					mesh.scale.z = mesh.scale.x;
 					mesh.type	 = blocktype;
@@ -485,7 +484,16 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 					tmpface.y		 = relY + 16 - y / 2.0f;
 					tmpface.z		 = z / 2.0f;
 					tmpface.material = cyBlocks::m_regBlockMats[blocktype][0];
-					tmpface.face	 = cyBlocks::FACE_BILLBOARD;
+					if (cyBlocks::m_regBlockMats[blocktype][1] != wiECS::INVALID_ENTITY) {
+						int rnd = wiRandom::getRandom(20);
+						if (rnd > 17)
+							tmpface.material = cyBlocks::m_regBlockMats[blocktype][1];
+						else if (rnd > 13) {
+							if (cyBlocks::m_regBlockMats[blocktype][2] != wiECS::INVALID_ENTITY)
+								tmpface.material = cyBlocks::m_regBlockMats[blocktype][2];
+						}
+					}
+					tmpface.face = cyBlocks::FACE_BILLBOARD;
 					faces.emplace_back(tmpface);
 				} else if (cyBlocks::m_regBlockTypes[blocktype] == cyBlocks::BLOCKTYPE_TORCH) {
 					cyChunk::blockpos_t pos(x, y, z);
@@ -498,8 +506,9 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 		}
 	}
 	if (faces.size()) {
+		float len = 0,x,z,y;
 		SimplexNoise noise;
-		sort(faces.begin(), faces.end());
+		stable_sort(faces.begin(), faces.end());
 		MeshComponent* mesh;
 		string meshname = to_string(relX) + to_string(relY);
 		if (wiScene::GetScene().materials.GetComponent(faces[0].material) != nullptr) {
@@ -520,10 +529,32 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 			}
 			switch (faces[i].face) {
 				case cyBlocks::FACE_TOP:
-					meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					len = 0;
+					x	= faces[i].x;
+					y	= faces[i].y;
+					z	= faces[i].z;
+					i++;
+					while (faces[i].face == cyBlocks::FACE_TOP && faces[i].x == x && faces[i].z == z && faces[i].material == currMat && i <= faces.size() && y - faces[i].y < 0.9) {
+						len += 0.5;
+						y = faces[i].y;
+						i++;
+					}
+					i--;
+					meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile, len);
 					break;
 				case cyBlocks::FACE_BOTTOM:
-					meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
+					len = 0;
+					x	= faces[i].x;
+					y	= faces[i].y;
+					z	= faces[i].z;
+					i++;
+					while (faces[i].face == cyBlocks::FACE_TOP && faces[i].x == x && faces[i].z == z && faces[i].material == currMat && i <= faces.size() && y - faces[i].y < 0.9) {
+						len += 0.5;
+						y = faces[i].y;
+						i++;
+					}
+					i--;
+					meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile, len);
 					break;
 				case cyBlocks::FACE_LEFT:
 					meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
@@ -538,68 +569,88 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 					meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, stepsize, faces[i].antitile);
 					break;
 				case cyBlocks::FACE_BILLBOARD:
-					if (stepsize == 1) {
+					//if (stepsize == 1) {
 						meshGen::AddBillboard(mesh, faces[i].x, faces[i].y, faces[i].z);
-					}
+					//}
 					break;
 			}
 		}
 		mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
 		mesh->SetDynamic(false);
 		mesh->CreateRenderData();
-		ObjectComponent* chunkObj = tmpScene.objects.GetComponent(entity);
-		XMFLOAT4 treecolor1		  = XMFLOAT4(1, 0., 0., 1);
-		XMFLOAT4 treecolor2		  = XMFLOAT4(0., 1, 0., 1);
-		for (size_t i = 0; i < chunk.trees.size(); i++) {
-			if (chunk.trees[i].scale.x > 2 || chunk.trees[i].scale.y > 2 || chunk.trees[i].scale.z > 2) {
-				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
-				uint32_t chID = chunk.m_id;
-				wiBackLog::post("Weird tree data: ChunkID: ");
-				wiBackLog::post(to_string(chID).c_str());
-			} else {
-				wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("tree");
-				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
-				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-				layer.layerMask			= LAYER_TREE;
-				TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
-				tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2, chunk.trees[i].pos.z / 2 - 0.25, relY + 16 - chunk.trees[i].pos.y / 2));
-				tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
-				tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
-				switch (chunk.trees[i].type) {
-					case 0:	 //leaf trees (light wood)
-						object.meshID = cyBlocks::m_treeMeshes[((chunk.trees[i].pos.x + chunk.trees[i].pos.y + chunk.trees[i].pos.z) % 3)];
-						break;
-					case 1:	 //needle trees (dark wood)
-						object.meshID = cyBlocks::m_treeMeshes[3];
-						break;
-					case 2:	 //cactus
-					case 3:
-					case 4:
-					case 5:
-						object.meshID = cyBlocks::m_treeMeshes[4];
-						break;
-					case 6:	//desert grass 6,7
-						tf.Scale(XMFLOAT3(chunk.trees[i].scale.x * 2, chunk.trees[i].scale.z * 2, chunk.trees[i].scale.y * 2));
-						object.meshID = cyBlocks::m_treeMeshes[5];
-					default:  
-						object.meshID = cyBlocks::m_treeMeshes[5];
-						break;
-				}
-				
-				tf.UpdateTransform();
-				object.parentObject = entity;
-				object.SetRenderable(false);	//load the Mesh with lowest LOD to prevent flicker
-				object.SetCastShadow(false);
-				ret.meshes.push_back(objEnt);
-				//tmpScene.Component_Attach(objEnt, entity);
-			}
-		}
-		
-		placeTorches(torches, relX, relY, tmpScene, entity);
-		placeMeshes(chunk, relX, relY, tmpScene, entity);
 		m.lock();
 		wiScene::GetScene().Merge(tmpScene);
+		tmpScene.Clear();
 		m.unlock();
+		ObjectComponent* chunkObj = tmpScene.objects.GetComponent(entity);
+		if (settings::rendermask & LAYER_TREE) {
+			for (size_t i = 0; i < chunk.trees.size(); i++) {
+				if (chunk.trees[i].scale.x > 2 || chunk.trees[i].scale.y > 2 || chunk.trees[i].scale.z > 2) {
+					wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
+					uint32_t chID = chunk.m_id;
+					wiBackLog::post("Weird tree data: ChunkID: ");
+					wiBackLog::post(to_string(chID).c_str());
+				} else {
+					wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("tree");
+					ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
+					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
+					layer.layerMask			= LAYER_TREE;
+					TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
+					tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2., chunk.trees[i].pos.z / 2. - 0.25, relY + 16 - chunk.trees[i].pos.y / 2.));
+					tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
+					switch (chunk.trees[i].type) {
+						case 0:	 //leaf trees (light wood)
+							object.meshID = cyBlocks::m_treeMeshes[((chunk.trees[i].pos.x + chunk.trees[i].pos.y + chunk.trees[i].pos.z) % 3)];
+							break;
+						case 1:	 //needle trees (dark wood)
+							object.meshID = cyBlocks::m_treeMeshes[3];
+							break;
+						case 2:	 //cactus
+							tf.Scale(XMFLOAT3(chunk.trees[i].scale.x * 3, chunk.trees[i].scale.z * 1.5, chunk.trees[i].scale.y * 3));
+							object.meshID = cyBlocks::m_treeMeshes[6];	//desert bush
+							break;
+						case 3:
+						case 4:
+						case 5:
+							object.meshID = cyBlocks::m_treeMeshes[4];
+							break;
+						case 6:	 //desert grass 6,7
+						case 7:
+							object.meshID = cyBlocks::m_treeMeshes[5];
+						default:
+							object.meshID = cyBlocks::m_treeMeshes[5];
+							break;
+					}
+
+					tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
+					tf.UpdateTransform();
+					object.parentObject = entity;
+					if (_lod == true) {
+						object.SetRenderable(false);  //load the Mesh with lowest LOD to prevent flicker
+						object.SetCastShadow(false);
+					}
+					ret.meshes.push_back(objEnt);
+					//tmpScene.Component_Attach(objEnt, entity);
+				}
+			}
+			m.lock();
+			wiScene::GetScene().Merge(tmpScene);
+			tmpScene.Clear();
+			m.unlock();
+		}
+		if (settings::rendermask & LAYER_TORCH) {
+			placeTorches(torches, relX, relY, tmpScene, entity);
+			m.lock();
+			wiScene::GetScene().Merge(tmpScene);
+			tmpScene.Clear();
+			m.unlock();
+		}
+		if (settings::rendermask & LAYER_MESH) {
+			placeMeshes(chunk, relX, relY, tmpScene, entity);
+			m.lock();
+			wiScene::GetScene().Merge(tmpScene);
+			m.unlock();
+		}
 	}  //else	wiBackLog::post("Chunk has no blocks");
 	return ret;
 }
@@ -613,13 +664,13 @@ inline void chunkLoader::placeMeshes(const cyChunk& chunk, const int32_t relX, c
 			wiBackLog::post(to_string(chID).c_str());
 		} else {
 			try {
-				wiECS::Entity mesh = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0]; //invalid unordered map for .at() when large schematic is loaded
+				wiECS::Entity mesh = cyBlocks::m_regMeshes.at(chunk.meshObjects[i].type).mesh[0];  //invalid unordered map for .at() when large schematic is loaded
 				if (mesh) {
 					wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("mesh");
 					ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
 					object.meshID			= mesh;
 					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-					layer.layerMask			= LAYER_TREE;
+					layer.layerMask			= LAYER_MESH;
 					TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
 					tf.Translate(XMFLOAT3(relX + 8 + chunk.meshObjects[i].pos.x, chunk.meshObjects[i].pos.z, relY + 8 - chunk.meshObjects[i].pos.y));
 					tf.Scale(XMFLOAT3(chunk.meshObjects[i].scale.x, chunk.meshObjects[i].scale.z, chunk.meshObjects[i].scale.y));
@@ -632,15 +683,14 @@ inline void chunkLoader::placeMeshes(const cyChunk& chunk, const int32_t relX, c
 			}
 		}
 	}
-	
 }
 inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& torches, const int32_t relX, const int32_t relY, Scene& tmpScene, const wiECS::Entity parent) {
 	for (size_t i = 0; i < torches.size(); i++) {
 		torch_t torch = torches[i];
 		wiECS::Entity lightEnt;
-		LightComponent* light = nullptr;
-		wiECS::Entity meshID = 0;
-		wiScene::wiEmittedParticle* fire = nullptr;
+		LightComponent* light				= nullptr;
+		wiECS::Entity meshID				= 0;
+		wiScene::wiEmittedParticle* fire	= nullptr;
 		wiScene::MaterialComponent* dustmat = nullptr;
 		wiScene::WeatherComponent* weather	= wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
 		TransformComponent transform;
@@ -701,104 +751,108 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 				if (settings::torchlights == false) {
 					light->SetStatic(true);
 				}
-				
+				// causing deadlocks with too many torches
 				//fire
-				lightEnt		 = tmpScene.Entity_CreateEmitter("TE", lightPos);
-				fire			 = tmpScene.emitters.GetComponent(lightEnt);
-				fire->shaderType = wiScene::wiEmittedParticle::SOFT;
-				fire->SetMaxParticleCount(300);
-				fire->life													= 2.0;
-				fire->random_life											= 0.3f;
-				fire->random_factor											= 0.2f;
-				fire->count													= 40;
-				fire->normal_factor											= 0.15f;
-				fire->size													= .1f;
-				fire->scaleX												= 0.5;
-				fire->scaleY												= 0.5;
-				fire->motionBlurAmount										= 0.0f;
-				fire->drag													= 0.99f;
-				fire->random_color											= 0.8;
-				fire->gravity												= XMFLOAT3(weather->windDirection.x * weather->windSpeed / 10, 0.1, weather->windDirection.z * weather->windSpeed / 10);
-				fire->velocity												= XMFLOAT3(0,0.05, 0);
-				fire->parentObject											= parent;
-				dustmat														= tmpScene.materials.GetComponent(lightEnt);
-				dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/fire.jpg");
-				dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/fire.jpg";
-				dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
-				dustmat->SetBaseColor(XMFLOAT4(color.x, color.y, color.z, 0.3));
-				dustmat->SetEmissiveColor(XMFLOAT4(1,1,1, 1));
-				dustmat->SetEmissiveStrength(15.f);
+				if (settings::rendermask & LAYER_EMITTER) {
+					lightEnt		 = tmpScene.Entity_CreateEmitter("TE", lightPos);
+					fire			 = tmpScene.emitters.GetComponent(lightEnt);
+					fire->layerMask	 = LAYER_EMITTER;
+					fire->shaderType = wiScene::wiEmittedParticle::SOFT;
+					fire->SetMaxParticleCount(300);
+					fire->life			   = 2.0;
+					fire->random_life	   = 0.3f;
+					fire->random_factor	   = 0.2f;
+					fire->count			   = 40;
+					fire->normal_factor	   = 0.15f;
+					fire->size			   = .1f;
+					fire->scaleX		   = 0.5;
+					fire->scaleY		   = 0.5;
+					fire->motionBlurAmount = 0.0f;
+					fire->drag			   = 0.99f;
+					fire->random_color	   = 0.8;
+					fire->gravity		   = XMFLOAT3(weather->windDirection.x * weather->windSpeed / 10, 0.1, weather->windDirection.z * weather->windSpeed / 10);
+					fire->velocity		   = XMFLOAT3(0, 0.05, 0);
+					fire->parentObject	   = parent;
+					//fire->SetPaused(true);
+					dustmat														= tmpScene.materials.GetComponent(lightEnt);
+					dustmat->textures[MaterialComponent::BASECOLORMAP].resource = cyBlocks::emitter_fire_material;
+					dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
+					dustmat->SetBaseColor(XMFLOAT4(color.x, color.y, color.z, 0.3));
+					dustmat->SetEmissiveColor(XMFLOAT4(1, 1, 1, 1));
+					dustmat->SetEmissiveStrength(15.f);
 
-				//flare
-				lightEnt		 = tmpScene.Entity_CreateEmitter("TE", lightPos);
-				fire			 = tmpScene.emitters.GetComponent(lightEnt);
-				fire->shaderType = wiScene::wiEmittedParticle::SOFT_DISTORTION;
-				fire->SetMaxParticleCount(300);
-				fire->life													= 2.0;
-				fire->random_life											= 0.3f;
-				fire->random_factor											= 0.2f;
-				fire->rotation												= 0.01f;
-				fire->count													= 6;
-				fire->normal_factor											= 0.2f;
-				fire->SetVolumeEnabled(true);
-				fire->size													= .015f;
-				fire->scaleX												= 20.;
-				fire->scaleY												= 20.;
-				fire->motionBlurAmount										= 0.5f;
-				fire->drag													= 0.99f;
-				fire->gravity												= XMFLOAT3(weather->windDirection.x * weather->windSpeed/10, 0.2, weather->windDirection.z * weather->windSpeed/10);
-				fire->velocity												= XMFLOAT3(0, 0, 0);
-				fire->parentObject											= parent;
-				dustmat														= tmpScene.materials.GetComponent(lightEnt);
-				dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/fire.jpg");
-				dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/ripple.png";
-				dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
-				dustmat->SetBaseColor(XMFLOAT4(1, 1, 1, 0.01));
-				tf = tmpScene.transforms.GetComponent(lightEnt);
-				tf->Scale(XMFLOAT3(0.05, 0.05, 0.07));
-				tf->UpdateTransform();
+					//flare
+					lightEnt		 = tmpScene.Entity_CreateEmitter("TE", lightPos);
+					fire			 = tmpScene.emitters.GetComponent(lightEnt);
+					fire->layerMask	 = LAYER_EMITTER;
+					fire->shaderType = wiScene::wiEmittedParticle::SOFT_DISTORTION;
+					fire->SetMaxParticleCount(300);
+					fire->life			= 2.0;
+					fire->random_life	= 0.3f;
+					fire->random_factor = 0.2f;
+					fire->rotation		= 0.01f;
+					fire->count			= 6;
+					fire->normal_factor = 0.2f;
+					fire->SetVolumeEnabled(true);
+					fire->size			   = .015f;
+					fire->scaleX		   = 20.;
+					fire->scaleY		   = 20.;
+					fire->motionBlurAmount = 0.5f;
+					fire->drag			   = 0.99f;
+					fire->gravity		   = XMFLOAT3(weather->windDirection.x * weather->windSpeed / 10, 0.2, weather->windDirection.z * weather->windSpeed / 10);
+					fire->velocity		   = XMFLOAT3(0, 0, 0);
+					fire->parentObject	   = parent;
+					//fire->SetPaused(true);
+					dustmat														= tmpScene.materials.GetComponent(lightEnt);
+					dustmat->textures[MaterialComponent::BASECOLORMAP].resource = cyBlocks::emitter_flare_material;
+					dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
+					dustmat->SetBaseColor(XMFLOAT4(1, 1, 1, 0.01));
+					tf = tmpScene.transforms.GetComponent(lightEnt);
+					tf->Scale(XMFLOAT3(0.05, 0.05, 0.07));
+					tf->UpdateTransform();
 
-				//smoke
-				lightPos.y += 0.25;
-				lightPos.x += weather->windDirection.x * weather->windSpeed / 6;
-				lightPos.z += weather->windDirection.z * weather->windSpeed / 6;
-				lightEnt		 = tmpScene.Entity_CreateEmitter("TE", lightPos);
-				fire			 = tmpScene.emitters.GetComponent(lightEnt);
-				fire->shaderType = wiScene::wiEmittedParticle::SOFT;
-				fire->SetMaxParticleCount(500);
-				fire->life													= 3.0;
-				fire->random_life											= 0.7f;
-				fire->random_factor											= 0.7f;
-				fire->count													= 40;
-				fire->normal_factor											= 0.7f;
-				fire->size													= .1f;
-				fire->scaleX												= 1.;
-				fire->scaleY												= 1.;
-				fire->motionBlurAmount										= 1.70f;
-				fire->drag													= 0.94f;
-				fire->random_color											= 0.1;
-				fire->gravity												= XMFLOAT3(weather->windDirection.x * weather->windSpeed, -0.04, weather->windDirection.z * weather->windSpeed );
-				fire->velocity												= XMFLOAT3(weather->windDirection.x * weather->windSpeed / 10, 0.4, weather->windDirection.z * weather->windSpeed / 10);
-				fire->parentObject											= parent;
-				fire->SetDepthCollisionEnabled(true);
-				dustmat														= tmpScene.materials.GetComponent(lightEnt);
-				dustmat->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/particle_dust.dds");
-				dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
-				dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
-				dustmat->SetBaseColor(XMFLOAT4(.1, .1, 0.1, 0.35));
-				//dustmat->SetEmissiveColor(XMFLOAT4(1, 1, 1, 1));
-				//dustmat->SetEmissiveStrength(15.f);
-				
-
+					//smoke
+					lightPos.y += 0.25;
+					lightPos.x += weather->windDirection.x * weather->windSpeed / 6;
+					lightPos.z += weather->windDirection.z * weather->windSpeed / 6;
+					lightEnt		 = tmpScene.Entity_CreateEmitter("TE", lightPos);
+					fire			 = tmpScene.emitters.GetComponent(lightEnt);
+					fire->layerMask	 = LAYER_EMITTER;
+					fire->shaderType = wiScene::wiEmittedParticle::SOFT;
+					fire->SetMaxParticleCount(500);
+					fire->life			   = 3.0;
+					fire->random_life	   = 0.7f;
+					fire->random_factor	   = 0.7f;
+					fire->count			   = 40;
+					fire->normal_factor	   = 0.7f;
+					fire->size			   = .1f;
+					fire->scaleX		   = 1.;
+					fire->scaleY		   = 1.;
+					fire->motionBlurAmount = 1.70f;
+					fire->drag			   = 0.94f;
+					fire->random_color	   = 0.1;
+					fire->gravity		   = XMFLOAT3(weather->windDirection.x * weather->windSpeed, -0.04, weather->windDirection.z * weather->windSpeed);
+					fire->velocity		   = XMFLOAT3(weather->windDirection.x * weather->windSpeed / 10, 0.4, weather->windDirection.z * weather->windSpeed / 10);
+					fire->parentObject	   = parent;
+					fire->SetDepthCollisionEnabled(true);
+					//fire->SetPaused(true);
+					dustmat														= tmpScene.materials.GetComponent(lightEnt);
+					dustmat->textures[MaterialComponent::BASECOLORMAP].resource = cyBlocks::emitter_smoke_material;
+					dustmat->userBlendMode										= BLENDMODE_ADDITIVE;
+					dustmat->SetBaseColor(XMFLOAT4(.1, .1, 0.1, 0.35));
+					//dustmat->SetEmissiveColor(XMFLOAT4(1, 1, 1, 1));
+					//dustmat->SetEmissiveStrength(15.f);
+				}
 
 				wiECS::Entity objEnt	= tmpScene.Entity_CreateObject("torch");
 				ObjectComponent& object = *tmpScene.objects.GetComponent(objEnt);
 				LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
-				tf	= tmpScene.transforms.GetComponent(objEnt);
-				object.meshID		 = meshID;
-				object.emissiveColor = XMFLOAT4(color.x, color.y, color.z, 1.0f);
-				layer.layerMask		 = LAYER_TORCH;
-				*tf					 = transform;
+				layer.layerMask			= LAYER_TORCH;
+				tf						= tmpScene.transforms.GetComponent(objEnt);
+				object.meshID			= meshID;
+				object.emissiveColor	= XMFLOAT4(color.x, color.y, color.z, 1.0f);
+
+				*tf = transform;
 				tf->UpdateTransform();
 				object.parentObject = parent;
 				light->parentObject = parent;
@@ -825,7 +879,7 @@ inline bool chunkLoader::employThread(cyImportant::chunkpos_t coords) {
 					}
 				}
 				m.unlock();
-				m_threadstate[thread]							   = THREAD_IDLE;
+				m_threadstate[thread] = THREAD_IDLE;
 			}
 			m_threadChunkPos[thread]		 = coords;
 			m_threadstate[thread]			 = THREAD_BUSY;
@@ -835,7 +889,6 @@ inline bool chunkLoader::employThread(cyImportant::chunkpos_t coords) {
 	}
 	return false;
 }
-
 
 /*
 cyImportant::chunkpos_t chunkLoader::spiral(const int32_t iteration) {
