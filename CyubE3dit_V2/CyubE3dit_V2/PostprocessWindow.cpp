@@ -231,7 +231,7 @@ void PostprocessWindow::Create(CyRender* renderer) {
 		renderer->setMotionBlurStrength(args.fValue);
 		});
 	AddWidget(&motionBlurStrengthSlider);
-
+	/*
 	depthOfFieldCheckBox.Create("DepthOfField: ");
 	depthOfFieldCheckBox.SetTooltip("Enable Depth of field effect. Additional focus and strength setup required.");
 	depthOfFieldCheckBox.SetScriptTip("RenderPath3D::SetDepthOfFieldEnabled(bool value)");
@@ -275,7 +275,7 @@ void PostprocessWindow::Create(CyRender* renderer) {
 		renderer->setDepthOfFieldAspect(args.fValue);
 		});
 	AddWidget(&depthOfFieldAspectSlider);
-
+	*/
 	bloomCheckBox.Create("Bloom: ");
 	bloomCheckBox.SetTooltip("Enable bloom. The effect adds color bleeding to the brightest parts of the scene.");
 	bloomCheckBox.SetScriptTip("RenderPath3D::SetBloomEnabled(bool value)");

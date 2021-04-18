@@ -195,6 +195,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			MeshComponent& mesh = *scene.meshes.GetComponent(meshEntity);
 			mesh.SetDoubleSided(true);
 			//scene.impostors.Create(meshEntity);
+			//scene.impostors.Create(meshEntity).swapInDistance = 25;
 			//object.meshID = meshEntity;
 			for (auto& shape : obj_shapes)
 			{

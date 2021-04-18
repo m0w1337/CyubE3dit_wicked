@@ -340,7 +340,7 @@ void RendererWindow::Create(CyRender* renderer)
 	shadowPropsCubeComboBox.SetTooltip("Choose a shadow quality preset for cube shadow maps (pointlights, area lights)...");
 	shadowPropsCubeComboBox.SetScriptTip("SetShadowPropsCube(int resolution, int count)");
 	AddWidget(&shadowPropsCubeComboBox);
-
+	/*
 	MSAAComboBox.Create("MSAA: ");
 	MSAAComboBox.SetSize(XMFLOAT2(100, itemheight));
 	MSAAComboBox.SetPos(XMFLOAT2(x, y += step));
@@ -371,7 +371,7 @@ void RendererWindow::Create(CyRender* renderer)
 	MSAAComboBox.SetSelected(0);
 	MSAAComboBox.SetTooltip("Multisampling Anti Aliasing quality. ");
 	AddWidget(&MSAAComboBox);
-
+	*/
 	raytracedShadowsSlider.Create(1, 16, 1, 15, "Raytraced Shadow Quality: ");
 	raytracedShadowsSlider.SetTooltip("Sample count of raytraced shadows (per light). Higher numbers increase quality, but reduce performance.\nTip: Temporal AA will also help to improve quality.");
 	raytracedShadowsSlider.SetSize(XMFLOAT2(100, itemheight));

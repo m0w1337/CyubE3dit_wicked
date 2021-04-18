@@ -133,10 +133,12 @@ public:
 			uvx		  = (uvx - floorf(uvx));
 			float uvy = y / (ANTITILE_FACT / 2);
 			uvy		  =  (uvy - floorf(uvy));
+			float uvy2	 = (y + len) / (ANTITILE_FACT / 2);
+			uvy2			 = (uvy - floorf(uvy2));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, uvx));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, 1.0f / ANTITILE_FACT + uvx));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, uvx));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, 1.0f / ANTITILE_FACT + uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2((1.0f * len * 2) / ANTITILE_FACT + uvy, uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2((1.0f * len * 2) / ANTITILE_FACT + uvy, 1.0f / ANTITILE_FACT + uvx));
 			
 		}
 		mesh->vertex_colors.emplace_back(color);
@@ -184,8 +186,8 @@ public:
 			uvx		  = uvx - floorf(uvx);
 			float uvy = y / (ANTITILE_FACT / 2);
 			uvy		  = uvy - floorf(uvy);
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, uvx));
-			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy, 1.0f / ANTITILE_FACT + uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy * len * 2, uvx));
+			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(uvy * len * 2, 1.0f / ANTITILE_FACT + uvx));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, uvx));
 			mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1.0f / ANTITILE_FACT + uvy, 1.0f / ANTITILE_FACT + uvx));
 		}

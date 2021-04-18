@@ -12,7 +12,6 @@
 #include "windows.h"
 #include "psapi.h"
 
-#include "Utility/replace_new.h"
 
 using namespace std;
 using namespace wiECS;
@@ -298,11 +297,7 @@ void CyMainComponent::Compose(CommandList cmd) {
 			ss.precision(2);
 			ss << fixed << 1.0f / displaydeltatime << " FPS" << endl;
 		}
-		if (infoDisplay.heap_allocation_counter)
-		{
-			ss << "Heap allocations per frame: " << number_of_allocs.load() << endl;
-			number_of_allocs.store(0);
-		}
+		
 
 		ss << settings::numVisChunks << " Chunks visible" << endl;
 		cyImportant* world = settings::getWorld();
@@ -703,7 +698,7 @@ void CyRender::Load() {
 		//cySchematic::addSelection();
 	});
 	GetGUI().AddWidget(&saveSchBtn);
-	/*
+	
 	saveButton.Create("Save");
 	saveButton.SetTooltip("Save the current scene");
 	saveButton.SetColor(wiColor(0, 198, 101, 180), wiWidget::WIDGETSTATE::IDLE);
@@ -737,9 +732,9 @@ void CyRender::Load() {
 		});
 	});
 	GetGUI().AddWidget(&saveButton);
-	*/
+	
 	RenderPath3D::Load();
-	ResizeBuffers();
+	//ResizeBuffers();
 }
 
 void CyRender::Update(float dt) {
