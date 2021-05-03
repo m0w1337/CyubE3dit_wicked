@@ -1,0 +1,24 @@
+Archive created by -=MIRSOFT=-
+Look for game MODs at http://go.to/gamemods
+
+*** Archive info ***
+Archiver: Mirsoft
+Type: Game rip
+Format: MOD
+Original Composer: Markus Kludzuweit, Haiko Ruttmann
+Tracker: Markus Kludzuweit, Haiko Ruttmann
+Num of tunes: 2
+Complete: 100%
+
+*** Game info ***
+Name: Settlers, The
+Platform: Amiga
+Year: 1993
+Genre: Strategy
+Publisher: Blue Byte
+Developer: Blue Byte
+
+*** Additional info ***
+I made some changes to Ingame tune, to be properly played 
+under PC players (original version has been slowed 
+down after 10 minutes of play)

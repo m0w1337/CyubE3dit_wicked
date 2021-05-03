@@ -72,7 +72,7 @@ public:
 	static void addMaskedChunk(const cyImportant::chunkpos_t chunkPos);
 	static void clearMaskedChunk(void);
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
-	unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkpos_t> m_visibleChunks;
+	unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkposHasher_t> m_visibleChunks;
 	atomic<uint32_t> m_threadstate[cyImportant::MAX_THREADS];
 	cyImportant::chunkpos_t m_threadChunkPos[cyImportant::MAX_THREADS];
 	atomic<uint8_t> m_shutdown;

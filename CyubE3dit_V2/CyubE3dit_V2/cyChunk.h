@@ -2,7 +2,6 @@
 #include "sqlite3.h"
 #include "lz4.h"
 #include "cyBlocks.h"
-
 using namespace std;
 
 
@@ -57,8 +56,10 @@ public:
 				return true;
 			return false;
 		};
-		size_t operator()(const blockpos_t& pointToHash) const noexcept {
-			return ((((uint64_t)pointToHash.x) << 24) | (((uint64_t)pointToHash.y) << 16) | ((uint64_t)pointToHash.z));
+	};
+	struct blockposHasher_t {
+		size_t operator()(const blockpos_t& pointToHash) const {
+			return ((((uint32_t)pointToHash.x) << 24) | (((uint32_t)pointToHash.y) << 16) | ((uint32_t)pointToHash.z));
 		};
 	};
 	struct meshLoc {
@@ -77,23 +78,32 @@ public:
 	uint16_t m_highestZ;
 	uint32_t m_id;
 	uint16_t m_surfaceheight;
-	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
-	unordered_map<blockpos_t, uint8_t, blockpos_t> m_Torches;
+	std::unordered_map<blockpos_t, uint32_t, blockposHasher_t> m_cBlocks;
+	std::unordered_map<blockpos_t, uint8_t, blockposHasher_t> m_Torches;
 	std::vector<meshLoc> meshObjects;
 	std::vector<treeLoc> trees;
 	bool m_isAirChunk;
 	char* m_chunkdata;
+	bool m_saveable;
+	uint32_t m_version;
 	explicit cyChunk(void);
 	void loadChunk(sqlite3* db, uint32_t chunkID, bool fast = false);
 	void airChunk(void);
+	void saveZlimits(uint16_t _lowestZ, uint16_t _highestZ);
 	void solidChunk(void);
 	void addMesh(meshLoc mesh);
-	void replaceWithAir(uint8_t x, uint8_t y, uint16_t z);
-	void replaceCubeWithAir(uint8_t x1, uint8_t y1, uint16_t z1, uint8_t x2, uint8_t y2, uint16_t z2);
+	void replaceWithAir(const uint8_t x, const uint8_t y, const uint16_t z);
+	void replaceBlock(const uint8_t x, const uint8_t y, const uint16_t z, const uint8_t _blockID, const uint32_t _blockData);
+	void getBlock(const uint8_t x, const uint8_t y, const uint16_t z, uint8_t* _blockID, uint32_t* _blockData);
+	void replaceCubeWithAir(const uint8_t x1, const uint8_t y1, const uint16_t z1, const uint8_t x2, const uint8_t y2, const uint16_t z2);
+	bool saveChunk(void);
 	~cyChunk(void);
 
 protected:
 	sqlite3* m_db;
+	
+	size_t m_cBlocksTmapPos;
+	size_t m_torchTmapPos;
 	uint64_t skipCdataArray(char* memory, uint64_t startpos, uint8_t elementsize);
 	void loadCblockTmap(uint64_t startpos);
 	void loadCustomBlocks(void);

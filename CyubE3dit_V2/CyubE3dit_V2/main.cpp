@@ -9,6 +9,7 @@
 #include "cyImportant.h"
 #include "sqlite3.h"
 #include <dbghelp.h>
+#include <set>
 #include "cyVersion.h"
 #include "cySchematic.h"
 #include "SimplexNoise.h"
@@ -16,7 +17,7 @@
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
-
+/*
 LONG WINAPI MyUnhandledExceptionFilter(EXCEPTION_POINTERS* ExceptionInfo) {
 	HANDLE hFile = CreateFile(
 		L"CrashDump.dmp",
@@ -41,7 +42,7 @@ LONG WINAPI MyUnhandledExceptionFilter(EXCEPTION_POINTERS* ExceptionInfo) {
 
 	return EXCEPTION_EXECUTE_HANDLER;
 }
-
+*/
 mutex m;
 
 #define MAX_LOADSTRING 100
@@ -52,6 +53,11 @@ WCHAR szTitle[MAX_LOADSTRING];		  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];  // the main window class name
 
 CyMainComponent mainComp;  // Wicked Engine Main Runtime Component
+
+//Sort function for XMFLOAT4 containing position and distance values (for the torch sounds)
+bool partSortDist(XMFLOAT4 i, XMFLOAT4 j) {
+	return (i.w < j.w);
+}
 
 // Forward declarations of functions included in this code module:
 ATOM MyRegisterClass(HINSTANCE hInstance);
@@ -66,7 +72,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(hPrevInstance);
 	UNREFERENCED_PARAMETER(lpCmdLine);
 
-	SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
+	//SetUnhandledExceptionFilter(MyUnhandledExceptionFilter);
 
 	BOOL dpi_success = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 	assert(dpi_success);
@@ -103,12 +109,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	// wiBackLog::save(ofstream & file)
 	/*
-    wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
-    wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
-    wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
-    wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
-    wiJobSystem::Wait(ctx);
-    */
+wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
+wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
+wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
+wiJobSystem::Execute(ctx, [](wiJobArgs args) { wiHelper::Spin(100); });
+wiJobSystem::Wait(ctx);
+*/
 
 	MSG msg		= {0};
 	uint8_t ran = 0;
@@ -121,13 +127,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	loader.spawnThreads(numChunkThreads);
 	DWORD lasttick = 0, lasttickEmitter = 0;
 	SimplexNoise noise;
-	XMFLOAT3 minPos;
-	float minDist = 25;
+	std::set<float, greater<float>> nearestTorches;
+	XMFLOAT3 minPos		 = XMFLOAT3(0, 0, 0);
+	XMFLOAT3 leastMinPos = XMFLOAT3(0, 0, 0);
+	float minDist[CyRender::NUM_TORCHSOUNDS];
+	std::vector<XMFLOAT4> neartorches;
 
 	while (msg.message != WM_QUIT)
 	{
 
 		if (wiInput::Press(wiInput::KEYBOARD_BUTTON_ESCAPE)) {
+			cySchematic::clearAllSchematics();
 		}
 		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 			TranslateMessage(&msg);
@@ -156,73 +166,105 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				}
 				//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
 				//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
-			} else if (GetTickCount() - lasttickEmitter > 250) {
-				lasttickEmitter = GetTickCount();
-				if (settings::rendermask & LAYER_EMITTER) {
-					minDist = 25;
-					for (uint32_t i = 1; i < scn.emitters.GetCount(); i++) {
-						float dist = wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.emitters[i].center);
-						if (dist < 25) {
-							if (dist < minDist) {
-								minDist = dist;
-								minPos	= scn.emitters[i].center;
+			} else if (GetTickCount() - lasttickEmitter > 100) {
+				if (settings::sound) {
+					lasttickEmitter = GetTickCount();
+					neartorches.clear();
+					if (settings::rendermask & LAYER_EMITTER) {
+						nearestTorches.clear();
+						for (uint32_t i = 2; i < scn.lights.GetCount(); i++) {
+							float dist = wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.lights[i].position);
+							if (dist < 10) {
+								neartorches.push_back(XMFLOAT4(scn.lights[i].position.x, scn.lights[i].position.y, scn.lights[i].position.z, dist));
+								//if (scn.emitters[i].IsPaused()) {
+								//	scn.emitters[i].SetPaused(false);
+								//}
+							} else if (dist > 30) {
+								//if (!scn.emitters[i].IsPaused()) {
+								//	scn.emitters[i].SetPaused(true);
+								//}
 							}
-							if (scn.emitters[i].IsPaused()) {
-								scn.emitters[i].SetPaused(false);
-							}
-						} else if (dist > 30) {
-							if (!scn.emitters[i].IsPaused()) {
-								scn.emitters[i].SetPaused(true);
-							}
+							//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
+							//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
 						}
-						//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
-						//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
+					} else {
+						if (neartorches.size())
+							neartorches.clear();
 					}
 				}
 			}
 			m.unlock();
 
-			if (minDist < 25) {
-				if (!mainComp.fireSoundIsPlaying) {
-					wiAudio::Play(&mainComp.fireSoundinstance);
-					mainComp.fireSoundIsPlaying = true;
-				}
+			if (neartorches.size()) {
+				std::partial_sort(neartorches.begin(), neartorches.begin() + 4, neartorches.end(), partSortDist);
 				wiAudio::SoundInstance3D snd3d;
 				snd3d.listenerFront = wiScene::GetCamera().At;
 				snd3d.listenerPos	= wiScene::GetCamera().Eye;
 				snd3d.emitterRadius = 0.2;
 				snd3d.emitterFront	= wiScene::GetCamera().At;
-				snd3d.emitterPos	= minPos;
-				wiAudio::Update3D(&mainComp.fireSoundinstance, snd3d);
-			} else if (mainComp.fireSoundIsPlaying) {
-				wiAudio::Stop(&mainComp.fireSoundinstance);
-				mainComp.fireSoundIsPlaying = false;
+				for (uint8_t i = 0; i < CyRender::NUM_TORCHSOUNDS; i++) {
+					if (i < neartorches.size()) {
+						if (!mainComp.renderer.fireSoundIsPlaying[i]) {
+							wiAudio::Play(&(mainComp.renderer.fireSoundinstance[i]));
+							mainComp.renderer.fireSoundIsPlaying[i] = true;
+							mainComp.renderer.anyfireSoundIsPlaying = true;
+						}
+						snd3d.emitterPos = XMFLOAT3(neartorches[i].x, neartorches[i].y, neartorches[i].z);
+						wiAudio::Update3D(&(mainComp.renderer.fireSoundinstance[i]), snd3d);
+					} else if (mainComp.renderer.fireSoundIsPlaying[i]) {
+						wiAudio::Stop(&(mainComp.renderer.fireSoundinstance[i]));
+						mainComp.renderer.fireSoundIsPlaying[i] = false;
+					}
+				}
+			} else if (mainComp.renderer.anyfireSoundIsPlaying) {
+				for (uint8_t i = 0; i < CyRender::NUM_TORCHSOUNDS; i++) {
+					if (mainComp.renderer.fireSoundIsPlaying[i]) {
+						wiAudio::Stop(&(mainComp.renderer.fireSoundinstance[i]));
+						mainComp.renderer.fireSoundIsPlaying[i] = false;
+					}
+				}
+				mainComp.renderer.anyfireSoundIsPlaying = false;
 			}
-			if (wiInput::Press((wiInput::BUTTON)'H')) {
-				//int msgboxID = MessageBox(NULL, L"test", L"", 0);
-				wiBackLog::Toggle();
-			}
-			if (wiInput::Press((wiInput::BUTTON)'P')) {
-				wiProfiler::SetEnabled(!wiProfiler::IsEnabled());
-			}
-			if (wiInput::Press((wiInput::BUTTON)'I')) {
-				mainComp.infoDisplay.active = !mainComp.infoDisplay.active;
-			}
-			if (wiInput::Press((wiInput::BUTTON)'F')) {
-				if (mainComp.m_headLight != INVALID_ENTITY) {
-					LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);
-					if (light->energy > 0.5f) {
-						//wiBackLog::post("Light off");
-						light->energy = 0.0f;
-						light->SetCastShadow(false);
+
+			if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LCONTROL)) {
+				if (wiInput::Press((wiInput::BUTTON)'H')) {
+					//int msgboxID = MessageBox(NULL, L"test", L"", 0);
+					wiBackLog::Toggle();
+				}
+				if (wiInput::Press((wiInput::BUTTON)'P')) {
+					wiProfiler::SetEnabled(!wiProfiler::IsEnabled());
+				}
+				if (wiInput::Press((wiInput::BUTTON)'I')) {
+					if (mainComp.infoDisplay.active == false) {
+						mainComp.infoDisplay.active	   = true;
+						mainComp.infoDisplay.chunkinfo = false;
+					} else if (mainComp.infoDisplay.chunkinfo == false) {
+						mainComp.infoDisplay.chunkinfo = true;
 					} else {
-						//wiBackLog::post("Light on");
-						light->energy = 7.0f;
-						light->SetCastShadow(true);
+						mainComp.infoDisplay.active = false;
+					}
+				}
+				if (wiInput::Press((wiInput::BUTTON)'F')) {
+					if (mainComp.m_headLight != INVALID_ENTITY) {
+						LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);
+						if (light->energy > 0.5f) {
+							//wiBackLog::post("Light off");
+							light->energy = 0.0f;
+							light->SetCastShadow(false);
+						} else {
+							//wiBackLog::post("Light on");
+							light->energy = 7.0f;
+							light->SetCastShadow(true);
+						}
 					}
 				}
 			}
+			
 			if (settings::newWorld != settings::thisWorld && mainComp.GetActivePath() == &mainComp.renderer) {
+				/*for (size_t i = 0;  i < cyBlocks::m_treeMeshes.size(); i++) {
+					if(wiScene::GetScene().impostors.Contains(cyBlocks::m_treeMeshes[i]) == false)
+						wiScene::GetScene().impostors.Create(cyBlocks::m_treeMeshes[i]).swapInDistance = settings::viewDist * 4;
+				}*/
 				cyImportant* world = settings::getWorld();
 				world->loadWorldInfo(settings::newWorld);
 				settings::thisWorld = settings::newWorld;
@@ -238,6 +280,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 				transform->ClearTransform();
 				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 2.0f, 0.f));
 				transform->RotateRollPitchYaw(XMFLOAT3(-1.5, 0, 0));
+				transform->SetDirty();
+				transform->UpdateTransform();
+				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_posLight);
+				transform->ClearTransform();
+				transform->Translate(XMFLOAT3(0.f, (float)(world->m_playerpos.z / 100) + 8.0f, 0.f));
+				transform->RotateRollPitchYaw(XMFLOAT3(-PI, 0, 0));
 				transform->SetDirty();
 				transform->UpdateTransform();
 				transform = wiScene::GetScene().transforms.GetComponent(mainComp.m_dust);

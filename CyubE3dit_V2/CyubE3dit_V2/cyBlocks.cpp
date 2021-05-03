@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "cyBlocks.h"
+#include "meshGEn.h"
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -24,11 +25,12 @@ std::shared_ptr<wiResource> cyBlocks::emitter_dust_material;
 std::shared_ptr<wiResource> cyBlocks::emitter_smoke_material;
 std::shared_ptr<wiResource> cyBlocks::emitter_fire_material;
 std::shared_ptr<wiResource> cyBlocks::emitter_flare_material;
+wiECS::Entity cyBlocks::toolblock_material;
 
 void cyBlocks::LoadRegBlocks(void) {
 	m_fallbackMat = m_scene.Entity_CreateMaterial("fallbackMat");
 	ifstream file;
-	file.open("data/blocks.json", fstream::in);
+	file.open("images/blocks.json", fstream::in);
 	if (file.is_open()) {
 		json j_complete = json::parse(file);
 
@@ -93,6 +95,24 @@ void cyBlocks::loadMeshes(void) {
 	emitter_smoke_material = wiResourceManager::Load("images/particle_smoke.png");
 	emitter_fire_material  = wiResourceManager::Load("images/fire.jpg");
 	emitter_flare_material = wiResourceManager::Load("images/ripple.png");
+
+	toolblock_material = m_scene.Entity_CreateMaterial("TBmat");
+	for (uint8_t i = 0; i < 6; ++i) {
+		meshGen::toolBlockFaces[i] = meshGen::AddToolBoxFace(toolblock_material, i);
+	}
+	
+	
+	wiScene::MaterialComponent* material = m_scene.materials.GetComponent(toolblock_material);
+	material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+	material->textures[MaterialComponent::BASECOLORMAP].name	 = "data/meshes/Toolblock.png";
+	material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("data/meshes/Toolblock.png");
+	material->SetReflectance(0.09);
+	material->SetTransmissionAmount(0.9);
+	//material->SetRefractionAmount(0.0f);
+	material->SetMetalness(0.03f);
+	material->SetRoughness(0.05f);
+	material->SetCastShadow(true);
+	//material->SetDirty(true);
 }
 
 void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype) {
@@ -151,7 +171,6 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	matType_t materialType;
 	string tex				= "";
 	uint8_t id				= 0;
-	wiScene::Scene& m_scene = wiScene::GetScene();
 	try {
 		id = (matType_t)it.value().at(i).at("id");
 	}
@@ -199,7 +218,8 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			} else {
 				material->SetReflectance(0);
 				material->SetMetalness(0);
-				material->SetEmissiveStrength(0);
+				material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+				material->SetEmissiveStrength(.2);
 				material->SetRoughness(1);
 				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 			}
@@ -225,8 +245,8 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material->textures[MaterialComponent::SURFACEMAP].resource = wiResourceManager::Load("images/" + tex);
 				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
 				material->SetParallaxOcclusionMapping(1.0);
-				material->SetClearcoatFactor(1.);
-				material->SetClearcoatRoughness(.5);
+				//material->SetClearcoatFactor(1.);
+				//material->SetClearcoatRoughness(.5);
 				material->SetMetalness(1.0f);
 				material->SetRoughness(1.0f);
 				material->SetReflectance(1.0f);
@@ -258,18 +278,17 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
 				if (blocktype == BLOCKTYPE_ALPHA) {
 					material->SetReflectance(0.09);
-					material->SetTransmissionAmount(0.99);
+					material->SetTransmissionAmount(0.98);
 					material->SetRefractionAmount(0.01f);
-					material->SetBaseColor(XMFLOAT4(1., 1., 1., 1.f));
 					material->SetMetalness(0.03f);
 					material->SetRoughness(0.05f);
 					material->SetCastShadow(true);
 				} else {
+					material->SetBaseColor(XMFLOAT4(1., 0.5, 0, 1));
 					material->SetReflectance(0);
 					material->SetMetalness(0);
 					material->SetEmissiveStrength(0);
 					material->SetRoughness(1);
-					material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 				}
 			}
 		}
@@ -413,7 +432,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									}
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "down.dds")) {
 									m_cBlockTypes[tmpID].material[1]							 = m_scene.Entity_CreateMaterial("");
@@ -422,7 +442,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "sides.dds")) {
 									m_cBlockTypes[tmpID].material[2]							 = m_scene.Entity_CreateMaterial("");
@@ -431,7 +452,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "left.dds")) {
 									m_cBlockTypes[tmpID].material[3]							 = m_scene.Entity_CreateMaterial("");
@@ -440,7 +462,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "right.dds")) {
 									m_cBlockTypes[tmpID].material[2]							 = m_scene.Entity_CreateMaterial("");
@@ -449,7 +472,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "front.dds")) {
 									m_cBlockTypes[tmpID].material[5]							 = m_scene.Entity_CreateMaterial("");
@@ -458,7 +482,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								} else if (iequals(texdir.path().filename().string(), "back.dds")) {
 									m_cBlockTypes[tmpID].material[4]							 = m_scene.Entity_CreateMaterial("");
@@ -467,7 +492,8 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									material->SetReflectance(0.0f);
 									material->SetMetalness(0.0f);
-									material->SetEmissiveStrength(0.0f);
+									material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+									material->SetEmissiveStrength(.2);
 									material->SetRoughness(1.0f);
 								}
 							}

@@ -24,6 +24,11 @@ public:
 	static bool sound;
 	static uint32_t rendermask;
 	static bool pauseChunkloader;
+	static float musicVol;
+	static float effectVol;
+	static uint32_t pickType;
+	static bool volClouds;
+	static bool tempAA;
 	
 	static void save(void);
 	static void load(void);
@@ -40,4 +45,6 @@ static inline void setViewDist(uint32_t _viewDist) {
 		viewDist = _viewDist;
 }
 
+private:
+static const size_t prefsLen = 27+2*sizeof(float);
 };

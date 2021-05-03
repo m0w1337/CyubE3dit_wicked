@@ -286,6 +286,7 @@
     <ClInclude Include="lz4.h" />
     <ClInclude Include="meshGen.h" />
     <ClInclude Include="ModelImporter.h" />
+    <ClInclude Include="pocketmod.h" />
     <ClInclude Include="PostprocessWindow.h" />
     <ClInclude Include="RendererWindow.h" />
     <ClInclude Include="resource.h" />

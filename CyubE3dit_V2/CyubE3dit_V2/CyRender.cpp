@@ -12,18 +12,22 @@
 #include "windows.h"
 #include "psapi.h"
 
-
 using namespace std;
 using namespace wiECS;
 using namespace wiScene;
 using namespace wiGraphics;
 wiECS::Entity CyMainComponent::m_headLight = 0;
+wiECS::Entity CyMainComponent::m_posLight = 0;
 wiECS::Entity CyMainComponent::m_probe	   = 0;
 wiECS::Entity CyMainComponent::m_dust	   = 0;
-wiAudio::Sound CyMainComponent::fireSound;
-wiAudio::SoundInstance CyMainComponent::fireSoundinstance;
-wiAudio::SoundInstance3D CyMainComponent::soundinstance3D;
-bool CyMainComponent::fireSoundIsPlaying = false;
+wiAudio::Sound CyRender::fireSound;
+wiAudio::SoundInstance CyRender::fireSoundinstance[NUM_TORCHSOUNDS];
+wiAudio::Sound CyRender::windSound;
+wiAudio::SoundInstance CyRender::windSoundinstance;
+wiAudio::Sound CyRender::bgSound;
+wiAudio::SoundInstance CyRender::bgSoundinstance;
+bool CyRender::fireSoundIsPlaying[]	 = {false};
+bool CyRender::anyfireSoundIsPlaying = false;
 
 void CyMainComponent::Initialize() {
 	settings::load();
@@ -32,13 +36,18 @@ void CyMainComponent::Initialize() {
 	//renderer.Load();
 	//pathRenderer.Load();
 	loader.Load();
-	renderer.main = this;
+	renderer.main		   = this;
+	renderer.m_soundLoaded = false;
 	loader.addLoadingComponent(&renderer, this, 0.5f, 0xFFFFFFFF);
+	loader.addLoadingFunction([this](wiJobArgs) {
+		LoadSound();
+	});
 	loader.addLoadingFunction([this](wiJobArgs) {
 		cyBlocks::LoadRegBlocks();
 		cyBlocks::LoadCustomBlocks();
 		cyBlocks::loadMeshes();
-		CreateScene(); });
+		CreateScene();
+	});
 	ActivatePath(&loader, 0.2f);
 }
 
@@ -65,24 +74,55 @@ void CyLoadingScreen::Update(float dt) {
 	LoadingScreen::Update(dt);
 }
 
+void CyMainComponent::LoadSound(void) {
+	renderer.m_soundLoaded = false;
+	wiAudio::SetSubmixVolume(wiAudio::SUBMIX_TYPE_MUSIC, settings::musicVol);
+	wiAudio::SetSubmixVolume(wiAudio::SUBMIX_TYPE_SOUNDEFFECT, settings::effectVol);
+	if (wiAudio::CreateSound("sound/fireloop3.ogg", &renderer.fireSound)) {
+		for (uint8_t i = 0; i < renderer.NUM_TORCHSOUNDS; i++) {
+			renderer.fireSoundinstance[i].type = wiAudio::SUBMIX_TYPE_SOUNDEFFECT;
+			wiAudio::CreateSoundInstance(&renderer.fireSound, &(renderer.fireSoundinstance[i]));
+			//fireSoundinstance[i].loop_begin = (float)i ;
+			wiAudio::SetVolume(0.1, &(renderer.fireSoundinstance[i]));
+		}
+	} else {
+		settings::sound = false;
+		return;
+	}
+
+	//wiAudio::CreateSound("sound/background.ogg", &bgSound);
+
+	if (wiAudio::CreateSound("sound/02 - Ingame.mod", &renderer.bgSound)) {
+		renderer.bgSoundinstance.type = wiAudio::SUBMIX_TYPE_MUSIC;
+		wiAudio::CreateSoundInstance(&renderer.bgSound, &renderer.bgSoundinstance);
+		wiAudio::SetVolume(1., &renderer.bgSoundinstance);
+	} else {
+		settings::sound = false;
+		return;
+	}
+
+	if (wiAudio::CreateSound("sound/wind2.ogg", &renderer.windSound)) {
+		renderer.windSoundinstance.type = wiAudio::SUBMIX_TYPE_SOUNDEFFECT;
+		wiAudio::CreateSoundInstance(&renderer.windSound, &renderer.windSoundinstance);
+		renderer.windSoundinstance.loop_begin = 32.7;
+		wiAudio::SetVolume(0.3, &renderer.windSoundinstance);
+	} else {
+		settings::sound = false;
+		return;
+	}
+	if (settings::sound) {
+		wiAudio::Play(&renderer.bgSoundinstance);
+		wiAudio::Play(&renderer.windSoundinstance);
+	}
+	renderer.m_soundLoaded = true;
+}
+
 void CyMainComponent::CreateScene(void) {
-	Scene& scene				= wiScene::GetScene();
+	Scene& scene = wiScene::GetScene();
+	settings::rendermask |= LAYER_CHUNKMESH;  //enable at least the chunk visibility after restart, otherwise it's weired....
 	renderer.setlayerMask(settings::rendermask);
 	wiScene::GetScene().weather = WeatherComponent();
-	static wiAudio::Sound windSound;
-	static wiAudio::SoundInstance windSoundinstance;
-	wiAudio::CreateSound("sound/fireloop.ogg", &fireSound);
-	wiAudio::CreateSoundInstance(&fireSound, &fireSoundinstance);
-	wiAudio::CreateSound("sound/wind.ogg", &windSound);
-	wiAudio::CreateSoundInstance(&windSound, &windSoundinstance);
-	windSoundinstance.type = wiAudio::SUBMIX_TYPE_SOUNDEFFECT;
-	wiAudio::Play(&windSoundinstance);
-	wiAudio::SetVolume(1.,&windSoundinstance);
-	wiAudio::SetVolume(0.5, &fireSoundinstance);
-	wiAudio::SetSubmixVolume(wiAudio::SUBMIX_TYPE_MUSIC, 1.0);
-	wiAudio::SetSubmixVolume(wiAudio::SUBMIX_TYPE_SOUNDEFFECT, 1.0);
-	fireSoundinstance.type = wiAudio::SUBMIX_TYPE_SOUNDEFFECT;
-	
+
 	//if (wiLua::GetLuaState() != nullptr) {
 	//	wiLua::KillProcesses();
 	//}
@@ -91,9 +131,9 @@ void CyMainComponent::CreateScene(void) {
 	weather.fogStart   = 50;
 	weather.fogEnd	   = 650;
 	weather.fogHeight  = 0;
-	weather.horizon	   = XMFLOAT3(0.8f, 0.8f, .9f);	 //XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.zenith	   = XMFLOAT3(0.7f, 0.7f, .8f);	 //XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
-	weather.ambient	   = XMFLOAT3(.7f, .7f, .9f);	 //XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
+	weather.horizon	   = XMFLOAT3(0.9f, 0.9f, .9f);	 //XMFLOAT3(.2f, .2f, .3f);	  //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.zenith	   = XMFLOAT3(0.9f, 0.9f, .8f);	 //XMFLOAT3(0.2f, 0.2f, 0.3f);	 //XMFLOAT3(0.9f, 0.9f, 1.f);
+	weather.ambient	   = XMFLOAT3(.9f, .9f, 1.f);	 //XMFLOAT3(.9f, .9f, .9f);  //XMFLOAT3(.5f, .6f, .7f);
 	weather.skyMapName = "images/sky.dds";
 	weather.skyMap	   = wiResourceManager::Load("images/sky.dds");
 	weather.SetRealisticSky(false);
@@ -107,7 +147,7 @@ void CyMainComponent::CreateScene(void) {
 	weather.windWaveSize   = 0.5f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
-	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 13, 100);
+	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 9, 100);
 	LightComponent* light = scene.lights.GetComponent(LightEnt);
 	light->SetType(LightComponent::LightType::DIRECTIONAL);
 	//light->color				  = XMFLOAT3(1.0f,0.9f,0.7f);
@@ -148,6 +188,12 @@ void CyMainComponent::CreateScene(void) {
 	light->fov = 1.2f;
 	wiScene::GetScene().springs.Create(m_headLight);
 	wiScene::GetScene().springs.GetComponent(m_headLight)->wind_affection = 1.0;
+	m_posLight = wiScene::GetScene().Entity_CreateLight("Poslight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 1.f, 0.4f), 50, 400, LightComponent::LightType::SPOT);
+	light		= wiScene::GetScene().lights.GetComponent(m_posLight);
+	light->SetVolumetricsEnabled(true);
+	light->SetStatic(false);
+	light->SetCastShadow(false);
+	light->fov = 0.2f;
 
 	m_dust							 = wiScene::GetScene().Entity_CreateEmitter("Dust", XMFLOAT3(0, 10, 0));
 	wiScene::wiEmittedParticle* dust = wiScene::GetScene().emitters.GetComponent(m_dust);
@@ -187,10 +233,6 @@ void CyMainComponent::CreateScene(void) {
 	dustmat->SetEmissiveColor(XMFLOAT4(1, 1, 1, 1));
 	dustmat->SetEmissiveStrength(50.f);
 	*/
-
-	//wiResourceManager::Load("images/particle_dust.dds");
-	//dustmat->textures[MaterialComponent::BASECOLORMAP].name		= "images/particle_dust.dds";
-	//dustmat->SetBaseColor(XMFLOAT4(0.3,0.4,0.6,1.0));
 	infoDisplay.active					= false;
 	infoDisplay.watermark				= true;
 	infoDisplay.resolution				= true;
@@ -297,7 +339,6 @@ void CyMainComponent::Compose(CommandList cmd) {
 			ss.precision(2);
 			ss << fixed << 1.0f / displaydeltatime << " FPS" << endl;
 		}
-		
 
 		ss << settings::numVisChunks << " Chunks visible" << endl;
 		cyImportant* world = settings::getWorld();
@@ -319,82 +360,81 @@ void CyMainComponent::Compose(CommandList cmd) {
 		{
 			ss << "Warning: Graphics is in [debugdevice] mode, performance will be slow!" << endl;
 		}
-		/*
-		ss << "Entity pool usage: " + to_string((((float)wiECS::next * 100.0f) / UINT32_MAX)) + "%" << endl;
-		static int64_t id								 = -1;
-		static wiECS::Entity oldMat						 = 0;
-		static string blockname							 = "";
-		wiScene::Scene& scene							 = wiScene::GetScene();
-		static wiScene::MaterialComponent* highlightComp = scene.materials.GetComponent(scene.materials.GetIndex(0));
-		wiECS::Entity mat								 = 0;
-		if (renderer.hovered.entity) {
-			wiScene::MeshComponent* mesh = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID);
-			mat							 = mesh->subsets[renderer.hovered.subsetIndex].materialID;
-			XMFLOAT3 pos				 = mesh->vertex_positions[renderer.hovered.vertexID0];
-			pos.x += mesh->vertex_positions[renderer.hovered.vertexID1].x;
-			pos.y += mesh->vertex_positions[renderer.hovered.vertexID1].y;
-			pos.z += mesh->vertex_positions[renderer.hovered.vertexID1].z;
-			pos.x += mesh->vertex_positions[renderer.hovered.vertexID2].x;
-			pos.y += mesh->vertex_positions[renderer.hovered.vertexID2].y;
-			pos.z += mesh->vertex_positions[renderer.hovered.vertexID2].z;
-			pos.x /= 1.5;
-			pos.y /= 1.5;
-			pos.z /= 1.5;
-			pos.x -= mesh->vertex_normals[renderer.hovered.vertexID1].x / 2;
-			pos.y -= mesh->vertex_normals[renderer.hovered.vertexID1].y / 2;
-			pos.z -= mesh->vertex_normals[renderer.hovered.vertexID1].z / 2;
-			XMMATRIX sca = XMMatrixScaling(0.26f, 0.26f, 0.26f);
-			XMMATRIX tra = XMMatrixTranslation(roundf(pos.x) / 2, roundf(pos.y) / 2, roundf(pos.z) / 2);
-			XMFLOAT4X4 hoverBox;
-			XMStoreFloat4x4(&hoverBox, sca * tra);
-			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.8f, 0.8f, 2.f, 1.0f));
-		}
-		
-		if (oldMat != mat) {
-
-			oldMat = renderer.hovered.entity;
-			id	   = -1;
-			if (oldMat) {
-				for (uint32_t i = 0; i < 256; i++) {
-					for (uint8_t ii = 0; ii < 6; ii++) {
-						if (cyBlocks::m_regBlockMats[i][ii] == mat) {
-							blockname = cyBlocks::m_regBlockNames[i];
-							id		  = i;
-							break;
-							
-						}
-					}
-					
+		if (infoDisplay.chunkinfo)
+		{
+			ss << "Entity pool usage: " + to_string((((float)wiECS::next * 100.0f) / UINT32_MAX)) + "%" << endl;
+			static int64_t id								 = -1;
+			static wiECS::Entity oldMat						 = 0;
+			static string blockname							 = "";
+			wiScene::Scene& scene							 = wiScene::GetScene();
+			static wiScene::MaterialComponent* highlightComp = scene.materials.GetComponent(scene.materials.GetIndex(0));
+			wiECS::Entity mat								 = 0;
+			if (renderer.hovered.entity) {
+				wiScene::MeshComponent* mesh = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID);
+				mat							 = mesh->subsets[renderer.hovered.subsetIndex].materialID;
+				if (cyBlocks::m_regBlockTypes[id] != cyBlocks::BLOCKTYPE_BILLBOARD) {
+					XMFLOAT3 pos = mesh->vertex_positions[renderer.hovered.vertexID0];
+					pos.x		 = roundf(renderer.hovered.position.x * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].x;
+					pos.y		 = roundf(renderer.hovered.position.y * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].y;
+					pos.z		 = roundf(renderer.hovered.position.z * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].z;
+					//pos.x += //mesh->vertex_positions[renderer.hovered.vertexID2].x;
+					//pos.y += //mesh->vertex_positions[renderer.hovered.vertexID2].y;
+					//pos.z += //mesh->vertex_positions[renderer.hovered.vertexID2].z;
+					//pos.x /= 1.5;
+					//pos.y /= 1.5;
+					//pos.z /= 1.5;
+					pos.x -= mesh->vertex_normals[renderer.hovered.vertexID1].x * 0.5;
+					pos.y -= mesh->vertex_normals[renderer.hovered.vertexID1].y * 0.5;
+					pos.z -= mesh->vertex_normals[renderer.hovered.vertexID1].z * 0.5;
+					XMMATRIX sca = XMMatrixScaling(0.26f, 0.26f, 0.26f);
+					XMMATRIX tra = XMMatrixTranslation(pos.x, pos.y, pos.z);
+					XMFLOAT4X4 hoverBox;
+					XMStoreFloat4x4(&hoverBox, sca * tra);
+					wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.8f, 0.8f, 2.f, 1.0f));
 				}
-				if (id == -1) {
-					for (auto& it : cyBlocks::m_cBlockTypes) {
+			}
+
+			if (oldMat != mat) {
+
+				oldMat = renderer.hovered.entity;
+				id	   = -1;
+				if (oldMat) {
+					for (uint32_t i = 0; i < 256; i++) {
 						for (uint8_t ii = 0; ii < 6; ii++) {
-							if (it.second.material[ii] == mat) {
-								if (it.second.creator.empty()) {
-									blockname = it.second.name;
-								} else {
-									blockname = it.second.name + "( by " + it.second.creator + ")";
-								}
-								id = it.first;
+							if (cyBlocks::m_regBlockMats[i][ii] == mat) {
+								blockname = cyBlocks::m_regBlockNames[i];
+								id		  = i;
 								break;
-								
 							}
 						}
-						
+					}
+					if (id == -1) {
+						for (auto& it : cyBlocks::m_cBlockTypes) {
+							for (uint8_t ii = 0; ii < 6; ii++) {
+								if (it.second.material[ii] == mat) {
+									if (it.second.creator.empty()) {
+										blockname = it.second.name;
+									} else {
+										blockname = it.second.name + "( by " + it.second.creator + ")";
+									}
+									id = it.first;
+									break;
+								}
+							}
+						}
 					}
 				}
-			} 
-		}
-		if (renderer.hovered.entity != wiECS::INVALID_ENTITY) {
-			ss << "Hovered Chunk: " + scene.names.GetComponent(renderer.hovered.entity)->name << endl;
-			//highlightComp->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 1.0f, 0.1f * renderer.sinepulse));
-			ss << "Hovered Block: " + blockname + "(ID " + to_string(id) + ")" << endl;
-		}
+			}
+			if (renderer.hovered.entity != wiECS::INVALID_ENTITY) {
+				ss << "Hovered Chunk: " + scene.names.GetComponent(renderer.hovered.entity)->name << endl;
+				//highlightComp->SetEmissiveColor(XMFLOAT4(0.0f, 0.0f, 1.0f, 0.1f * renderer.sinepulse));
+				ss << "Hovered Block: " + blockname + "(ID " + to_string(id) + ")" << endl;
+			}
 
-		PROCESS_MEMORY_COUNTERS_EX pmc;
-		GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
-		ss << "RAM used: " + to_string((pmc.PrivateUsage - pmc.WorkingSetSize) / 1000000) + " MB" << endl;
-		*/
+			PROCESS_MEMORY_COUNTERS_EX pmc;
+			GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+			ss << "RAM used: " + to_string((pmc.PrivateUsage - pmc.WorkingSetSize) / 1000000) + " MB" << endl;
+		}
 		ss.precision(2);
 		if (infoDisplay.colorgrading_helper)
 		{
@@ -498,21 +538,21 @@ void CyRender::ResizeLayout() {
 	camModeSelector.SetPos(XMFLOAT2(screenW - camModeSelector.scale.x - 15, 10));
 	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
 	float xOffset = 15;
-	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 10 + postprocessWnd_Toggle.scale.x;
-	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 10 + rendererWnd_Toggle.scale.x;
-	visualsWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	visualsWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 10 + visualsWnd_Toggle.scale.x;
-	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 10 + loadSchBtn.scale.x;
-	saveSchBtn.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	saveSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 10 + saveSchBtn.scale.x;
-	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 20 + PauseChunkLoading.scale.x;
-	saveButton.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
-	
-	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - postprocessWnd_Toggle.scale.y - 15));
+	//saveButton.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
+
+	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - saveSchBtn.scale.y - 15));
 }
 
 void CyRender::Load() {
@@ -526,8 +566,11 @@ void CyRender::Load() {
 	setMotionBlurStrength(10.0f);
 	setBloomEnabled(true);
 	wiRenderer::SetScreenSpaceShadowsEnabled(false);
-	setBloomThreshold(1.7f);
-	setReflectionsEnabled(true);
+	if (settings::volClouds)
+		setBloomThreshold(1.9f);
+	else
+		setBloomThreshold(1.5f);
+	setReflectionsEnabled(false);
 	setSSREnabled(false);
 	wiRenderer::SetGamma(2.4f);
 	wiPhysicsEngine::SetEnabled(true);
@@ -535,15 +578,25 @@ void CyRender::Load() {
 	setColorGradingEnabled(true);
 	setShadowsEnabled(true);
 	setMSAASampleCount(1);
-	setDitherEnabled(true);
-	setSharpenFilterEnabled(true);
-	setSharpenFilterAmount(-0.17f);
+	setDitherEnabled(false);
+	setSharpenFilterAmount(0.25f);
 	wiRenderer::SetTransparentShadowsEnabled(false);
-	wiRenderer::SetShadowProps2D(2048, 4);
-	setVolumetricCloudsEnabled(false);
-	setExposure(1.5f);
-	wiRenderer::SetTemporalAAEnabled(false);
-	resolutionScale = 1.2f;
+	//wiRenderer::SetShadowProps2D(2048, 4);
+
+	setVolumetricCloudsEnabled(settings::volClouds);
+	if (settings::tempAA) {
+		wiRenderer::SetTemporalAAEnabled(true);
+		resolutionScale = 1.f;
+		setFXAAEnabled(false);
+		setSharpenFilterEnabled(true);
+	} else {
+		wiRenderer::SetTemporalAAEnabled(false);
+		resolutionScale = 1.3f;
+		setSharpenFilterEnabled(false);
+		setFXAAEnabled(true);
+	}
+	setExposure(1.f);
+
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
 	wiRenderer::SetVoxelRadianceEnabled(true);
 	wiRenderer::SetVoxelRadianceNumCones(2);
@@ -555,7 +608,7 @@ void CyRender::Load() {
 	wiProfiler::SetEnabled(false);
 	setAO(AO_MSAO);
 	setAOPower(0.2);
-	setFXAAEnabled(false);
+	setAORange(50);
 	setEyeAdaptionEnabled(false);
 	wiScene::GetCamera().zNearP = 0.15f;
 	wiScene::GetCamera().zFarP	= 2000.f;
@@ -623,7 +676,7 @@ void CyRender::Load() {
 	viewDist.OnSlide([=](wiEventArgs args) { settings::setViewDist((uint32_t)args.fValue); });
 	viewDist.SetSize(XMFLOAT2(300, 20));
 	GetGUI().AddWidget(&viewDist);
-
+#ifdef PROSETTINGS
 	rendererWnd_Toggle.Create("Renderer");
 	rendererWnd_Toggle.SetTooltip("Renderer settings");
 	rendererWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
@@ -634,21 +687,6 @@ void CyRender::Load() {
 		rendererWnd.SetVisible(!rendererWnd.IsVisible());
 	});
 	GetGUI().AddWidget(&rendererWnd_Toggle);
-
-	PauseChunkLoading.Create("Pause World loading");
-	PauseChunkLoading.SetTooltip("This will stop loading further portions of the world to save performance");
-	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
-	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
-	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	PauseChunkLoading.SetSize(XMFLOAT2(150, 20));
-	PauseChunkLoading.OnClick([&](wiEventArgs args) {
-		settings::pauseChunkloader = !settings::pauseChunkloader;
-		if (settings::pauseChunkloader)
-			PauseChunkLoading.SetText("Resume World loading");
-		else
-			PauseChunkLoading.SetText("Pause World loading");
-	});
-	GetGUI().AddWidget(&PauseChunkLoading);
 
 	postprocessWnd_Toggle.Create("PostProcess");
 	postprocessWnd_Toggle.SetTooltip("Postprocess settings");
@@ -661,44 +699,6 @@ void CyRender::Load() {
 	});
 	GetGUI().AddWidget(&postprocessWnd_Toggle);
 
-	visualsWnd_Toggle.Create("Visuals");
-	visualsWnd_Toggle.SetTooltip("Visual quality settings");
-	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
-	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
-	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	visualsWnd_Toggle.SetSize(XMFLOAT2(120, 20));
-	visualsWnd_Toggle.OnClick([&](wiEventArgs args) {
-		visualsWnd.SetVisible(!visualsWnd.IsVisible());
-	});
-	GetGUI().AddWidget(&visualsWnd_Toggle);
-
-	loadSchBtn.Create("Load schematic");
-	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world");
-	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
-	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
-	loadSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	loadSchBtn.SetSize(XMFLOAT2(120, 20));
-	loadSchBtn.OnClick([&](wiEventArgs args) {
-		loadSchBtn.SetEnabled(false);
-		wiHelper::FileDialogParams params;
-		params.description = "CyubeVR schematic";
-		params.extensions.push_back("cySch");
-		params.OPEN;
-		wiHelper::FileDialog(params, cySchematic::addSchematic);
-	});
-	GetGUI().AddWidget(&loadSchBtn);
-
-	saveSchBtn.Create("Save schematic");
-	saveSchBtn.SetTooltip("Select a portion of your world to save as schematic.");
-	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
-	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
-	saveSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	saveSchBtn.SetSize(XMFLOAT2(120, 20));
-	saveSchBtn.OnClick([&](wiEventArgs args) {
-		//cySchematic::addSelection();
-	});
-	GetGUI().AddWidget(&saveSchBtn);
-	
 	saveButton.Create("Save");
 	saveButton.SetTooltip("Save the current scene");
 	saveButton.SetColor(wiColor(0, 198, 101, 180), wiWidget::WIDGETSTATE::IDLE);
@@ -732,7 +732,66 @@ void CyRender::Load() {
 		});
 	});
 	GetGUI().AddWidget(&saveButton);
-	
+
+#endif
+	PauseChunkLoading.Create("Pause World loading");
+	PauseChunkLoading.SetTooltip("This will stop loading further portions of the world to save performance");
+	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	PauseChunkLoading.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	PauseChunkLoading.SetSize(XMFLOAT2(150, 20));
+	PauseChunkLoading.OnClick([&](wiEventArgs args) {
+		settings::pauseChunkloader = !settings::pauseChunkloader;
+		if (settings::pauseChunkloader)
+			PauseChunkLoading.SetText("Resume World loading");
+		else
+			PauseChunkLoading.SetText("Pause World loading");
+	});
+	GetGUI().AddWidget(&PauseChunkLoading);
+
+	visualsWnd_Toggle.Create("Settings");
+	visualsWnd_Toggle.SetTooltip("Visual/Audio settings");
+	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	visualsWnd_Toggle.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	visualsWnd_Toggle.SetSize(XMFLOAT2(120, 20));
+	visualsWnd_Toggle.OnClick([&](wiEventArgs args) {
+		visualsWnd.SetVisible(!visualsWnd.IsVisible());
+		if (!m_soundLoaded) {
+			visualsWnd.soundCheckBox.SetVisible(false);
+			visualsWnd.musicVol.SetVisible(false);
+			visualsWnd.effectVol.SetVisible(false);
+		}
+	});
+	GetGUI().AddWidget(&visualsWnd_Toggle);
+
+	loadSchBtn.Create("Load schematic");
+	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world");
+	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	loadSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	loadSchBtn.SetSize(XMFLOAT2(120, 20));
+	loadSchBtn.OnClick([&](wiEventArgs args) {
+		loadSchBtn.SetEnabled(false);
+		wiHelper::FileDialogParams params;
+		params.description = "CyubeVR schematic";
+		params.extensions.push_back("cySch");
+		params.OPEN;
+		wiHelper::FileDialog(params, cySchematic::addSchematic);
+	});
+	GetGUI().AddWidget(&loadSchBtn);
+
+	saveSchBtn.Create("Save schematic");
+	saveSchBtn.SetTooltip("Select a portion of your world to save as schematic.");
+	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	saveSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	saveSchBtn.SetSize(XMFLOAT2(120, 20));
+	saveSchBtn.OnClick([&](wiEventArgs args) {
+		cySchematic::addBoxSelector();
+	});
+	GetGUI().AddWidget(&saveSchBtn);
+
 	RenderPath3D::Load();
 	//ResizeBuffers();
 }
@@ -751,7 +810,7 @@ void CyRender::Update(float dt) {
 	static bool camControlStart	  = true;
 	static bool schDraged		  = false;
 	static float rotateAni		  = 0.f;
-	
+
 	lasttime += dt * 4;
 	sinepulse = std::sinf(lasttime);
 	if (lasttime > 100) {
@@ -795,6 +854,7 @@ void CyRender::Update(float dt) {
 						XMVECTOR B, axis, wrong;
 						switch (drag) {
 							case cySchematic::HOVER_X_AXIS:
+							case cySchematic::HOVER_SIZEX:
 								axis		= XMVectorSet(1, 0, 0, 0);
 								B			= pos + XMVectorSet(1, 0, 0, 0);
 								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
@@ -802,6 +862,7 @@ void CyRender::Update(float dt) {
 								dragX		= true;
 								break;
 							case cySchematic::HOVER_Y_AXIS:
+							case cySchematic::HOVER_SIZEY:
 								axis		= XMVectorSet(0, 0, 1, 0);
 								B			= pos + XMVectorSet(0, 0, 1, 0);
 								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
@@ -809,6 +870,7 @@ void CyRender::Update(float dt) {
 								dragY		= true;
 								break;
 							case cySchematic::HOVER_Z_AXIS:
+							case cySchematic::HOVER_SIZEZ:
 								axis		= XMVectorSet(0, 1, 0, 0);
 								B			= pos + XMVectorSet(0, 1, 0, 0);
 								wrong		= XMVector3Cross(wiScene::GetCamera().GetAt(), axis);
@@ -858,6 +920,9 @@ void CyRender::Update(float dt) {
 							case cySchematic::HOVER_X_AXIS:
 							case cySchematic::HOVER_Y_AXIS:
 							case cySchematic::HOVER_Z_AXIS:
+							case cySchematic::HOVER_SIZEX:
+							case cySchematic::HOVER_SIZEY:
+							case cySchematic::HOVER_SIZEZ:
 								XMVECTOR P	   = wiMath::GetClosestPointToLine(pos, B, intersection);
 								XMVECTOR PPrev = wiMath::GetClosestPointToLine(pos, B, intersectionPrev);
 								deltaV += P - PPrev;
@@ -865,26 +930,54 @@ void CyRender::Update(float dt) {
 							default:
 								deltaV += intersection - intersectionPrev;
 						}
-						XMFLOAT3 delta;
+						XMFLOAT3 delta(0.f, 0.f, 0.f);
 
 						cySchematic::m_schematics[dragID]->drawGridLines(dragX, dragY, dragZ);
-						if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
-							delta.x = roundf(XMVectorGetX(deltaV) / cySchematic::m_schematics[dragID]->size.x) * cySchematic::m_schematics[dragID]->size.x;
-							delta.y = roundf(XMVectorGetY(deltaV) / cySchematic::m_schematics[dragID]->size.z) * cySchematic::m_schematics[dragID]->size.z;
-							delta.z = roundf(XMVectorGetZ(deltaV) / cySchematic::m_schematics[dragID]->size.y) * cySchematic::m_schematics[dragID]->size.y;
+
+						
+						if (drag < cySchematic::HOVER_SIZEX) {
+							if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
+								delta.x = roundf(XMVectorGetX(deltaV) / cySchematic::m_schematics[dragID]->size.x) * cySchematic::m_schematics[dragID]->size.x;
+								delta.y = roundf(XMVectorGetY(deltaV) / cySchematic::m_schematics[dragID]->size.z) * cySchematic::m_schematics[dragID]->size.z;
+								delta.z = roundf(XMVectorGetZ(deltaV) / cySchematic::m_schematics[dragID]->size.y) * cySchematic::m_schematics[dragID]->size.y;
+							} else {
+								delta.x = roundf(XMVectorGetX(deltaV) * 2.f) / 2.f;
+								delta.y = roundf(XMVectorGetY(deltaV) * 2.f) / 2.f;
+								delta.z = roundf(XMVectorGetZ(deltaV) * 2.f) / 2.f;
+							}
+
+							transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
+							XMFLOAT3 newpos(transform->GetPosition().x + delta.x, transform->GetPosition().z + delta.y, transform->GetPosition().y + delta.z);
+							if (wiMath::DistanceEstimated(camera.Eye, newpos) <= 30.f + 20.f * cySchematic::m_schematics[dragID]->size.w && newpos.y > 0.f && newpos.y + cySchematic::m_schematics[dragID]->size.z < 400.f) {	 //limit the area of movement near camera to keep the schematic visible (size.w has to holt the average of all three sizes
+								deltaV = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
+								transform->Translate(delta);
+								transform->UpdateTransform();
+								cySchematic::m_schematics[dragID]->pos.x += delta.x;
+								cySchematic::m_schematics[dragID]->pos.z += delta.y;
+								cySchematic::m_schematics[dragID]->pos.y += delta.z;
+							}
 						} else {
-							delta.x = roundf(XMVectorGetX(deltaV) * 2) / 2;
-							delta.y = roundf(XMVectorGetY(deltaV) * 2) / 2;
-							delta.z = roundf(XMVectorGetZ(deltaV) * 2) / 2;
-						}
-						deltaV	  = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
-						transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
-						if (transform->GetPosition().y + delta.y > 0 && transform->GetPosition().y + delta.y + cySchematic::m_schematics[dragID]->size.z < 400) {
-							transform->Translate(delta);
-							transform->UpdateTransform();
-							cySchematic::m_schematics[dragID]->pos.x += delta.x;
-							cySchematic::m_schematics[dragID]->pos.z += delta.y;
-							cySchematic::m_schematics[dragID]->pos.y += delta.z;
+
+							delta.x = roundf(XMVectorGetX(deltaV) * 4.f) / 2.f;
+							delta.y = roundf(XMVectorGetY(deltaV) * 4.f) / 2.f;
+							delta.z = roundf(XMVectorGetZ(deltaV) * 4.f) / 2.f;
+
+							transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
+							XMFLOAT3 newsize(cySchematic::m_schematics[dragID]->size.x + delta.x, cySchematic::m_schematics[dragID]->size.z + delta.y, cySchematic::m_schematics[dragID]->size.y + delta.z);
+							if (newsize.x > 0.4 && newsize.x < 351.f && newsize.z > 0.4 && newsize.z < 351.f && newsize.y > 0.4 && newsize.y < 350.f && newsize.y + cySchematic::m_schematics[dragID]->pos.z < 400.f) {
+								cySchematic::m_schematics[dragID]->size.x += delta.x;
+								cySchematic::m_schematics[dragID]->size.z += delta.y;
+								cySchematic::m_schematics[dragID]->size.y += delta.z;
+								cySchematic::m_schematics[dragID]->size.x  = std::clamp(cySchematic::m_schematics[dragID]->size.x, 0.5f, 350.f);
+								cySchematic::m_schematics[dragID]->size.y  = std::clamp(cySchematic::m_schematics[dragID]->size.y, 0.5f, 350.f);
+								cySchematic::m_schematics[dragID]->size.z  = std::clamp(cySchematic::m_schematics[dragID]->size.z, 0.5f, 350.f);
+								cySchematic::m_schematics[dragID]->size.w  = (cySchematic::m_schematics[dragID]->size.x + cySchematic::m_schematics[dragID]->size.y + cySchematic::m_schematics[dragID]->size.z) * 0.334;
+								cySchematic::m_schematics[dragID]->m_dirty = cySchematic::DIRTY_RESIZE;
+								delta.x *= 0.5;
+								delta.y *= 0.5;
+								delta.z *= 0.5;
+								deltaV = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
+							}
 						}
 						originalMouse = pointer;
 					} else {  //hovered element was deleted -> clear drag request
@@ -911,10 +1004,17 @@ void CyRender::Update(float dt) {
 #endif
 		xDif = 0.1f * xDif * (1.0f / 60.0f);
 		yDif = 0.1f * yDif * (1.0f / 60.0f);
+		if (abs(xDif) < 0.00001)
+			xDif = 0;
+		if (abs(yDif) < 0.00001)
+			yDif = 0;
 		wiInput::SetPointer(originalMouse);
 		wiInput::HidePointer(true);
 	} else {
 		if (cySchematic::m_schematics.size() > 0) {
+			if (loadSchBtn.IsEnabled()) {
+				loadSchBtn.SetEnabled(false);
+			}
 			for (size_t i = 0; i < cySchematic::m_schematics.size(); i++) {
 				wiScene::Scene& scene	   = wiScene::GetScene();
 				RAY pickRay				   = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
@@ -927,6 +1027,8 @@ void CyRender::Update(float dt) {
 				XMStoreFloat4x4(&hoverBox, sca * tra);
 				wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
 			}
+		} else if (!loadSchBtn.IsEnabled()) {
+			loadSchBtn.SetEnabled(true);
 		}
 		if (schDraged) {
 			schDraged = false;
@@ -934,15 +1036,13 @@ void CyRender::Update(float dt) {
 				case cySchematic::HOVER_CHECK:
 					if (clicked == drag) {
 						//save here!!
-						cySchematic::m_schematics[dragID]->saveToWorld();
+						cySchematic::m_schematics[dragID]->m_dirty = cySchematic::DIRTY_SAVE;
 					}
 					break;
 				case cySchematic::HOVER_CROSS:
 					if (clicked == drag) {
-						cySchematic::m_schematics[dragID]->clearSchematic();
-						if (cySchematic::m_schematics.size() == 0) {
-							loadSchBtn.SetEnabled(true);
-						}
+						cySchematic::m_schematics[dragID]->m_dirty = cySchematic::DIRTY_REMOVE;
+						//cySchematic::m_schematics[dragID]->clearSchematic();
 					}
 					break;
 				case cySchematic::HOVER_ROTCC:
@@ -968,12 +1068,12 @@ void CyRender::Update(float dt) {
 		camControlStart = true;
 
 		wiInput::HidePointer(false);
-		if (rendererWnd.GetPickType()) {
+		if (settings::pickType) {
 			RAY pickRay		  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
 			uint32_t pickmask = 0;
-			if (rendererWnd.GetPickType() & PICK_CHUNK)
+			if (settings::pickType & PICK_CHUNK)
 				pickmask |= LAYER_CHUNKMESH;
-			if (rendererWnd.GetPickType() & PICK_TREE)
+			if (settings::pickType & PICK_TREE)
 				pickmask |= LAYER_TREE;
 			hovered = wiScene::Pick(pickRay, 1, pickmask);
 
@@ -984,7 +1084,8 @@ void CyRender::Update(float dt) {
 		{
 			ObjectComponent* object = wiScene::GetScene().objects.GetComponent(hovered.entity);
 			const AABB& aabb		= *wiScene::GetScene().aabb_objects.GetComponent(hovered.entity);
-			object->color			= XMFLOAT4((3.0 + sinepulse) / 4, (3.0 + sinepulse) / 4, (3.0 + sinepulse) / 4, 1);
+			object->color			= XMFLOAT4((3.0 - sinepulse) / 4, (3.0 - sinepulse) / 4, (3.0 - sinepulse) / 4, 1);
+			object->emissiveColor	= XMFLOAT4((2.0 + sinepulse) * 0.3, (2.0 + sinepulse) * 0.3, (2.0 + sinepulse) * 0.3, 1);
 			XMFLOAT4X4 hoverBox;
 			XMStoreFloat4x4(&hoverBox, aabb.getAsBoxMatrix());
 			wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
@@ -992,7 +1093,8 @@ void CyRender::Update(float dt) {
 		if (lastHovered != hovered.entity) {
 			ObjectComponent* object = wiScene::GetScene().objects.GetComponent(lastHovered);
 			if (object != nullptr) {
-				object->color = XMFLOAT4(1, 1, 1, 1);
+				object->color		  = XMFLOAT4(1, 1, 1, 1);
+				object->emissiveColor = XMFLOAT4(0, 0, 0, 1);
 			}
 			lastHovered = hovered.entity;
 		}
@@ -1016,25 +1118,25 @@ void CyRender::Update(float dt) {
 		yDif += buttonrotSpeed;
 	}
 
-	const XMFLOAT4 leftStick	= wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_L, 0);
-	const XMFLOAT4 rightStick	= wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_R, 0);
-	const XMFLOAT4 rightTrigger = wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_TRIGGER_R, 0);
+	//const XMFLOAT4 leftStick	= wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_L, 0);
+	//const XMFLOAT4 rightStick	= wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_R, 0);
+	//const XMFLOAT4 rightTrigger = wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_TRIGGER_R, 0);
 
-	const float jostickrotspeed = 0.05f;
-	xDif += rightStick.x * jostickrotspeed;
-	yDif += rightStick.y * jostickrotspeed;
+	//const float jostickrotspeed = 0.05f;
+	//xDif += rightStick.x * jostickrotspeed;
+	//yDif += rightStick.y * jostickrotspeed;
 
 	// FPS Camera
 	const float clampedDT = min(dt, 0.15f);	 // if dt > 100 millisec, don't allow the camera to jump too far...
 	bool btn			  = false;
-	XMVECTOR moveNew	  = XMVectorSet(leftStick.x, 0, leftStick.y, 0);
+	XMVECTOR moveNew	  = XMVectorSet(0, 0, 0, 0);
 	float moveNewY		  = 0.f;
 
 	Accel += clampedDT * 1.1f;
 	if (Accel > 3.5) {
 		Accel = 3.5;
 	}
-	const float speed = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0) + rightTrigger.x * 10.0f) * Accel * settings::camspeed * clampedDT;
+	const float speed = ((wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT) ? 10.0 : 1.0)) * Accel * settings::camspeed * clampedDT;
 
 	if (wiInput::Down((wiInput::BUTTON)'A')) {
 		moveNew += XMVectorSet(-1, 0, 0, 0);
@@ -1074,9 +1176,45 @@ void CyRender::Update(float dt) {
 
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
+		std::stringstream ss;
+
 		wiScene::TransformComponent camera_transform;
+		camera_transform.ClearTransform();
+		camera_transform.rotation_local.w = 0;
+		camera_transform.rotation_local.x = 0;
+		camera_transform.rotation_local.y = 0;
+		camera_transform.rotation_local.z = 0;
+		ss << std::endl;
+		ss << "camera_transform.rotation_localW: " << camera_transform.rotation_local.w << std::endl;
+		ss << "camera_transform.rotation_localx: " << camera_transform.rotation_local.x << std::endl;
+		ss << "camera_transform.rotation_localy: " << camera_transform.rotation_local.y << std::endl;
+		ss << "camera_transform.rotation_localz: " << camera_transform.rotation_local.z << std::endl;
+
+		ss << "camera_transform.rotation_local11: " << wiScene::GetCamera().InvView._11 << std::endl;
+		ss << "camera_transform.rotation_local12: " << wiScene::GetCamera().InvView._12 << std::endl;
+		ss << "camera_transform.rotation_local13: " << wiScene::GetCamera().InvView._13 << std::endl;
+		ss << "camera_transform.rotation_local14: " << wiScene::GetCamera().InvView._14 << std::endl;
+		ss << "camera_transform.rotation_local21: " << wiScene::GetCamera().InvView._21 << std::endl;
+		ss << "camera_transform.rotation_local22: " << wiScene::GetCamera().InvView._22 << std::endl;
+		ss << "camera_transform.rotation_local23: " << wiScene::GetCamera().InvView._23 << std::endl;
+		ss << "camera_transform.rotation_local24: " << wiScene::GetCamera().InvView._24 << std::endl;
+		ss << "camera_transform.rotation_local31: " << wiScene::GetCamera().InvView._31 << std::endl;
+		ss << "camera_transform.rotation_local32: " << wiScene::GetCamera().InvView._32 << std::endl;
+		ss << "camera_transform.rotation_local33: " << wiScene::GetCamera().InvView._33 << std::endl;
+		ss << "camera_transform.rotation_local34: " << wiScene::GetCamera().InvView._34 << std::endl;
+		ss << "camera_transform.rotation_local41: " << wiScene::GetCamera().InvView._41 << std::endl;
+		ss << "camera_transform.rotation_local42: " << wiScene::GetCamera().InvView._42 << std::endl;
+		ss << "camera_transform.rotation_local43: " << wiScene::GetCamera().InvView._43 << std::endl;
+		ss << "camera_transform.rotation_local44: " << wiScene::GetCamera().InvView._44 << std::endl;
+
 		TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
+
 		camera_transform.MatrixTransform(wiScene::GetCamera().GetInvView());
+		ss << std::endl;
+		ss << "camera_transform.rotation_localW: " << camera_transform.rotation_local.w << std::endl;
+		ss << "camera_transform.rotation_localx: " << camera_transform.rotation_local.x << std::endl;
+		ss << "camera_transform.rotation_localy: " << camera_transform.rotation_local.y << std::endl;
+		ss << "camera_transform.rotation_localz: " << camera_transform.rotation_local.z << std::endl;
 		camera_transform.UpdateTransform();
 		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
 		XMVECTOR move_rot = XMVector3TransformNormal(moveNew, camRot);
@@ -1090,7 +1228,24 @@ void CyRender::Update(float dt) {
 		XMStoreFloat3(&_move, move_rot);
 		_move.y += moveNewY;
 		camera_transform.Translate(_move);
-		
+		ss << std::endl;
+		ss << "camera_transform.rotation_localW: " << camera_transform.rotation_local.w << std::endl;
+		ss << "camera_transform.rotation_localx: " << camera_transform.rotation_local.x << std::endl;
+		ss << "camera_transform.rotation_localy: " << camera_transform.rotation_local.y << std::endl;
+		ss << "camera_transform.rotation_localz: " << camera_transform.rotation_local.z << std::endl;
+		ss << "xDif: " << xDif << std::endl;
+		ss << "yDif: " << yDif << std::endl;
+		ss << "MoveLen: " << moveLength << std::endl;
+		ss << "moveNewX: " << XMVectorGetX(moveNew) << std::endl;
+		ss << "moveNewY: " << XMVectorGetY(moveNew) << std::endl;
+		ss << "moveNewZ: " << XMVectorGetZ(moveNew) << std::endl;
+		ss << "_moveX: " << _move.x << std::endl;
+		ss << "_moveY: " << _move.y << std::endl;
+		ss << "_moveZ: " << _move.z << std::endl;
+		ss << "move_rotX: " << XMVectorGetX(move_rot) << std::endl;
+		ss << "move_rotY: " << XMVectorGetY(move_rot) << std::endl;
+		ss << "move_rotZ: " << XMVectorGetZ(move_rot);
+		wiBackLog::post(ss.str().c_str());
 		lightT->Translate(_move);
 		lightT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));

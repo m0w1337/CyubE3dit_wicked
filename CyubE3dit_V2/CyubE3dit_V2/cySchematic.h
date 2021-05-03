@@ -19,6 +19,9 @@ public:
 		HOVER_ROTCC,
 		HOVER_CHECK,
 		HOVER_CROSS,
+		HOVER_SIZEX,
+		HOVER_SIZEY,
+		HOVER_SIZEZ,
 		HOVER_NUMELEMENTS,
 		HOVER_NONE
 	} hovertype_t;
@@ -27,9 +30,19 @@ public:
 		DIRTY_NOTRENDERED,
 		DIRTY_ROTCC,
 		DIRTY_ROTCW,
-		DIRTY_DRAG
+		DIRTY_DRAG,
+		DIRTY_SAVE,
+		DIRTY_REMOVE,
+		DIRTY_RESIZE
 	}dirtytype_t;
-	static constexpr float PI		  = 3.141592653589793238462643383279502884f;
+
+	typedef enum schType_e {
+		TYPE_SELECTION = 0,
+		TYPE_SCHEM_V1,
+		NUM_TYPES
+	} schType_t;
+
+	
 	static const uint32_t HEADER_SIZE = 20;
 	static const uint32_t MAGICBYTE = 0x13371337;
 	struct blockpos_t {
@@ -109,8 +122,17 @@ public:
 		XMFLOAT4 hovercolor;
 		XMFLOAT4 nohovercolor;
 	};
-	XMFLOAT3 size;
+	typedef enum chunkstate_e {
+		STATE_SAVEABLE,
+		STATE_OLD,
+		STATE_BROKEN,
+		STATE_NOTPRESENT,
+		NUM_STATES
+	}chunkstate_t;
+	XMFLOAT4 size;
 	XMFLOAT3 pos;
+	schType_t type;
+	static void addBoxSelector(void);
 	static std::vector<cySchematic*> m_schematics;
 	std::vector<chunkLoader::chunkobjects_t> m_chunkPreviews;
 	unordered_map<blockpos_t, uint32_t, blockpos_t> m_cBlocks;
@@ -121,14 +143,14 @@ public:
 	struct hoverAttr_s hoverEntities[HOVER_NUMELEMENTS];
 	uint8_t m_activeGizmo;
 	bool m_isAirChunk;
-	char* m_chunkdata;
+	uint8_t* m_chunkdata;
 	dirtytype_t m_dirty;
 	static bool updating;
 	cySchematic(string filename);
 	static void addSchematic(std::string filename);
 	hovertype_t hoverGizmo(const wiECS::Entity entity);
 	void RenderSchematic(void);
-	void getAffectedChunks(std::vector<wiECS::Entity>& affectedChunks);
+	chunkstate_t checkAffectedChunks();
 	void generateChunkPreview(void);
 	void clearSchematic(void);
 	static void clearAllSchematics(void);
@@ -141,8 +163,13 @@ private:
 	uint8_t m_rotation;	//1,2,3 for 90,180,270 deg
 	void loadCustomBlocks(void);
 	void unRenderSchematic(void);
-	void rotateMemory(bool _cc);
+	void rotateMemory(const bool _cc);
+	inline void showGizmos(bool _show);
 	inline void placeTorches(const std::vector<torch_t>& torches, wiScene::Scene& tmpScene);
 	void prepareSchematic(wiScene::Scene& tmpScene);
-	void attachGizmos(wiScene::Scene& tmpScene);
+	void attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock = false);
+	void resizeGizmos(void); 
+	void positionBeforeCam(void);
+	void saveToMem(void);
+	void saveToFile(void);
 };

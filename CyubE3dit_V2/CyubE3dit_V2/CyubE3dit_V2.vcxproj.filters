@@ -82,6 +82,9 @@
     <ClInclude Include="VisualsWindow.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="pocketmod.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

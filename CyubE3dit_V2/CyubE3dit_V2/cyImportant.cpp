@@ -43,6 +43,8 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 	}
 	if (m_filename.size() > 1) {
 		cyImportant::loadData(dbpath, cleanWorld);
+	} else {
+		m_stopped = true;
 	}
 }
 
@@ -109,7 +111,7 @@ void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 		file.read(reinterpret_cast<char*>(&(m_playerpos.x)), sizeof(m_playerpos.x));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.y)), sizeof(m_playerpos.y));
 		file.read(reinterpret_cast<char*>(&(m_playerpos.z)), sizeof(m_playerpos.z));
-		for (uint8_t i = 0; i < MAX_THREADS + 1; i++) {	 //make one more connection handle than threads to keep one connection for the main thread.
+		for (uint8_t i = 0; i < MAX_THREADS; i++) {	 //make one more connection handle than threads to keep one connection for the main thread.
 			if (db[i] != nullptr) {
 				sqlite3_close(db[i]);
 				db[i] = nullptr;
@@ -128,6 +130,21 @@ void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 				}
 			}
 		}
+
+		if (db[DBHANDLE_MAIN] != nullptr) {
+			sqlite3_close(db[DBHANDLE_MAIN]);
+			db[DBHANDLE_MAIN] = nullptr;
+		}
+		if (sqlite3_open_v2(dbpath.c_str(), &(db[DBHANDLE_MAIN]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE, NULL)) {
+			if (sqlite3_open_v2(dbpath.c_str(), &(db[DBHANDLE_MAIN]), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE, NULL)) {
+				db[DBHANDLE_MAIN] = nullptr;
+				if (db[DBHANDLE_MAIN] != nullptr) {
+					sqlite3_close(db[DBHANDLE_MAIN]);
+					db[DBHANDLE_MAIN] = nullptr;
+				}
+			}
+		}
+
 		m_valid = true;
 		m_stopped = false;
 		file.close();

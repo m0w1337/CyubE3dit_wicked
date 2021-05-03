@@ -7,6 +7,8 @@
 #include "meshGen.h"
 #include "cyBlocks.h"
 
+static constexpr float PI = 3.141592653589793238462643383279502884f;
+
 enum LAYERMASKS {
 	LAYER_CHUNKMESH = 1,
 	LAYER_TREE		= 2,
@@ -16,6 +18,20 @@ enum LAYERMASKS {
 	LAYER_FOILAGE	= 32,
 	LAYER_EMITTER	= 64,
 	LAYER_GIZMO		= 128
+};
+
+enum PICKTYPE {
+	PICK_VOID		= 0,
+	PICK_CHUNK		= 1,
+	PICK_LIGHT		= 8,
+	PICK_TREE		= 16,
+	PICK_ENVPROBE	= 32,
+	PICK_FORCEFIELD = 64,
+	PICK_EMITTER	= 128,
+	PICK_HAIR		= 256,
+	PICK_CAMERA		= 512,
+	PICK_ARMATURE	= 1024,
+	PICK_SOUND		= 2048,
 };
 
 class CyLoadingScreen : public LoadingScreen {
@@ -66,6 +82,17 @@ public:
 	wiSlider viewDist;
 	wiLabel label;
 
+	static const uint8_t NUM_TORCHSOUNDS = 4;
+	static wiAudio::Sound fireSound;
+	static wiAudio::SoundInstance fireSoundinstance[NUM_TORCHSOUNDS];
+	static wiAudio::Sound windSound;
+	static wiAudio::SoundInstance windSoundinstance;
+	static wiAudio::Sound bgSound;
+	static wiAudio::SoundInstance bgSoundinstance;
+	bool m_soundLoaded;
+	static bool fireSoundIsPlaying[NUM_TORCHSOUNDS];
+	static bool anyfireSoundIsPlaying;
+
 	CyMainComponent* main;
 	wiScene::PickResult hovered;
 	void Load() override;
@@ -101,18 +128,16 @@ public:
 	const XMFLOAT4 selectionColor  = XMFLOAT4(0.4f, 0.6f, 0.1f, 0.5f);
 	const XMFLOAT4 selectionColor2 = XMFLOAT4(0.f, 1.f, 0.6f, 0.35f);
 	*/
+	
 	static wiECS::Entity m_headLight;
+	static wiECS::Entity m_posLight;
 	static wiECS::Entity m_probe;
 	static wiECS::Entity m_dust;
-	static wiAudio::Sound fireSound;
-	static wiAudio::SoundInstance fireSoundinstance;
-	static wiAudio::SoundInstance3D soundinstance3D;
-	static bool fireSoundIsPlaying;
-
 	CyRender renderer;
 	CyLoadingScreen loader;
 	//CyPathRender pathRenderer;
 	void Initialize() override;
 	void CreateScene(void);
+	void LoadSound(void);
 	void Compose(wiGraphics::CommandList cmd) override;
 };

@@ -64,8 +64,11 @@ public:
 
 			return false;
 		};
+	};
+
+	struct chunkposHasher_t {
 		size_t operator()(const chunkpos_t& pointToHash) const noexcept {
-			return ((uint64_t)pointToHash.x) << 32 | (uint64_t)pointToHash.y;
+			return ((pointToHash.x << 32) | pointToHash.y);
 		};
 	};
 	playerpos_t m_playerpos;
@@ -75,7 +78,7 @@ public:
 	atomic<bool> m_stopped;
 	uint32_t m_seed;
 	uint32_t m_numChunks;
-	unordered_map<chunkpos_t, uint32_t, chunkpos_t> m_chunkMap;
+	unordered_map<chunkpos_t, uint32_t, chunkposHasher_t> m_chunkMap;
 	sqlite3* db[MAX_THREADS + 1];
 	void loadWorldInfo(const std::string Worldname, bool cleanWorld = true);
 	bool isValid(void);

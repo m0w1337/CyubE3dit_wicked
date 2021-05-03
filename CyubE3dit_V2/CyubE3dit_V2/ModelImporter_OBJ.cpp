@@ -129,8 +129,11 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 			if (obj_material.alpha_texname != "") {
 				//material.userBlendMode = BLENDMODE_ALPHA;
 				material.SetAlphaRef(0.5f);
-				material.SetSubsurfaceScatteringColor(XMFLOAT3(material.baseColor.x, material.baseColor.y, material.baseColor.z));
-				material.SetSubsurfaceScatteringAmount(1);
+				material.baseColor.x = material.baseColor.x * 0.5;
+				material.baseColor.y = material.baseColor.y * 0.5;
+				material.baseColor.z = material.baseColor.z * 0.5;
+				//material.SetSubsurfaceScatteringColor(XMFLOAT3(material.baseColor.x, material.baseColor.y, material.baseColor.z));
+				material.subsurfaceScattering = XMFLOAT4(1,1,1,6);
 			}
 			material.SetUseWind(true);
 			if (material.textures[MaterialComponent::NORMALMAP].name.empty())

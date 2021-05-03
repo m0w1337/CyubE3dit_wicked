@@ -1,0 +1,244 @@
+{
+    "SolidBlock": [
+      {
+        "id": 0,
+        "textype": 1,
+        "texture0": "stone.png",
+        "text": "Stone"
+      },
+      {
+        "id": 1,
+        "textype": 3,
+        "texture0": "grass_up.png",
+        "texture1": "dirt.png",
+        "texture2": "grass_side.png",
+        "text": "Grass"
+      },
+      {
+        "id": 2,
+        "textype": 1,
+        "texture0": "dirt.png",
+        "text": "Dirt"
+      },
+      {
+        "id": 4,
+        "textype": 1,
+        "texture0": "bedrock.png",
+        "text": "Bedrock"
+      },
+      {
+        "id": 6,
+        "textype": 2,
+        "texture0": "darkwood_updown.dds",
+		"normal0": "darkwood_updown_n.dds",
+        "texture2": "darkwood_side.dds",
+		"normal2": "darkwood_side_n.dds",
+        "text": "Dark Wood"
+      },
+      {
+        "id": 8,
+        "textype": 1,
+        "texture0": "flagstone.png",
+        "text": "Cobblestone"
+      },
+      {
+        "id": 10,
+        "textype": 1,
+        "texture0": "sand.dds",
+		"normal0": "sand_n.dds",
+		"occlusion0": "sand_o.dds",
+        "text": "Sand"
+      },
+      {
+        "id": 12,
+        "textype": 1,
+        "texture0": "coal_ore.png",
+        "text": "Coal Ore"
+      },
+      {
+        "id": 13,
+        "textype": 1,
+        "texture0": "iron_ore.png",
+        "text": "Iron Ore"
+      },
+      {
+        "id": 25,
+        "textype": 1,
+        "texture0": "copper_ore.png",
+        "#text": "Copper Ore"
+      },
+      {
+        "id": 26,
+        "textype": 1,
+        "texture0": "gold_ore.png",
+        "text": "Gold Ore"
+      },
+      {
+        "id": 32,
+        "textype": 2,
+        "texture0": "lightwood_updown.dds",
+        "texture2": "lightwood_side.dds",
+        "text": "Light wood"
+      },
+      {
+        "id": 33,
+        "textype": 1,
+        "texture0": "lightplanks.png",
+        "text": "Light Planks"
+      },
+      {
+        "id": 34,
+        "textype": 1,
+        "texture0": "darkplanks.png",
+        "text": "Dark Planks"
+      },
+      {
+        "id": 35,
+        "textype": 1,
+        "texture0": "stone.png",
+        "text": "Mined Stone"
+      },
+      {
+        "id": 46,
+        "textype": 1,
+        "texture0": "wallstone.png",
+        "text": "Wallstone"
+      },
+      {
+        "id": 47,
+        "textype": 1,
+        "texture0": "flagstone.png",
+        "text": "Flagstone"
+      },
+      {
+        "id": 52,
+        "textype": 1,
+        "texture0": "scaffolding.dds",
+		"normal0": "scaffolding_n.dds",
+		"occlusion0": "scaffolding_o.dds",
+        "text": "Wood Scaffolding"
+      },
+      {
+        "id": 67,
+        "textype": 1,
+        "texture0": "crystal_ore.png",
+        "text": "Crystal Ore"
+      }
+    ],
+    "Billboard": [
+      {
+        "id": 5,
+        "textype": 5,
+        "texture0": "straws.png",
+        "text": "Grassblades"
+      },
+      {
+        "id": 16,
+        "textype": 5,
+        "texture0": "flower1.png",
+        "text": "Flower 1"
+      },
+      {
+        "id": 17,
+        "textype": 5,
+        "texture0": "flower2.png",
+        "text": "Flower 2"
+      },
+      {
+        "id": 36,
+        "textype": 5,
+        "texture0": "flower3.png",
+        "text": "Flower 3"
+      },
+      {
+        "id": 39,
+        "textype": 5,
+        "texture0": "flower_green.png",
+        "text": "Flower 4"
+      },
+      {
+        "id": 56,
+        "textype": 5,
+        "text": "Desert Grass"
+      },
+      {
+        "id": 63,
+        "textype": 5,
+        "texture0": "Rainbowflower.png",
+        "text": "Rainbow Flower"
+      }
+    ],
+	"Torch":[
+	  {
+        "id": 15,
+        "textype": 6,
+        "mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
+        "text": "Torch",
+		"LightR": 255,
+		"LightG": 128,
+		"LightB": 0
+      },
+      {
+        "id": 37,
+        "textype": 6,
+		"mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
+        "LightR": 0,
+		"LightG": 0,
+		"LightB": 255,
+        "text": "Blue Torch"
+      },
+	  {
+        "id": 40,
+        "textype": 6,
+        "mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
+        "text": "Green Torch",
+		"LightR": 0,
+		"LightG": 255,
+		"LightB": 0
+      },
+      {
+        "id": 49,
+        "textype": 6,
+		"mesh0": "walltorch.obj",
+		"mesh1": "standtorch.obj",
+        "text": "Red Torch",
+		"LightR": 255,
+		"LightG": 0,
+		"LightB": 0
+      }
+	],
+	"AlphaBlock":[
+	  {
+        "id": 89,
+        "textype": 1,
+        "text": "Glass"
+      }
+	],
+	"VoidBlock": [
+      {
+        "id": 3,
+        "textype": 0,
+        "text": "Air"
+      }
+	],
+    "ModBlock":  [
+	  {
+        "id": 66,
+        "textype": 66,
+        "text": "Custom Block"
+      }
+	],
+	"FunctionalMesh":[
+	],
+	"DecoMesh": [
+      {
+        "id": 84,
+        "textype": 6,
+        "mesh0": "fence.obj",
+        "text": "Woodden Fence"
+      }
+	]
+  }

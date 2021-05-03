@@ -24,7 +24,6 @@ public:
 	static constexpr uint8_t FACE_FRONT = 5;
 	static constexpr uint8_t FACE_BILLBOARD = 6;
 	
-
 	enum blocktype_t {
 		BLOCKTYPE_UNKNOWN = 0,	// Unknown must stay at 0 because of array initializations
 		BLOCKTYPE_SOLID,
@@ -89,6 +88,7 @@ public:
 	static std::shared_ptr<wiResource> emitter_fire_material;
 	static std::shared_ptr<wiResource> emitter_flare_material;
 	static std::shared_ptr<wiResource> emitter_smoke_material;
+	static wiECS::Entity toolblock_material;
 	static void LoadRegBlocks(void);
 	static void loadMeshes(void);
 	static void LoadCustomBlocks(void);
