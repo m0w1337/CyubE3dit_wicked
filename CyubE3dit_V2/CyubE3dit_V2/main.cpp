@@ -167,36 +167,43 @@ wiJobSystem::Wait(ctx);
 				//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
 				//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
 			} else if (GetTickCount() - lasttickEmitter > 100) {
-				if (settings::sound) {
+				//if (settings::sound) {
 					lasttickEmitter = GetTickCount();
 					neartorches.clear();
 					if (settings::rendermask & LAYER_EMITTER) {
-						nearestTorches.clear();
+						for (uint32_t i = 2; i < scn.emitters.GetCount(); i++) {
+							float dist = wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.emitters[i].center);
+							if (dist < 10) {
+								if(settings::sound)
+									neartorches.push_back(XMFLOAT4(scn.emitters[i].center.x, scn.emitters[i].center.y, scn.emitters[i].center.z, dist));
+								if (scn.emitters[i].IsPaused()) {
+									scn.emitters[i].SetPaused(false);
+								}
+							} else if (dist > 30) {
+								if (!scn.emitters[i].IsPaused()) {
+									scn.emitters[i].SetPaused(true);
+								}
+							}
+							//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
+							//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
+						}
+					} else if (settings::rendermask & LAYER_TORCH && settings::sound) {
 						for (uint32_t i = 2; i < scn.lights.GetCount(); i++) {
 							float dist = wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.lights[i].position);
 							if (dist < 10) {
 								neartorches.push_back(XMFLOAT4(scn.lights[i].position.x, scn.lights[i].position.y, scn.lights[i].position.z, dist));
-								//if (scn.emitters[i].IsPaused()) {
-								//	scn.emitters[i].SetPaused(false);
-								//}
-							} else if (dist > 30) {
-								//if (!scn.emitters[i].IsPaused()) {
-								//	scn.emitters[i].SetPaused(true);
-								//}
 							}
-							//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
-							//weather->windSpeed				   = 2.5 + noise.noise((float)lasttick/100.0);
 						}
 					} else {
 						if (neartorches.size())
 							neartorches.clear();
 					}
-				}
+				//}
 			}
 			m.unlock();
 
 			if (neartorches.size()) {
-				std::partial_sort(neartorches.begin(), neartorches.begin() + 4, neartorches.end(), partSortDist);
+				std::partial_sort(neartorches.begin(), neartorches.begin() + min(4, (int)neartorches.size()), neartorches.end(), partSortDist);
 				wiAudio::SoundInstance3D snd3d;
 				snd3d.listenerFront = wiScene::GetCamera().At;
 				snd3d.listenerPos	= wiScene::GetCamera().Eye;
@@ -259,7 +266,7 @@ wiJobSystem::Wait(ctx);
 					}
 				}
 			}
-			
+
 			if (settings::newWorld != settings::thisWorld && mainComp.GetActivePath() == &mainComp.renderer) {
 				/*for (size_t i = 0;  i < cyBlocks::m_treeMeshes.size(); i++) {
 					if(wiScene::GetScene().impostors.Contains(cyBlocks::m_treeMeshes[i]) == false)

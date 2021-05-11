@@ -219,8 +219,8 @@
 	  {
         "id": 15,
         "textype": 6,
-        "mesh0": "walltorch.obj",
-		"mesh1": "standtorch.obj",
+        "mesh0": "walltorch.m02",
+		"mesh1": "standtorch.m02",
         "text": "Torch",
 		"LightR": 255,
 		"LightG": 128,
@@ -229,8 +229,8 @@
       {
         "id": 37,
         "textype": 6,
-		"mesh0": "walltorch.obj",
-		"mesh1": "standtorch.obj",
+		"mesh0": "walltorch.m02",
+		"mesh1": "standtorch.m02",
         "LightR": 0,
 		"LightG": 0,
 		"LightB": 255,
@@ -239,8 +239,8 @@
 	  {
         "id": 40,
         "textype": 6,
-        "mesh0": "walltorch.obj",
-		"mesh1": "standtorch.obj",
+        "mesh0": "walltorch.m02",
+		"mesh1": "standtorch.m02",
         "text": "Green Torch",
 		"LightR": 0,
 		"LightG": 255,
@@ -249,8 +249,8 @@
       {
         "id": 49,
         "textype": 6,
-		"mesh0": "walltorch.obj",
-		"mesh1": "standtorch.obj",
+		"mesh0": "walltorch.m02",
+		"mesh1": "standtorch.m02",
         "text": "Red Torch",
 		"LightR": 255,
 		"LightG": 0,
@@ -542,7 +542,7 @@
       {
         "id": 84,
         "textype": 6,
-        "mesh0": "fence.obj",
+        "mesh0": "fence.m02",
         "text": "Woodden Fence"
       },
       {

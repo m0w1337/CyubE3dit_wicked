@@ -1373,8 +1373,9 @@ float4 main(PixelInput input) : SV_TARGET
 	if (GetMaterial().uvset_baseColorMap >= 0 && (g_xFrame_Options & OPTION_BIT_DISABLE_ALBEDO_MAPS) == 0)
 	{
 		const float2 UV_baseColorMap = GetMaterial().uvset_baseColorMap == 0 ? input.uvsets.xy : input.uvsets.zw;
-		color = texture_basecolormap.Sample(sampler_objectshader, UV_baseColorMap);
-		color.rgb = DEGAMMA(color.rgb);
+		float4 baseColorMap = texture_basecolormap.Sample(sampler_objectshader, UV_baseColorMap);
+		baseColorMap.rgb = DEGAMMA(baseColorMap.rgb);
+		color *= baseColorMap;
 	}
 #endif // OBJECTSHADER_USE_UVSETS
 
@@ -1835,7 +1836,7 @@ float4 main(PixelInput input) : SV_TARGET
 	[branch]
 	if (GetMaterial().transmission > 0)
 	{
-		float transmission = GetMaterial().transmission;
+		surface.transmission = GetMaterial().transmission;
 
 #ifdef OBJECTSHADER_USE_UVSETS
 		[branch]
@@ -1843,7 +1844,7 @@ float4 main(PixelInput input) : SV_TARGET
 		{
 			const float2 UV_transmissionMap = GetMaterial().uvset_transmissionMap == 0 ? input.uvsets.xy : input.uvsets.zw;
 			float transmissionMap = texture_transmissionmap.Sample(sampler_objectshader, UV_transmissionMap).r;
-			transmission *= transmissionMap;
+			surface.transmission *= transmissionMap;
 		}
 #endif // OBJECTSHADER_USE_UVSETS
 
@@ -1854,7 +1855,7 @@ float4 main(PixelInput input) : SV_TARGET
 		float2 perturbatedRefrTexCoords = ScreenCoord.xy + normal2D * GetMaterial().refraction;
 		float4 refractiveColor = texture_refraction.SampleLevel(sampler_linear_clamp, perturbatedRefrTexCoords, surface.roughness * mipLevels);
 		surface.refraction.rgb = surface.albedo * refractiveColor.rgb;
-		surface.refraction.a = transmission;
+		surface.refraction.a = surface.transmission;
 	}
 #endif // TRANSPARENT
 

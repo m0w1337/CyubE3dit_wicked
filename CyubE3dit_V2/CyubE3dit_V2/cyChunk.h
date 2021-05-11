@@ -97,6 +97,7 @@ public:
 	void getBlock(const uint8_t x, const uint8_t y, const uint16_t z, uint8_t* _blockID, uint32_t* _blockData);
 	void replaceCubeWithAir(const uint8_t x1, const uint8_t y1, const uint16_t z1, const uint8_t x2, const uint8_t y2, const uint16_t z2);
 	bool saveChunk(void);
+	void deleteInstaLoad(void);
 	~cyChunk(void);
 
 protected:

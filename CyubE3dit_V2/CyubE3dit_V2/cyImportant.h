@@ -12,6 +12,7 @@ public:
 	static constexpr uint8_t MAX_THREADS   = 16;
 	static constexpr uint8_t DBHANDLE_MAIN = MAX_THREADS;
 	wstring m_worldFolder;
+	string m_instaLoadDB;
 	explicit cyImportant(void);
 	struct playerpos_t {
 		double x;

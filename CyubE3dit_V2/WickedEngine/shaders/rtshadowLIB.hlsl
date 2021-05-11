@@ -1,20 +1,14 @@
+#define RTAPI
 #define BRDF_NDOTL_BIAS 0.1
 #include "globals.hlsli"
 #include "ShaderInterop_Postprocess.h"
 #include "raytracingHF.hlsli"
-
-RAYTRACINGACCELERATIONSTRUCTURE(scene_acceleration_structure, TEXSLOT_ACCELERATION_STRUCTURE);
 
 TEXTURE2D(texture_normals, float3, TEXSLOT_ONDEMAND0);
 STRUCTUREDBUFFER(EntityTiles, uint, TEXSLOT_RENDERPATH_ENTITYTILES);
 
 static const uint MAX_RTSHADOWS = 16;
 RWTEXTURE2D(output, uint4, 0);
-
-Texture2D<float4> bindless_textures[] : register(t0, space1);
-ByteAddressBuffer bindless_buffers[] : register(t0, space2);
-StructuredBuffer<ShaderMeshSubset> bindless_subsets[] : register(t0, space3);
-Buffer<uint> bindless_ib[] : register(t0, space4);
 
 struct RayPayload
 {
@@ -46,7 +40,7 @@ void RTShadow_Raygen()
 
 	RayDesc ray;
 	ray.TMin = 0.01;
-	ray.Origin = trace_bias_position(P, N);
+	ray.Origin = P;
 
 	[branch]
 	if (g_xFrame_LightArrayCount > 0)
@@ -60,9 +54,6 @@ void RTShadow_Raygen()
 		for (uint bucket = first_bucket; bucket <= last_bucket && shadow_index < MAX_RTSHADOWS; ++bucket)
 		{
 			uint bucket_bits = EntityTiles[flatTileIndex + bucket];
-
-			// Bucket scalarizer - Siggraph 2017 - Improved Culling [Michal Drobot]:
-			bucket_bits = WaveReadLaneFirst(WaveActiveBitOr(bucket_bits));
 
 			[loop]
 			while (bucket_bits != 0 && shadow_index < MAX_RTSHADOWS)
@@ -172,7 +163,7 @@ void RTShadow_Raygen()
 					[branch]
 					if (ray.TMax > 0)
 					{
-						float seed = g_xFrame_FrameCount * 0.001;
+						float seed = g_xFrame_Time;
 
 						RayPayload payload;
 						payload.color = 0;
@@ -238,43 +229,32 @@ void RTShadow_AnyHit(inout RayPayload payload, in BuiltInTriangleIntersectionAtt
 	ShaderMeshSubset subset = bindless_subsets[mesh.subsetbuffer][GeometryIndex()];
 	ShaderMaterial material = bindless_buffers[subset.material].Load<ShaderMaterial>(0);
 	[branch]
+	if (!material.IsCastingShadow())
+	{
+		IgnoreHit();
+		return;
+	}
+	[branch]
 	if (material.texture_basecolormap_index < 0)
 	{
 		AcceptHitAndEndSearch();
 		return;
 	}
-	uint primitiveIndex = PrimitiveIndex();
-	uint i0 = bindless_ib[mesh.ib][primitiveIndex * 3 + 0];
-	uint i1 = bindless_ib[mesh.ib][primitiveIndex * 3 + 1];
-	uint i2 = bindless_ib[mesh.ib][primitiveIndex * 3 + 2];
-	float2 uv0 = 0, uv1 = 0, uv2 = 0;
-	[branch]
-	if (mesh.vb_uv0 >= 0 && material.uvset_baseColorMap == 0)
-	{
-		uv0 = unpack_half2(bindless_buffers[mesh.vb_uv0].Load(i0 * 4));
-		uv1 = unpack_half2(bindless_buffers[mesh.vb_uv0].Load(i1 * 4));
-		uv2 = unpack_half2(bindless_buffers[mesh.vb_uv0].Load(i2 * 4));
-	}
-	else if (mesh.vb_uv1 >= 0 && material.uvset_baseColorMap != 0)
-	{
-		uv0 = unpack_half2(bindless_buffers[mesh.vb_uv1].Load(i0 * 4));
-		uv1 = unpack_half2(bindless_buffers[mesh.vb_uv1].Load(i1 * 4));
-		uv2 = unpack_half2(bindless_buffers[mesh.vb_uv1].Load(i2 * 4));
-	}
-	else
-	{
-		AcceptHitAndEndSearch();
-		return;
-	}
 
-	float u = attr.barycentrics.x;
-	float v = attr.barycentrics.y;
-	float w = 1 - u - v;
-	float2 uv = uv0 * w + uv1 * u + uv2 * v;
-	float alpha = bindless_textures[material.texture_basecolormap_index].SampleLevel(sampler_point_wrap, uv, 2).a;
+	Surface surface;
+
+	EvaluateObjectSurface(
+		mesh,
+		subset,
+		material,
+		PrimitiveIndex(),
+		attr.barycentrics,
+		ObjectToWorld3x4(),
+		surface
+	);
 
 	[branch]
-	if (alpha - material.alphaTest > 0)
+	if (surface.opacity >= material.alphaTest)
 	{
 		AcceptHitAndEndSearch();
 	}

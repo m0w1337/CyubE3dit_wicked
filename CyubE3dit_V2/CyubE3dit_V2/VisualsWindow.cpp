@@ -97,7 +97,7 @@ void VisualsWindow::Create(CyRender* renderer) {
 		}
 	});
 	AddWidget(&renderLightsCheckBox);
-	/*
+	
 	renderEmittersCheckBox.Create("Show Emitters: ");
 	renderEmittersCheckBox.SetTooltip("Enable, if you want to see nice fire for the torches (high performance impact)");
 	renderEmittersCheckBox.SetPos(XMFLOAT2(x, y += step));
@@ -112,7 +112,7 @@ void VisualsWindow::Create(CyRender* renderer) {
 		settings::rendermask = renderer->getLayerMask();
 	});
 	AddWidget(&renderEmittersCheckBox);
-	*/
+	
 	renderGizmosCheckBox.Create("Show Gizmos: ");
 	renderGizmosCheckBox.SetTooltip("Enable, if you want to see the schematic interaction objects (Drag planes, axes and origin as well as buttons).");
 	renderGizmosCheckBox.SetPos(XMFLOAT2(x, y += step));

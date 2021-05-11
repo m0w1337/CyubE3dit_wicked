@@ -67,7 +67,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_TEMPLATEWINDOWS     ICON                    "C:\\Users\\m0\\Documents\\GitHub\\CyubE3dit_wicked\\CyubE3dit_V2\\CyubE3dit_V2\\logo_alpha.ico"
+IDI_TEMPLATEWINDOWS     ICON                    "logo_alpha.ico"
 
 IDI_SMALL               ICON                    "logo_alpha.ico"
 
@@ -107,16 +107,16 @@ END
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOGEX 0, 0, 237, 122
+IDD_ABOUTBOX DIALOGEX 0, 0, 237, 134
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About CyubE3dit"
 FONT 10, "Microsoft Sans Serif", 400, 0, 0x0
 BEGIN
-    CTEXT           "CyubE3dit - CybeVR swiss army knife",MY_ABOUT_TEXT,7,58,223,8,SS_NOPREFIX | SS_REALSIZECONTROL
-    LTEXT           "Created by: m0w1337 (Moritz Wagner)",IDC_STATIC,7,107,116,8,0,WS_EX_TRANSPARENT
-    DEFPUSHBUTTON   "OK",IDOK,180,101,50,14,WS_GROUP
+    CTEXT           "CyubE3dit - CybeVR swiss army knife",MY_ABOUT_TEXT,7,60,223,8,SS_NOPREFIX | SS_REALSIZECONTROL
+    LTEXT           "Created by: m0w1337 (Moritz Wagner)",IDC_STATIC,7,119,116,8,0,WS_EX_TRANSPARENT
+    DEFPUSHBUTTON   "OK",IDOK,180,113,50,14,WS_GROUP
     CONTROL         IDB_BITMAP1,IDC_STATIC,"Static",SS_BITMAP,85,7,59,48
-    CTEXT           "Graphics powered by Wicked Engine",IDC_STATIC,7,71,223,8,SS_NOPREFIX,WS_EX_TRANSPARENT
+    CTEXT           "Graphics powered by Wicked Engine\nTextures from cc0textures.com\n 3D models from cgTrader.com\nMusic dedicated to the very first Game I played a lot ;)",IDC_STATIC,7,75,223,34,SS_NOPREFIX,WS_EX_TRANSPARENT
 END
 
 
@@ -133,7 +133,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 230
         TOPMARGIN, 7
-        BOTTOMMARGIN, 115
+        BOTTOMMARGIN, 127
     END
 END
 #endif    // APSTUDIO_INVOKED

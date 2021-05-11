@@ -37,6 +37,7 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_DEFAULT, NULL, &path) == S_OK)
 	{
 		m_worldFolder = wstring(path) + L"\\cyubeVR\\Saved\\WorldData\\" + utf8_decode(Worldname);
+		m_instaLoadDB = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData_InstaLoad\\" + Worldname + "\\chunkmeshes.sqlite";
 		m_filename	  = find_importantFile(m_worldFolder);
 		m_worldFolder += L"\\";
 		dbpath	   = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";

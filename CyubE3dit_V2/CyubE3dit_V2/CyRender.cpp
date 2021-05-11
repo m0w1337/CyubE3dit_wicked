@@ -17,7 +17,7 @@ using namespace wiECS;
 using namespace wiScene;
 using namespace wiGraphics;
 wiECS::Entity CyMainComponent::m_headLight = 0;
-wiECS::Entity CyMainComponent::m_posLight = 0;
+wiECS::Entity CyMainComponent::m_posLight  = 0;
 wiECS::Entity CyMainComponent::m_probe	   = 0;
 wiECS::Entity CyMainComponent::m_dust	   = 0;
 wiAudio::Sound CyRender::fireSound;
@@ -144,7 +144,7 @@ void CyMainComponent::CreateScene(void) {
 
 	weather.windSpeed	   = 2.5f;
 	weather.windRandomness = 1.5f;
-	weather.windWaveSize   = 0.5f;
+	weather.windWaveSize   = 0.2f;
 
 	weather.windDirection = XMFLOAT3(0.2, 0, 0.2);
 	Entity LightEnt		  = scene.Entity_CreateLight("Sunlight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.9f, 0.9f, .9f), 9, 100);
@@ -188,8 +188,8 @@ void CyMainComponent::CreateScene(void) {
 	light->fov = 1.2f;
 	wiScene::GetScene().springs.Create(m_headLight);
 	wiScene::GetScene().springs.GetComponent(m_headLight)->wind_affection = 1.0;
-	m_posLight = wiScene::GetScene().Entity_CreateLight("Poslight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 1.f, 0.4f), 50, 400, LightComponent::LightType::SPOT);
-	light		= wiScene::GetScene().lights.GetComponent(m_posLight);
+	m_posLight															  = wiScene::GetScene().Entity_CreateLight("Poslight", XMFLOAT3(0, 0, 0), XMFLOAT3(0.2f, 1.f, 0.4f), 50, 400, LightComponent::LightType::SPOT);
+	light																  = wiScene::GetScene().lights.GetComponent(m_posLight);
 	light->SetVolumetricsEnabled(true);
 	light->SetStatic(false);
 	light->SetCastShadow(false);
@@ -268,6 +268,25 @@ void CyMainComponent::Compose(CommandList cmd) {
 		fx.siz.y   = (float)device->GetScreenHeight();
 		fx.opacity = fadeManager.opacity;
 		wiImage::Draw(wiTextureHelper::getColor(fadeManager.color), fx, cmd);
+	}
+	if (cySchematic::m_schematics.size()) {
+		wiImageParams fx;
+		fx.pos.x = (float)wiRenderer::GetDevice()->GetScreenWidth() - 430;
+		fx.pos.y = (float)wiRenderer::GetDevice()->GetScreenHeight() - 200;
+		fx.siz.x = (float)400;
+		fx.siz.y = (float)150;
+		fx.color = wiColor(20, 20, 20, 200);
+		wiImage::Draw(wiTextureHelper::getWhite(), fx, cmd);
+
+		stringstream ss("");
+		ss << "---- Schematic info: ----" << endl;
+		ss << "Size:" << endl;
+		ss << "    X:" << cySchematic::m_schematics[0]->size.x << " Y:" << cySchematic::m_schematics[0]->size.y << " Z:" << cySchematic::m_schematics[0]->size.z << " meters" << endl;
+		ss << "    X:" << cySchematic::m_schematics[0]->size.x * 2 << " Y:" << cySchematic::m_schematics[0]->size.y * 2 << " Z:" << cySchematic::m_schematics[0]->size.z * 2 << " Blocks" << endl;
+		ss << "World Position:" << endl;
+		ss << "    X:" << cySchematic::m_schematics[0]->pos.x + roundf(settings::getWorld()->m_playerpos.x / 100) << " Y : " << cySchematic::m_schematics[0]->pos.y + roundf(settings::getWorld()->m_playerpos.y / 100) << " Z : " << cySchematic::m_schematics[0]->pos.z << " meters " << endl;
+		ss.precision(1);
+		wiFont::Draw(ss.str(), wiFontParams(wiRenderer::GetDevice()->GetScreenWidth()-30, wiRenderer::GetDevice()->GetScreenHeight() - 30, 20, WIFALIGN_RIGHT, WIFALIGN_BOTTOM, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
 	}
 
 	// Draw the information display
@@ -534,25 +553,26 @@ void CyRender::ResizeLayout() {
 
 	float screenW = wiRenderer::GetDevice()->GetScreenWidth();
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
-	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 10));
-	camModeSelector.SetPos(XMFLOAT2(screenW - camModeSelector.scale.x - 15, 10));
+	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 15));
+	camModeSelector.SetPos(XMFLOAT2(screenW - camModeSelector.scale.x - 20, 15));
 	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
+
 	float xOffset = 15;
-	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
-	xOffset += 10 + postprocessWnd_Toggle.scale.x;
-	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
-	xOffset += 10 + rendererWnd_Toggle.scale.x;
-	visualsWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
-	xOffset += 10 + visualsWnd_Toggle.scale.x;
-	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
-	xOffset += 10 + loadSchBtn.scale.x;
+	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 2 - 20));
 	saveSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
-	xOffset += 10 + saveSchBtn.scale.x;
+	reposSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
+	xOffset += 10 + max(saveSchBtn.scale.x, loadSchBtn.scale.x);
+
 	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 20 + PauseChunkLoading.scale.x;
+
+	rendererWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 3 - 25));
+	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 2 - 20));
+	visualsWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
+	xOffset += 10 + max(postprocessWnd_Toggle.scale.x, visualsWnd_Toggle.scale.x);
 	//saveButton.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 
-	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - saveSchBtn.scale.y - 15));
+	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - saveSchBtn.scale.y - 20));
 }
 
 void CyRender::Load() {
@@ -778,6 +798,7 @@ void CyRender::Load() {
 		params.extensions.push_back("cySch");
 		params.OPEN;
 		wiHelper::FileDialog(params, cySchematic::addSchematic);
+		loadSchBtn.SetEnabled(true);
 	});
 	GetGUI().AddWidget(&loadSchBtn);
 
@@ -791,6 +812,18 @@ void CyRender::Load() {
 		cySchematic::addBoxSelector();
 	});
 	GetGUI().AddWidget(&saveSchBtn);
+
+	reposSchBtn.Create("move Schematic in View");
+	reposSchBtn.SetTooltip("This will move the current schematic to your viewport in case you lost it somewhere.");
+	reposSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	reposSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	reposSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	reposSchBtn.SetSize(XMFLOAT2(120, 20));
+	reposSchBtn.SetVisible(false);
+	reposSchBtn.OnClick([&](wiEventArgs args) {
+		cySchematic::reposition();
+	});
+	GetGUI().AddWidget(&reposSchBtn);
 
 	RenderPath3D::Load();
 	//ResizeBuffers();
@@ -934,7 +967,6 @@ void CyRender::Update(float dt) {
 
 						cySchematic::m_schematics[dragID]->drawGridLines(dragX, dragY, dragZ);
 
-						
 						if (drag < cySchematic::HOVER_SIZEX) {
 							if (wiInput::Down(wiInput::KEYBOARD_BUTTON_LSHIFT)) {
 								delta.x = roundf(XMVectorGetX(deltaV) / cySchematic::m_schematics[dragID]->size.x) * cySchematic::m_schematics[dragID]->size.x;
@@ -947,8 +979,8 @@ void CyRender::Update(float dt) {
 							}
 
 							transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[dragID]->mainEntity);
-							XMFLOAT3 newpos(transform->GetPosition().x + delta.x, transform->GetPosition().z + delta.y, transform->GetPosition().y + delta.z);
-							if (wiMath::DistanceEstimated(camera.Eye, newpos) <= 30.f + 20.f * cySchematic::m_schematics[dragID]->size.w && newpos.y > 0.f && newpos.y + cySchematic::m_schematics[dragID]->size.z < 400.f) {	 //limit the area of movement near camera to keep the schematic visible (size.w has to holt the average of all three sizes
+							XMFLOAT3 newpos(transform->GetPosition().x + delta.x, transform->GetPosition().y + delta.y, transform->GetPosition().z + delta.z);
+							if (wiMath::DistanceEstimated(camera.Eye, newpos) <= 30.f + 20.f * cySchematic::m_schematics[dragID]->size.w && newpos.y > 0.f && newpos.y + cySchematic::m_schematics[dragID]->size.z < 400.f) {  //limit the area of movement near camera to keep the schematic visible (size.w has to holt the average of all three sizes
 								deltaV = XMVectorSubtract(deltaV, XMLoadFloat3(&delta));
 								transform->Translate(delta);
 								transform->UpdateTransform();
@@ -1012,8 +1044,10 @@ void CyRender::Update(float dt) {
 		wiInput::HidePointer(true);
 	} else {
 		if (cySchematic::m_schematics.size() > 0) {
-			if (loadSchBtn.IsEnabled()) {
-				loadSchBtn.SetEnabled(false);
+			if (saveSchBtn.IsVisible()) {
+				loadSchBtn.SetVisible(false);
+				saveSchBtn.SetVisible(false);
+				reposSchBtn.SetVisible(true);
 			}
 			for (size_t i = 0; i < cySchematic::m_schematics.size(); i++) {
 				wiScene::Scene& scene	   = wiScene::GetScene();
@@ -1027,8 +1061,10 @@ void CyRender::Update(float dt) {
 				XMStoreFloat4x4(&hoverBox, sca * tra);
 				wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.5f, 1.0f, 1.f, 1.0f));
 			}
-		} else if (!loadSchBtn.IsEnabled()) {
-			loadSchBtn.SetEnabled(true);
+		} else if (!saveSchBtn.IsVisible()) {
+			loadSchBtn.SetVisible(true);
+			saveSchBtn.SetVisible(true);
+			reposSchBtn.SetVisible(false);
 		}
 		if (schDraged) {
 			schDraged = false;
@@ -1176,7 +1212,6 @@ void CyRender::Update(float dt) {
 
 	if (abs(xDif) + abs(yDif) > 0 || moveLength > 0.0001f)
 	{
-		std::stringstream ss;
 
 		wiScene::TransformComponent camera_transform;
 		camera_transform.ClearTransform();
@@ -1184,37 +1219,11 @@ void CyRender::Update(float dt) {
 		camera_transform.rotation_local.x = 0;
 		camera_transform.rotation_local.y = 0;
 		camera_transform.rotation_local.z = 0;
-		ss << std::endl;
-		ss << "camera_transform.rotation_localW: " << camera_transform.rotation_local.w << std::endl;
-		ss << "camera_transform.rotation_localx: " << camera_transform.rotation_local.x << std::endl;
-		ss << "camera_transform.rotation_localy: " << camera_transform.rotation_local.y << std::endl;
-		ss << "camera_transform.rotation_localz: " << camera_transform.rotation_local.z << std::endl;
-
-		ss << "camera_transform.rotation_local11: " << wiScene::GetCamera().InvView._11 << std::endl;
-		ss << "camera_transform.rotation_local12: " << wiScene::GetCamera().InvView._12 << std::endl;
-		ss << "camera_transform.rotation_local13: " << wiScene::GetCamera().InvView._13 << std::endl;
-		ss << "camera_transform.rotation_local14: " << wiScene::GetCamera().InvView._14 << std::endl;
-		ss << "camera_transform.rotation_local21: " << wiScene::GetCamera().InvView._21 << std::endl;
-		ss << "camera_transform.rotation_local22: " << wiScene::GetCamera().InvView._22 << std::endl;
-		ss << "camera_transform.rotation_local23: " << wiScene::GetCamera().InvView._23 << std::endl;
-		ss << "camera_transform.rotation_local24: " << wiScene::GetCamera().InvView._24 << std::endl;
-		ss << "camera_transform.rotation_local31: " << wiScene::GetCamera().InvView._31 << std::endl;
-		ss << "camera_transform.rotation_local32: " << wiScene::GetCamera().InvView._32 << std::endl;
-		ss << "camera_transform.rotation_local33: " << wiScene::GetCamera().InvView._33 << std::endl;
-		ss << "camera_transform.rotation_local34: " << wiScene::GetCamera().InvView._34 << std::endl;
-		ss << "camera_transform.rotation_local41: " << wiScene::GetCamera().InvView._41 << std::endl;
-		ss << "camera_transform.rotation_local42: " << wiScene::GetCamera().InvView._42 << std::endl;
-		ss << "camera_transform.rotation_local43: " << wiScene::GetCamera().InvView._43 << std::endl;
-		ss << "camera_transform.rotation_local44: " << wiScene::GetCamera().InvView._44 << std::endl;
 
 		TransformComponent* lightT = wiScene::GetScene().transforms.GetComponent(CyMainComponent::m_headLight);
 
 		camera_transform.MatrixTransform(wiScene::GetCamera().GetInvView());
-		ss << std::endl;
-		ss << "camera_transform.rotation_localW: " << camera_transform.rotation_local.w << std::endl;
-		ss << "camera_transform.rotation_localx: " << camera_transform.rotation_local.x << std::endl;
-		ss << "camera_transform.rotation_localy: " << camera_transform.rotation_local.y << std::endl;
-		ss << "camera_transform.rotation_localz: " << camera_transform.rotation_local.z << std::endl;
+
 		camera_transform.UpdateTransform();
 		XMMATRIX camRot	  = XMMatrixRotationQuaternion(XMLoadFloat4(&camera_transform.rotation_local));
 		XMVECTOR move_rot = XMVector3TransformNormal(moveNew, camRot);
@@ -1228,24 +1237,6 @@ void CyRender::Update(float dt) {
 		XMStoreFloat3(&_move, move_rot);
 		_move.y += moveNewY;
 		camera_transform.Translate(_move);
-		ss << std::endl;
-		ss << "camera_transform.rotation_localW: " << camera_transform.rotation_local.w << std::endl;
-		ss << "camera_transform.rotation_localx: " << camera_transform.rotation_local.x << std::endl;
-		ss << "camera_transform.rotation_localy: " << camera_transform.rotation_local.y << std::endl;
-		ss << "camera_transform.rotation_localz: " << camera_transform.rotation_local.z << std::endl;
-		ss << "xDif: " << xDif << std::endl;
-		ss << "yDif: " << yDif << std::endl;
-		ss << "MoveLen: " << moveLength << std::endl;
-		ss << "moveNewX: " << XMVectorGetX(moveNew) << std::endl;
-		ss << "moveNewY: " << XMVectorGetY(moveNew) << std::endl;
-		ss << "moveNewZ: " << XMVectorGetZ(moveNew) << std::endl;
-		ss << "_moveX: " << _move.x << std::endl;
-		ss << "_moveY: " << _move.y << std::endl;
-		ss << "_moveZ: " << _move.z << std::endl;
-		ss << "move_rotX: " << XMVectorGetX(move_rot) << std::endl;
-		ss << "move_rotY: " << XMVectorGetY(move_rot) << std::endl;
-		ss << "move_rotZ: " << XMVectorGetZ(move_rot);
-		wiBackLog::post(ss.str().c_str());
 		lightT->Translate(_move);
 		lightT->RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));
 		camera_transform.RotateRollPitchYaw(XMFLOAT3(yDif, xDif, 0));

@@ -2,6 +2,7 @@
 #include "cyChunk.h"
 #include "cyImportant.h"
 #include "meshGen.h"
+
 #include "wiECS.h"
 #include "settings.h"
 #include "cyRender.h"
@@ -56,6 +57,7 @@ public:
 	struct chunkobjects_t {
 		wiECS::Entity chunkObj;
 		std::vector<wiECS::Entity> meshes;
+		std::vector<wiECS::Entity> emitters;
 		uint8_t lod;
 	};
 	struct point2d_t {
@@ -74,6 +76,7 @@ public:
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
 	unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkposHasher_t> m_visibleChunks;
 	atomic<uint32_t> m_threadstate[cyImportant::MAX_THREADS];
+	std::vector<uint32_t> m_threadObj[cyImportant::MAX_THREADS];
 	cyImportant::chunkpos_t m_threadChunkPos[cyImportant::MAX_THREADS];
 	atomic<uint8_t> m_shutdown;
 	thread m_checkThread;
@@ -84,10 +87,10 @@ private:
 	static std::vector<cyImportant::chunkpos_t> maskedChunks;
 	static std::vector<cyImportant::chunkpos_t> pendingChunks;
 	static mutex maskMutex;
-	static const uint8_t LOD_MAX = 2;
+	static const uint8_t LOD_MAX = 3;
 	inline void removeFarChunks(cyImportant::chunkpos_t ghostpos, bool cleanAll = false);
 	void addChunks(uint8_t threadNum);
 	inline bool employThread(cyImportant::chunkpos_t coords);
-	static inline void placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);
-	static inline void placeTorches(const std::vector<torch_t>& torches, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent);
+	static inline void placeMeshes(const cyChunk& chunk, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent, std::vector<wiECS::Entity>& meshlist);
+	static inline void placeTorches(const std::vector<torch_t>& torches, const int32_t relX, const int32_t relY, wiScene::Scene& tmpScene, const wiECS::Entity parent, std::vector<wiECS::Entity>& meshlist);
 };

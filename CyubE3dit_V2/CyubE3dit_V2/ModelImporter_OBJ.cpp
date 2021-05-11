@@ -193,7 +193,7 @@ wiECS::Entity ImportModel_OBJ(const std::string& fileName, Scene& scene, uint8_t
 		// Load objects, meshes:
 		if (obj_shapes.size() > 0) {
 			//Entity objectEntity		= scene.Entity_CreateObject("Mesh");
-			meshEntity = scene.Entity_CreateMesh("Mesh");
+			meshEntity = scene.Entity_CreateMesh(fileName);
 			//ObjectComponent& object = *scene.objects.GetComponent(objectEntity);
 			MeshComponent& mesh = *scene.meshes.GetComponent(meshEntity);
 			mesh.SetDoubleSided(true);

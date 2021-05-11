@@ -24,7 +24,7 @@ cySchematic::cySchematic(string filename) :
 		size.x = bsize.x / 2.f;
 		size.y = bsize.y / 2.f;
 		size.z = bsize.z / 2.f;
-		size.w = (size.x + size.y + size.z) * 0.334;
+		size.w = (size.x + size.y + size.z) * 0.334f;
 
 		uint32_t uncompressedSize = 0;
 		file.seekg(0, ios_base::end);
@@ -115,6 +115,7 @@ void cySchematic::addBoxSelector(void) {
 	tf->Translate(XMFLOAT3(schem->pos.x, schem->pos.z, schem->pos.y));
 	tf->UpdateTransform();
 	wiScene::GetScene().Merge(tmpScene);
+	schem->resizeGizmos();
 	schem->type	   = TYPE_SELECTION;
 	schem->m_dirty = DIRTY_RESIZE;	//Make sure the underlying chunks are updated accordingly
 	m_schematics.push_back(schem);
@@ -191,12 +192,12 @@ void cySchematic::positionBeforeCam(void) {
 	XMFLOAT3 schempos	= cam.Eye;
 	XMFLOAT3 camlook	= cam.At;
 
-	pos.x = ceilf(schempos.x + camlook.x * size.x);
-	pos.y = ceilf(schempos.z + camlook.z * size.y);
-	pos.z = ceilf(schempos.y + camlook.y * size.z);
-	pos.x -= ceilf(size.x * 0.5);
-	pos.z -= ceilf(size.z * 0.5);
-	pos.y -= ceilf(size.y * 0.5);
+	pos.x = ceilf(schempos.x + camlook.x * size.x * 1.3f);
+	pos.y = ceilf(schempos.z + camlook.z * size.y * 1.3f);
+	pos.z = ceilf(schempos.y + camlook.y * size.z * 1.3f);
+	pos.x -= ceilf(size.x) * 0.5f;
+	pos.z -= ceilf(size.z) * 0.5f;
+	pos.y -= ceilf(size.y) * 0.5f;
 }
 
 void cySchematic::addSchematic(std::string filename) {
@@ -204,10 +205,10 @@ void cySchematic::addSchematic(std::string filename) {
 	std::vector<wiECS::Entity> affected;
 	schem->positionBeforeCam();
 
-	if (schem->pos.z < 0.5) {
-		schem->pos.z = 0.5;
-	} else if (schem->pos.z + schem->size.z > 399.5) {
-		schem->pos.z = 399.5 - schem->size.z;
+	if (schem->pos.z < 0.5f) {
+		schem->pos.z = 0.5f;
+	} else if (schem->pos.z + schem->size.z > 399.5f) {
+		schem->pos.z = 399.5f - schem->size.z;
 	}
 
 	schem->RenderSchematic();
@@ -223,11 +224,13 @@ void cySchematic::updateDirtyPreviews(void) {
 			switch (m_schematics[i]->m_dirty) {
 				case DIRTY_DRAG:
 					if (m_schematics[i]->type != TYPE_SELECTION && m_schematics[i]->size.x * m_schematics[i]->size.y < (5 * 5 * 16 * 16)) {	 //only perform the live preview for reasonable sized schematics (less that 25square chunks
-				
+
 						m_schematics[i]->showGizmos(false);
 						m_schematics[i]->generateChunkPreview();
 						m_schematics[i]->showGizmos(true);
-						
+
+					} else if (m_schematics[i]->type == TYPE_SELECTION) {
+						m_schematics[i]->resizeGizmos();
 					}
 					m_schematics[i]->m_dirty = NOT_DIRTY;
 					break;
@@ -253,7 +256,6 @@ void cySchematic::updateDirtyPreviews(void) {
 					m_schematics[i]->m_dirty = DIRTY_NOTRENDERED;
 					m.lock();
 					meshGen::ResizeToolBlock(m_schematics[i]->size.x, m_schematics[i]->size.z, m_schematics[i]->size.y);
-					m_schematics[i]->resizeGizmos();
 					m.unlock();
 					m_schematics[i]->m_dirty = NOT_DIRTY;
 					break;
@@ -300,6 +302,7 @@ void cySchematic::RenderSchematic(void) {
 	prepareSchematic(tmpScene);
 	m.lock();
 	wiScene::GetScene().Merge(tmpScene);
+	resizeGizmos();
 	m_dirty = NOT_DIRTY;
 	m.unlock();
 };
@@ -496,6 +499,16 @@ void cySchematic::prepareSchematic(wiScene::Scene& tmpScene) {
 	}  //else	wiBackLog::post("Chunk has no blocks");
 }
 
+void cySchematic::reposition(void) {
+	for (size_t i = 0; i < m_schematics.size(); i++) {
+		m_schematics[i]->positionBeforeCam();
+		wiScene::TransformComponent* transform = wiScene::GetScene().transforms.GetComponent(cySchematic::m_schematics[i]->mainEntity);
+		transform->ClearTransform();
+		transform->Translate(XMFLOAT3(m_schematics[i]->pos.x, m_schematics[i]->pos.z, m_schematics[i]->pos.y));
+		m_schematics[i]->m_dirty = DIRTY_DRAG;
+	}
+}
+
 inline void cySchematic::placeTorches(const std::vector<torch_t>& torches, Scene& tmpScene) {
 	for (size_t i = 0; i < torches.size(); i++) {
 		torch_t torch = torches[i];
@@ -508,42 +521,42 @@ inline void cySchematic::placeTorches(const std::vector<torch_t>& torches, Scene
 			switch (torch.rotation) {
 				case 0:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-					transform.Translate(XMFLOAT3(torch.x / 2.0f + 0.248, torch.z / 2.0f - 0.14, size.y - torch.y / 2.0f));
-					transform.RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
-					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f + 0.1, torch.z / 2.0f + 0.02, size.y - torch.y / 2.0f), color, 5, 4);
+					transform.Translate(XMFLOAT3(torch.x / 2.0f + 0.248, torch.z / 2.0f - 0.14f, size.y - torch.y / 2.0f));
+					transform.RotateRollPitchYaw(XMFLOAT3(0, PI *0.5f, 0));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f + 0.1f, torch.z / 2.0f + 0.02f, size.y - torch.y / 2.0f), color, 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
 				case 1:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-					transform.Translate(XMFLOAT3(torch.x / 2.0f - 0.248, torch.z / 2.0f - 0.14, size.y - torch.y / 2.0f));
-					transform.RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
-					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f - 0.1, torch.z / 2.0f + 0.02, size.y - torch.y / 2.0f), color, 5, 4);
+					transform.Translate(XMFLOAT3(torch.x / 2.0f - 0.248, torch.z / 2.0f - 0.14f, size.y - torch.y / 2.0f));
+					transform.RotateRollPitchYaw(XMFLOAT3(0, -PI * 0.5f, 0));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f - 0.1, torch.z / 2.0f + 0.02f, size.y - torch.y / 2.0f), color, 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
 				case 2:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-					transform.Translate(XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.14, size.y - torch.y / 2.0f + 0.248));
-					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.02, size.y - torch.y / 2.0f + 0.1), color, 5, 4);
+					transform.Translate(XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.14f, size.y - torch.y / 2.0f + 0.248f));
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.02f, size.y - torch.y / 2.0f + 0.1), color, 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
 				case 3:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
-					transform.Translate(XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.14, size.y - torch.y / 2.0f - 0.248));
+					transform.Translate(XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.14f, size.y - torch.y / 2.0f - 0.248f));
 					transform.RotateRollPitchYaw(XMFLOAT3(0, PI, 0));
-					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.02, size.y - torch.y / 2.0f - 0.1), color, 5, 4);
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.02f, size.y - torch.y / 2.0f - 0.1), color, 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
 				case 4:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
 					transform.Translate(XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.135f, size.y - torch.y / 2.0f));
-					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.08, size.y - torch.y / 2.0f), color, 5, 4);
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.08f, size.y - torch.y / 2.0f), color, 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
 				default:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[1];
 					transform.Translate(XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f + 0.135f, size.y - torch.y / 2.0f));
 					transform.RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
-					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.08, size.y - torch.y / 2.0f), XMFLOAT3(1.0, 0.3, 0.0f), 5, 4);
+					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f, torch.z / 2.0f - 0.08f, size.y - torch.y / 2.0f), XMFLOAT3(1.0f, 0.3f, 0.0f), 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
 			}
@@ -581,155 +594,155 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	TransformComponent* tf;
 	wiScene::LayerComponent* layer;
 	if (_toolblock) {
-		objEnt				 = tmpScene.Entity_CreateObject("SizX");
-		object				 = tmpScene.objects.GetComponent(objEnt);
-		tf					 = tmpScene.transforms.GetComponent(objEnt);
+		objEnt = tmpScene.Entity_CreateObject("SizX");
+		object = tmpScene.objects.GetComponent(objEnt);
+		//tf					 = tmpScene.transforms.GetComponent(objEnt);
 		layer				 = tmpScene.layers.GetComponent(objEnt);
 		layer->layerMask	 = LAYER_GIZMO;
 		object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ORIGIN];
 		object->parentObject = mainEntity;
 		object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-		tf->Translate(XMFLOAT3(-0.25f + arrowsize * 18, -0.25f - arrowsize, 0.25f - arrowsize));
-		tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
-		tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-		tf->UpdateTransform();
+		//tf->Translate(XMFLOAT3(-0.25f + arrowsize * 18, -0.25f - arrowsize, 0.25f - arrowsize));
+		//tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+		//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+		//tf->UpdateTransform();
 		hoverEntities[HOVER_SIZEX].entity		= objEnt;
 		hoverEntities[HOVER_SIZEX].hovercolor	= XMFLOAT4(0.0f, 0.4f, 0.8f, 1.f);
 		hoverEntities[HOVER_SIZEX].nohovercolor = object->color;
 		tmpScene.Component_Attach(objEnt, mainEntity);
 
-		objEnt				 = tmpScene.Entity_CreateObject("SizY");
-		object				 = tmpScene.objects.GetComponent(objEnt);
-		layer				 = tmpScene.layers.GetComponent(objEnt);
-		layer->layerMask	 = LAYER_GIZMO;
-		tf					 = tmpScene.transforms.GetComponent(objEnt);
+		objEnt			 = tmpScene.Entity_CreateObject("SizY");
+		object			 = tmpScene.objects.GetComponent(objEnt);
+		layer			 = tmpScene.layers.GetComponent(objEnt);
+		layer->layerMask = LAYER_GIZMO;
+		//tf					 = tmpScene.transforms.GetComponent(objEnt);
 		object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ORIGIN];
 		object->parentObject = mainEntity;
 		object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-		tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f + arrowsize * 18));
-		tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
-		tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-		tf->UpdateTransform();
+		//tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f + arrowsize * 18));
+		//tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+		//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+		//tf->UpdateTransform();
 		hoverEntities[HOVER_SIZEY].entity		= objEnt;
 		hoverEntities[HOVER_SIZEY].hovercolor	= XMFLOAT4(0.5f, 0.8f, 0.0f, 1.f);
 		hoverEntities[HOVER_SIZEY].nohovercolor = object->color;
 		tmpScene.Component_Attach(objEnt, mainEntity);
-		objEnt				 = tmpScene.Entity_CreateObject("SizZ");
-		object				 = tmpScene.objects.GetComponent(objEnt);
-		layer				 = tmpScene.layers.GetComponent(objEnt);
-		layer->layerMask	 = LAYER_GIZMO;
-		tf					 = tmpScene.transforms.GetComponent(objEnt);
+		objEnt			 = tmpScene.Entity_CreateObject("SizZ");
+		object			 = tmpScene.objects.GetComponent(objEnt);
+		layer			 = tmpScene.layers.GetComponent(objEnt);
+		layer->layerMask = LAYER_GIZMO;
+		//tf					 = tmpScene.transforms.GetComponent(objEnt);
 		object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ORIGIN];
 		object->parentObject = mainEntity;
 		object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-		tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f + arrowsize * 18, 0.25f - arrowsize));
-		tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
-		tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-		tf->UpdateTransform();
+		//tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f + arrowsize * 18, 0.25f - arrowsize));
+		//tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+		//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+		//tf->UpdateTransform();
 		hoverEntities[HOVER_SIZEZ].entity		= objEnt;
 		hoverEntities[HOVER_SIZEZ].hovercolor	= XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
 		hoverEntities[HOVER_SIZEZ].nohovercolor = object->color;
 		tmpScene.Component_Attach(objEnt, mainEntity);
 	} else {
-		arrowsize			 = (size.x + size.y) / 100.0f;
-		objEnt				 = tmpScene.Entity_CreateObject("cwArrow");
-		object				 = tmpScene.objects.GetComponent(objEnt);
-		tf					 = tmpScene.transforms.GetComponent(objEnt);
+		arrowsize = (size.x + size.y) / 100.0f;
+		objEnt	  = tmpScene.Entity_CreateObject("cwArrow");
+		object	  = tmpScene.objects.GetComponent(objEnt);
+		//tf					 = tmpScene.transforms.GetComponent(objEnt);
 		layer				 = tmpScene.layers.GetComponent(objEnt);
 		layer->layerMask	 = LAYER_GIZMO;
 		object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ROT];
 		object->parentObject = mainEntity;
 		object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-		tf->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, arrowsize * 2.2 + size.z, size.y * 0.5f));
-		tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-		tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
-		tf->UpdateTransform();
+		//tf->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, arrowsize * 2.2 + size.z, size.y * 0.5f));
+		//tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+		//tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+		//tf->UpdateTransform();
 		hoverEntities[HOVER_ROTCW].entity		= objEnt;
 		hoverEntities[HOVER_ROTCW].hovercolor	= XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
 		hoverEntities[HOVER_ROTCW].nohovercolor = object->color;
 		tmpScene.Component_Attach(objEnt, mainEntity);
 
-		objEnt				 = tmpScene.Entity_CreateObject("ccArrow");
-		object				 = tmpScene.objects.GetComponent(objEnt);
-		layer				 = tmpScene.layers.GetComponent(objEnt);
-		layer->layerMask	 = LAYER_GIZMO;
-		tf					 = tmpScene.transforms.GetComponent(objEnt);
+		objEnt			 = tmpScene.Entity_CreateObject("ccArrow");
+		object			 = tmpScene.objects.GetComponent(objEnt);
+		layer			 = tmpScene.layers.GetComponent(objEnt);
+		layer->layerMask = LAYER_GIZMO;
+		//tf					 = tmpScene.transforms.GetComponent(objEnt);
 		object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ROT];
 		object->parentObject = mainEntity;
 		object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-		tf->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, -arrowsize * 2.2, size.y * 0.5f));
-		tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-		tf->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
-		tf->UpdateTransform();
+		//tf->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, -arrowsize * 2.2, size.y * 0.5f));
+		//tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+		//tf->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
+		//tf->UpdateTransform();
 		hoverEntities[HOVER_ROTCC].entity		= objEnt;
 		hoverEntities[HOVER_ROTCC].hovercolor	= XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
 		hoverEntities[HOVER_ROTCC].nohovercolor = object->color;
 		tmpScene.Component_Attach(objEnt, mainEntity);
 		arrowsize = (size.x + size.y) / 75.0f;
 	}
-	objEnt				 = tmpScene.Entity_CreateObject("Origin");
-	object				 = tmpScene.objects.GetComponent(objEnt);
-	layer				 = tmpScene.layers.GetComponent(objEnt);
-	layer->layerMask	 = LAYER_GIZMO;
-	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	objEnt			 = tmpScene.Entity_CreateObject("Origin");
+	object			 = tmpScene.objects.GetComponent(objEnt);
+	layer			 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask = LAYER_GIZMO;
+	//tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ORIGIN];
 	object->parentObject = mainEntity;
 	object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-	tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-	tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
-	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-	tf->UpdateTransform();
+	//tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+	//tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+	//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+	//tf->UpdateTransform();
 	hoverEntities[HOVER_ORIGIN].entity		 = objEnt;
 	hoverEntities[HOVER_ORIGIN].hovercolor	 = XMFLOAT4(1.f, 1.f, 1.f, 1.f);
 	hoverEntities[HOVER_ORIGIN].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
-	objEnt				 = tmpScene.Entity_CreateObject("xAxis");
-	object				 = tmpScene.objects.GetComponent(objEnt);
-	layer				 = tmpScene.layers.GetComponent(objEnt);
-	layer->layerMask	 = LAYER_GIZMO;
-	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	objEnt			 = tmpScene.Entity_CreateObject("xAxis");
+	object			 = tmpScene.objects.GetComponent(objEnt);
+	layer			 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask = LAYER_GIZMO;
+	//tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_XAXIS];
 	object->parentObject = mainEntity;
 	object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-	tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-	tf->UpdateTransform();
+	//tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+	//tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+	//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+	//tf->UpdateTransform();
 	hoverEntities[HOVER_X_AXIS].entity		 = objEnt;
 	hoverEntities[HOVER_X_AXIS].hovercolor	 = XMFLOAT4(0.0f, 0.4f, 0.8f, 1.f);
 	hoverEntities[HOVER_X_AXIS].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
-	objEnt				 = tmpScene.Entity_CreateObject("yAxis");
-	object				 = tmpScene.objects.GetComponent(objEnt);
-	layer				 = tmpScene.layers.GetComponent(objEnt);
-	layer->layerMask	 = LAYER_GIZMO;
-	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	objEnt			 = tmpScene.Entity_CreateObject("yAxis");
+	object			 = tmpScene.objects.GetComponent(objEnt);
+	layer			 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask = LAYER_GIZMO;
+	//tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_YAXIS];
 	object->parentObject = mainEntity;
 	object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-	tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-	tf->UpdateTransform();
+	//tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+	//tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+	//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+	//tf->UpdateTransform();
 	hoverEntities[HOVER_Y_AXIS].entity		 = objEnt;
 	hoverEntities[HOVER_Y_AXIS].hovercolor	 = XMFLOAT4(0.5f, 0.8f, 0.0f, 1.f);
 	hoverEntities[HOVER_Y_AXIS].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
-	objEnt				 = tmpScene.Entity_CreateObject("zAxis");
-	object				 = tmpScene.objects.GetComponent(objEnt);
-	layer				 = tmpScene.layers.GetComponent(objEnt);
-	layer->layerMask	 = LAYER_GIZMO;
-	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	objEnt			 = tmpScene.Entity_CreateObject("zAxis");
+	object			 = tmpScene.objects.GetComponent(objEnt);
+	layer			 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask = LAYER_GIZMO;
+	//tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_ZAXIS];
 	object->parentObject = mainEntity;
 	object->color		 = XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f);
-	tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-	tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-	tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
-	tf->UpdateTransform();
+	//tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+	//tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+	//tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+	//tf->UpdateTransform();
 	hoverEntities[HOVER_Z_AXIS].entity		 = objEnt;
 	hoverEntities[HOVER_Z_AXIS].hovercolor	 = XMFLOAT4(0.8f, 0.1f, 0.0f, 1.f);
 	hoverEntities[HOVER_Z_AXIS].nohovercolor = object->color;
@@ -742,7 +755,7 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	tf				 = tmpScene.transforms.GetComponent(objEnt);
 	if (_toolblock) {
 		object->meshID = meshGen::toolBlockFaces[cyBlocks::FACE_FRONT];
-		//tf->Translate(XMFLOAT3(0.f, 0.f, 0.5f));
+		tf->Translate(XMFLOAT3(-0.005f, -0.0005f, -0.0005f));
 	} else {
 		object->meshID = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 		tf->Scale(XMFLOAT3(size.x, size.z, 1));
@@ -764,8 +777,7 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	tf				 = tmpScene.transforms.GetComponent(objEnt);
 	if (_toolblock) {
 		object->meshID = meshGen::toolBlockFaces[cyBlocks::FACE_BACK];
-		//tf->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
-		//tf->Translate(XMFLOAT3(0.f, 0.5f, 0.f));
+		tf->Translate(XMFLOAT3(-0.0005f, -0.0005f, -0.0005f));
 	} else {
 		object->meshID = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 		tf->Translate(XMFLOAT3(0, 0, size.y));
@@ -788,8 +800,7 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	tf				 = tmpScene.transforms.GetComponent(objEnt);
 	if (_toolblock) {
 		object->meshID = meshGen::toolBlockFaces[cyBlocks::FACE_RIGHT];
-		//tf->RotateRollPitchYaw(XMFLOAT3(0, PI / 2, 0));
-		//tf->Translate(XMFLOAT3(0.5f, 0.f, 0.5f));
+		tf->Translate(XMFLOAT3(-0.0005f, -0.0005f, -0.0005f));
 	} else {
 		object->meshID = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 		tf->RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
@@ -812,8 +823,7 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	tf				 = tmpScene.transforms.GetComponent(objEnt);
 	if (_toolblock) {
 		object->meshID = meshGen::toolBlockFaces[cyBlocks::FACE_LEFT];
-		//tf->RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
-		//tf->Translate(XMFLOAT3(0.f, -0.f, 0.f));
+		tf->Translate(XMFLOAT3(-0.0005f, -0.0005f, -0.0005f));
 	} else {
 		object->meshID = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 		tf->RotateRollPitchYaw(XMFLOAT3(0, -PI / 2, 0));
@@ -837,8 +847,7 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	tf				 = tmpScene.transforms.GetComponent(objEnt);
 	if (_toolblock) {
 		object->meshID = meshGen::toolBlockFaces[cyBlocks::FACE_BOTTOM];
-		//tf->RotateRollPitchYaw(XMFLOAT3(PI/2, PI / 2, 0));
-		//tf->Translate(XMFLOAT3(0.f, 0.f, 0.5f));
+		tf->Translate(XMFLOAT3(-0.0005f, -0.0005f, -0.0005f));
 	} else {
 		object->meshID = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 		tf->RotateRollPitchYaw(XMFLOAT3(-PI / 2, -PI / 2, 0));
@@ -861,8 +870,7 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	tf				 = tmpScene.transforms.GetComponent(objEnt);
 	if (_toolblock) {
 		object->meshID = meshGen::toolBlockFaces[cyBlocks::FACE_TOP];
-		//tf->RotateRollPitchYaw(XMFLOAT3(-PI / 2, -PI / 2, 0));
-		//tf->Translate(XMFLOAT3(0.f, 0.5f, 0.f));
+		tf->Translate(XMFLOAT3(-0.0005f, -0.0005f, -0.0005f));
 	} else {
 		object->meshID = cyBlocks::m_toolMeshes[cyBlocks::TOOL_PLANE];
 		tf->RotateRollPitchYaw(XMFLOAT3(-PI / 2, -PI / 2, 0));
@@ -879,36 +887,36 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 	hoverEntities[HOVER_XY2_PLANE].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
-	objEnt				 = tmpScene.Entity_CreateObject("check");
-	object				 = tmpScene.objects.GetComponent(objEnt);
-	layer				 = tmpScene.layers.GetComponent(objEnt);
-	layer->layerMask	 = LAYER_GIZMO;
-	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	objEnt			 = tmpScene.Entity_CreateObject("check");
+	object			 = tmpScene.objects.GetComponent(objEnt);
+	layer			 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask = LAYER_GIZMO;
+	//tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_CHECK];
 	object->parentObject = mainEntity;
 	object->color		 = XMFLOAT4(0.2f, 0.6f, 0.2f, 1.0f);
-	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, PI));
-	tf->Translate(XMFLOAT3(size.x - arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
-	tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
-	tf->UpdateTransform();
+	//tf->RotateRollPitchYaw(XMFLOAT3(0, 0, PI));
+	//tf->Translate(XMFLOAT3(size.x - arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
+	//tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
+	//tf->UpdateTransform();
 	hoverEntities[HOVER_CHECK].entity		= objEnt;
 	hoverEntities[HOVER_CHECK].hovercolor	= XMFLOAT4(0.02f, .6f, 0.0f, 1.f);
 	hoverEntities[HOVER_CHECK].nohovercolor = object->color;
 	tmpScene.Component_Attach(objEnt, mainEntity);
 
-	objEnt				 = tmpScene.Entity_CreateObject("cross");
-	object				 = tmpScene.objects.GetComponent(objEnt);
-	layer				 = tmpScene.layers.GetComponent(objEnt);
-	layer->layerMask	 = LAYER_GIZMO;
-	tf					 = tmpScene.transforms.GetComponent(objEnt);
+	objEnt			 = tmpScene.Entity_CreateObject("cross");
+	object			 = tmpScene.objects.GetComponent(objEnt);
+	layer			 = tmpScene.layers.GetComponent(objEnt);
+	layer->layerMask = LAYER_GIZMO;
+	//tf					 = tmpScene.transforms.GetComponent(objEnt);
 	object->meshID		 = cyBlocks::m_toolMeshes[cyBlocks::TOOL_CROSS];
 	object->parentObject = mainEntity;
 	object->color		 = XMFLOAT4(0.6f, 0.2f, 0.2f, 1.0f);
-	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, PI));
-	tf->Translate(XMFLOAT3(arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
-	tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
-	tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
-	tf->UpdateTransform();
+	//tf->RotateRollPitchYaw(XMFLOAT3(0, 0, PI));
+	//tf->Translate(XMFLOAT3(arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
+	//tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
+	//tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+	//tf->UpdateTransform();
 	hoverEntities[HOVER_CROSS].entity		= objEnt;
 	hoverEntities[HOVER_CROSS].hovercolor	= XMFLOAT4(0.6f, 0.0f, 0.02f, 1.f);
 	hoverEntities[HOVER_CROSS].nohovercolor = object->color;
@@ -917,84 +925,84 @@ void cySchematic::attachGizmos(wiScene::Scene& tmpScene, const bool _toolblock) 
 
 void cySchematic::resizeGizmos(void) {
 	float arrowsize = (size.x + size.y) / 75.0f;
-	if (arrowsize < 0.3)
-		arrowsize = 0.3;
+	if (arrowsize < 0.1)
+		arrowsize = 0.1;
 
 	wiECS::Entity objEnt;
 	ObjectComponent* object;
-	TransformComponent* tf;
+	TransformComponent* tfnew;
 	wiScene::LayerComponent* layer;
 	for (size_t i = 0; i < HOVER_NUMELEMENTS; i++) {
 		if (hoverEntities[i].entity) {
-			tf = wiScene::GetScene().transforms.GetComponent(hoverEntities[i].entity);
+			tfnew = wiScene::GetScene().transforms.GetComponent(hoverEntities[i].entity);
 			switch (i) {
 				case HOVER_SIZEX:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f + arrowsize * 18, -0.25f - arrowsize, 0.25f - arrowsize));
-					tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f + arrowsize * 18, -0.25f - arrowsize, 0.25f - arrowsize));
+					tfnew->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
 					break;
 				case HOVER_SIZEY:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f + arrowsize * 18));
-					tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f + arrowsize * 18));
+					tfnew->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
 					break;
 				case HOVER_SIZEZ:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f + arrowsize * 18, 0.25f - arrowsize));
-					tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f + arrowsize * 18, 0.25f - arrowsize));
+					tfnew->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
 					break;
 				case HOVER_ROTCC:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, -arrowsize * 2.2, size.y * 0.5f));
-					tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-					tf->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, -arrowsize * 2.2, size.y * 0.5f));
+					tfnew->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+					tfnew->RotateRollPitchYaw(XMFLOAT3(PI, 0, 0));
 					break;
 				case HOVER_ROTCW:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, arrowsize * 2.2 + size.z, size.y * 0.5f));
-					tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-					tf->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(arrowsize * 4 + size.x * 0.5f, arrowsize * 2.2 + size.z, size.y * 0.5f));
+					tfnew->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+					tfnew->RotateRollPitchYaw(XMFLOAT3(0, 0, 0));
 					break;
 				case HOVER_ORIGIN:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-					tf->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
-					tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+					tfnew->Scale(XMFLOAT3(arrowsize * 1.5, arrowsize * 1.5, arrowsize * 1.5));
+					tfnew->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 					break;
 				case HOVER_X_AXIS:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-					tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-					tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+					tfnew->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+					tfnew->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 					break;
 				case HOVER_Y_AXIS:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-					tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-					tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+					tfnew->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+					tfnew->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 					break;
 				case HOVER_Z_AXIS:
-					tf->ClearTransform();
-					tf->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
-					tf->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
-					tf->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
+					tfnew->ClearTransform();
+					tfnew->Translate(XMFLOAT3(-0.25f - arrowsize, -0.25f - arrowsize, 0.25f - arrowsize));
+					tfnew->Scale(XMFLOAT3(arrowsize, arrowsize, arrowsize));
+					tfnew->RotateRollPitchYaw(XMFLOAT3(PI / 2, 0, 0));
 					break;
 				case HOVER_CHECK:
-					tf->ClearTransform();
-					tf->RotateRollPitchYaw(XMFLOAT3(0, 0, PI));
-					tf->Translate(XMFLOAT3(size.x - arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
-					tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
+					tfnew->ClearTransform();
+					tfnew->RotateRollPitchYaw(XMFLOAT3(0, 0, PI));
+					tfnew->Translate(XMFLOAT3(size.x - arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
+					tfnew->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
 					break;
 				case HOVER_CROSS:
-					tf->ClearTransform();
-					tf->RotateRollPitchYaw(XMFLOAT3(-0, 0, PI));
-					tf->Translate(XMFLOAT3(arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
-					tf->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
+					tfnew->ClearTransform();
+					tfnew->RotateRollPitchYaw(XMFLOAT3(-0, 0, PI));
+					tfnew->Translate(XMFLOAT3(arrowsize / 9, size.z + arrowsize * 2, size.y / 2));
+					tfnew->Scale(XMFLOAT3(arrowsize / 10, arrowsize / 10, arrowsize / 10));
 					break;
 				default:
 					break;
 			}
-			tf->UpdateTransform();
+			tfnew->UpdateTransform();
 		}
 	}
 }
@@ -1268,13 +1276,14 @@ void cySchematic::rotate(bool _cclock) {
 	scene.Entity_Remove(meshEnt);
 	m.unlock();
 	prepareSchematic(tmpScene);
-
+	
 	while (wiJobSystem::IsBusy(ctx))
 		;
 	m.lock();
 	scene.Merge(tmpScene);
 	showGizmos(false);
 	m.unlock();
+	resizeGizmos();
 	generateChunkPreview();
 	showGizmos(true);
 }
@@ -1601,11 +1610,11 @@ void cySchematic::saveToFile(void) {
 				uint32_t mapLen;
 				size_t offset = 0;
 				blockpos_t pos;
-				size_t datalen	  = size.x * 2 * size.y * 2 * size.z * 2 + m_cBlocks.size() * 10 + m_torches.size() * 7 + 8;
-				m_chunkdata = reinterpret_cast<uint8_t*>(realloc(m_chunkdata, datalen));
+				size_t datalen = size.x * 2 * size.y * 2 * size.z * 2 + m_cBlocks.size() * 10 + m_torches.size() * 7 + 8;
+				m_chunkdata	   = reinterpret_cast<uint8_t*>(realloc(m_chunkdata, datalen));
 				if (datalen < 500)
 					datalen = 500;
-				char* compressed  = reinterpret_cast<char*>(malloc(datalen));
+				char* compressed = reinterpret_cast<char*>(malloc(datalen));
 				if (m_chunkdata != nullptr && compressed != nullptr) {
 					offset = size.x * 2 * size.y * 2 * size.z * 2;
 					mapLen = m_cBlocks.size();
@@ -1631,7 +1640,7 @@ void cySchematic::saveToFile(void) {
 						offset += 7;
 					}
 					size_t compressedLen = LZ4_compress_default(reinterpret_cast<char*>(m_chunkdata), compressed + 16, offset, datalen);
-					memcpy(compressed + compressedLen+16, &offset, 4);
+					memcpy(compressed + compressedLen + 16, &offset, 4);
 					mapLen = size.x * 2;
 					memcpy(compressed, &(mapLen), 4);
 					mapLen = size.y * 2;

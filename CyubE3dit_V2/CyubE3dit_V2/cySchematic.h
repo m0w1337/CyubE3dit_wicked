@@ -155,6 +155,7 @@ public:
 	void clearSchematic(void);
 	static void clearAllSchematics(void);
 	static void updateDirtyPreviews(void);
+	static void reposition(void);
 	void saveToWorld(void);
 	void rotate(bool _cclock = false);
 	void drawGridLines(const bool x, const bool y, const bool z);

@@ -6,7 +6,7 @@ using namespace wiECS;
 using namespace wiScene;
 SimplexNoise meshGen::m_noise;
 wiECS::Entity meshGen::toolBlockFaces[] = {wiECS::INVALID_ENTITY};
-XMFLOAT3 meshGen::toolblockSize(0.5f,0.5f,0.5f);
+XMFLOAT3 meshGen::toolblockSize(0.501f, 0.501f, 0.501f);
 meshGen::meshGen() {
 }
 
@@ -30,10 +30,11 @@ void meshGen::ResizeToolBlock(float _x, float _y, float _z, bool _antitile) {
 	wiScene::Scene& scene = wiScene::GetScene();
 	for (size_t i = 0; i < 6; i++) {
 		wiScene::MeshComponent* mesh = scene.meshes.GetComponent(toolBlockFaces[i]);
+
 		for (size_t ii = 0; ii < 4; ii++) {
-			mesh->vertex_positions[ii].x = mesh->vertex_positions[ii].x / toolblockSize.x * _x;
-			mesh->vertex_positions[ii].y = mesh->vertex_positions[ii].y / toolblockSize.y * _y;
-			mesh->vertex_positions[ii].z = mesh->vertex_positions[ii].z / toolblockSize.z * _z;
+			mesh->vertex_positions[ii].x = mesh->vertex_positions[ii].x / (toolblockSize.x - 0.001) * (_x - 0.001);
+			mesh->vertex_positions[ii].y = mesh->vertex_positions[ii].y / (toolblockSize.y - 0.001) * (_y - 0.001);
+			mesh->vertex_positions[ii].z = mesh->vertex_positions[ii].z / (toolblockSize.z - 0.001) * (_z - 0.001);
 		}
 		switch (i) {
 			case cyBlocks::FACE_TOP:
@@ -74,9 +75,6 @@ wiECS::Entity meshGen::AddToolBoxFace(wiECS::Entity _material, uint8_t _face) {
 	wiScene::Scene& scene = wiScene::GetScene();
 	wiECS::Entity ret	  = scene.Entity_CreateMesh("");
 	MeshComponent* mesh	  = scene.meshes.GetComponent(ret);
-	float offsX			  = 0.5f;
-	float offsY			  = 0.5f;
-	float offsZ			  = 0.5f;
 	mesh->subsets.emplace_back();
 	mesh->subsets.back().materialID	 = _material;
 	mesh->subsets.back().indexOffset = 0;

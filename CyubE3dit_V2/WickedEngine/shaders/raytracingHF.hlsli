@@ -3,122 +3,207 @@
 #include "globals.hlsli"
 #include "ShaderInterop_Raytracing.h"
 #include "ShaderInterop_BVH.h"
-#include "lightingHF.hlsli"
+#include "brdf.hlsli"
 
-// returns a position that is sligtly above the surface position to avoid self intersection
-//	P	: surface postion
-//	N	: surface normal
-inline float3 trace_bias_position(in float3 P, in float3 N)
+#ifdef HLSL5
+struct RayDesc
 {
-	return P + N * 0.0001;
-}
-
-struct Ray
-{
-	uint pixelID;
-	float3 origin;
-	float3 direction;
-	float3 direction_rcp;
-	float3 energy;
-	uint primitiveID;
-	float2 bary;
-	float3 color;
-
-	inline void Update()
-	{
-		direction_rcp = rcp(direction);
-	}
+	float3 Origin;
+	float TMin;
+	float3 Direction;
+	float TMax;
 };
+#endif // HLSL5
 
-inline uint CreateRaySortCode(in Ray ray)
-{
-	// Sorting purely based on morton code works best so far:
-	return morton3D((ray.origin - g_xFrame_WorldBoundsMin) * g_xFrame_WorldBoundsExtents_rcp);
-
-	//return ray.primitiveID;
-
-	//uint hash = 0;
-
-	//// quantize direction [-1; 1] on 8x4x8 grid (3 + 2 + 3 = 8 bits):
-	//hash |= (uint)clamp(ray.direction.x * 4 + 4, 0, 7) << 0;
-	//hash |= (uint)clamp(ray.direction.y * 2 + 2, 0, 3) << 3;
-	//hash |= (uint)clamp(ray.direction.z * 4 + 4, 0, 7) << 5;
-
-	//// quantize origin [0, 1] on 256x256x256 grid (8 bits per component):
-	//const float3 origin = (ray.origin - g_xFrame_WorldBoundsMin) * g_xFrame_WorldBoundsExtents_rcp;
-	//hash |= ((uint)abs(origin.x * 255) % 256) << 8;
-	//hash |= ((uint)abs(origin.x * 255) % 256) << 16;
-	//hash |= ((uint)abs(origin.x * 255) % 256) << 24;
-
-	//return (float)hash;
-}
-inline RaytracingStoredRay CreateStoredRay(in Ray ray)
-{
-	RaytracingStoredRay storedray;
-
-	storedray.origin = ray.origin;
-	storedray.pixelID = ray.pixelID;
-	storedray.direction_energy = f32tof16(ray.direction) | (f32tof16(ray.energy) << 16);
-	storedray.primitiveID = ray.primitiveID;
-	storedray.bary = ray.bary;
-	storedray.color = pack_half3(ray.color);
-
-	return storedray;
-}
-inline Ray LoadRay(in RaytracingStoredRay storedray)
-{
-	Ray ray;
-	ray.pixelID = storedray.pixelID;
-	ray.origin = storedray.origin;
-	ray.direction = asfloat(f16tof32(storedray.direction_energy));
-	ray.energy = asfloat(f16tof32(storedray.direction_energy >> 16));
-	ray.primitiveID = storedray.primitiveID;
-	ray.bary = storedray.bary;
-	ray.color = unpack_half3(storedray.color);
-	ray.Update();
-	return ray;
-}
-
-inline Ray CreateRay(float3 origin, float3 direction)
-{
-	Ray ray;
-	ray.origin = origin;
-	ray.direction = direction;
-	ray.energy = float3(1, 1, 1);
-	ray.pixelID = 0xFFFFFFFF;
-	ray.primitiveID = 0xFFFFFFFF;
-	ray.bary = 0;
-	ray.color = 0;
-	ray.Update();
-	return ray;
-}
-
-inline Ray CreateCameraRay(float2 clipspace)
+inline RayDesc CreateCameraRay(float2 clipspace)
 {
 	float4 unprojected = mul(g_xCamera_InvVP, float4(clipspace, 0, 1));
 	unprojected.xyz /= unprojected.w;
 
-	const float3 origin = g_xCamera_CamPos;
-	const float3 direction = normalize(unprojected.xyz - origin);
+	RayDesc ray;
+	ray.Origin = g_xCamera_CamPos;
+	ray.Direction = normalize(unprojected.xyz - ray.Origin);
+	ray.TMin = 0.001;
+	ray.TMax = FLT_MAX;
 
-	return CreateRay(origin, direction);
+	return ray;
 }
+
+#ifdef RTAPI
+// Hardware acceleration raytracing path:
+
+RAYTRACINGACCELERATIONSTRUCTURE(scene_acceleration_structure, TEXSLOT_ACCELERATION_STRUCTURE);
+Texture2D<float4> bindless_textures[] : register(t0, space1);
+ByteAddressBuffer bindless_buffers[] : register(t0, space2);
+StructuredBuffer<ShaderMeshSubset> bindless_subsets[] : register(t0, space3);
+Buffer<uint> bindless_ib[] : register(t0, space4);
+
+void EvaluateObjectSurface(
+	in ShaderMesh mesh,
+	in ShaderMeshSubset subset,
+	in ShaderMaterial material,
+	in uint primitiveIndex,
+	in float2 barycentrics,
+	in float3x4 worldMatrix,
+	out Surface surface
+)
+{
+	uint startIndex = primitiveIndex * 3 + subset.indexOffset;
+	uint i0 = bindless_ib[mesh.ib][startIndex + 0];
+	uint i1 = bindless_ib[mesh.ib][startIndex + 1];
+	uint i2 = bindless_ib[mesh.ib][startIndex + 2];
+	float4 uv0 = 0, uv1 = 0, uv2 = 0;
+	[branch]
+	if (mesh.vb_uv0 >= 0)
+	{
+		uv0.xy = unpack_half2(bindless_buffers[mesh.vb_uv0].Load(i0 * 4));
+		uv1.xy = unpack_half2(bindless_buffers[mesh.vb_uv0].Load(i1 * 4));
+		uv2.xy = unpack_half2(bindless_buffers[mesh.vb_uv0].Load(i2 * 4));
+	}
+	[branch]
+	if (mesh.vb_uv1 >= 0)
+	{
+		uv0.zw = unpack_half2(bindless_buffers[mesh.vb_uv1].Load(i0 * 4));
+		uv1.zw = unpack_half2(bindless_buffers[mesh.vb_uv1].Load(i1 * 4));
+		uv2.zw = unpack_half2(bindless_buffers[mesh.vb_uv1].Load(i2 * 4));
+	}
+	float3 n0 = 0, n1 = 0, n2 = 0;
+	[branch]
+	if (mesh.vb_pos_nor_wind >= 0)
+	{
+		const uint stride_POS = 16;
+		n0 = unpack_unitvector(bindless_buffers[mesh.vb_pos_nor_wind].Load4(i0 * stride_POS).w);
+		n1 = unpack_unitvector(bindless_buffers[mesh.vb_pos_nor_wind].Load4(i1 * stride_POS).w);
+		n2 = unpack_unitvector(bindless_buffers[mesh.vb_pos_nor_wind].Load4(i2 * stride_POS).w);
+	}
+	else
+	{
+		surface.init();
+		return; // error, this should always be good
+	}
+
+	float u = barycentrics.x;
+	float v = barycentrics.y;
+	float w = 1 - u - v;
+	float4 uvsets = uv0 * w + uv1 * u + uv2 * v;
+
+	float4 baseColor = material.baseColor;
+	[branch]
+	if (material.texture_basecolormap_index >= 0 && (g_xFrame_Options & OPTION_BIT_DISABLE_ALBEDO_MAPS) == 0)
+	{
+		const float2 UV_baseColorMap = material.uvset_baseColorMap == 0 ? uvsets.xy : uvsets.zw;
+		float4 baseColorMap = bindless_textures[material.texture_basecolormap_index].SampleLevel(sampler_linear_wrap, UV_baseColorMap, 0);
+		baseColorMap.rgb *= DEGAMMA(baseColorMap.rgb);
+		baseColor *= baseColorMap;
+	}
+
+	[branch]
+	if (mesh.vb_col >= 0 && material.IsUsingVertexColors())
+	{
+		float4 c0, c1, c2;
+		const uint stride_COL = 4;
+		c0 = unpack_rgba(bindless_buffers[mesh.vb_col].Load(i0 * stride_COL));
+		c1 = unpack_rgba(bindless_buffers[mesh.vb_col].Load(i1 * stride_COL));
+		c2 = unpack_rgba(bindless_buffers[mesh.vb_col].Load(i2 * stride_COL));
+		float4 vertexColor = c0 * w + c1 * u + c2 * v;
+		baseColor *= vertexColor;
+	}
+
+	float4 surfaceMap = 1;
+	[branch]
+	if (material.texture_surfacemap_index >= 0)
+	{
+		const float2 UV_surfaceMap = material.uvset_surfaceMap == 0 ? uvsets.xy : uvsets.zw;
+		surfaceMap = bindless_textures[material.texture_surfacemap_index].SampleLevel(sampler_linear_wrap, UV_surfaceMap, 0);
+	}
+
+	surface.create(material, baseColor, surfaceMap);
+
+	surface.emissiveColor = material.emissiveColor;
+	[branch]
+	if (material.texture_emissivemap_index >= 0)
+	{
+		const float2 UV_emissiveMap = material.uvset_emissiveMap == 0 ? uvsets.xy : uvsets.zw;
+		float4 emissiveMap = bindless_textures[material.texture_emissivemap_index].SampleLevel(sampler_linear_wrap, UV_emissiveMap, 0);
+		emissiveMap.rgb = DEGAMMA(emissiveMap.rgb);
+		surface.emissiveColor *= emissiveMap;
+	}
+
+	surface.transmission = material.transmission;
+	if (material.texture_transmissionmap_index >= 0)
+	{
+		const float2 UV_transmissionMap = material.uvset_transmissionMap == 0 ? uvsets.xy : uvsets.zw;
+		float transmissionMap = bindless_textures[material.texture_transmissionmap_index].SampleLevel(sampler_linear_wrap, UV_transmissionMap, 0).r;
+		surface.transmission *= transmissionMap;
+	}
+
+	[branch]
+	if (material.IsOcclusionEnabled_Secondary() && material.texture_occlusionmap_index >= 0)
+	{
+		const float2 UV_occlusionMap = material.uvset_occlusionMap == 0 ? uvsets.xy : uvsets.zw;
+		surface.occlusion *= bindless_textures[material.texture_occlusionmap_index].SampleLevel(sampler_linear_wrap, UV_occlusionMap, 0).r;
+	}
+
+	surface.N = n0 * w + n1 * u + n2 * v;
+	surface.N = mul((float3x3)worldMatrix, surface.N);
+	surface.N = normalize(surface.N);
+	surface.facenormal = surface.N;
+
+	[branch]
+	if (mesh.vb_tan >= 0 && material.texture_normalmap_index >= 0 && material.normalMapStrength > 0)
+	{
+		float4 t0, t1, t2;
+		const uint stride_TAN = 4;
+		t0 = unpack_utangent(bindless_buffers[mesh.vb_tan].Load(i0 * stride_TAN));
+		t1 = unpack_utangent(bindless_buffers[mesh.vb_tan].Load(i1 * stride_TAN));
+		t2 = unpack_utangent(bindless_buffers[mesh.vb_tan].Load(i2 * stride_TAN));
+		float4 T = t0 * w + t1 * u + t2 * v;
+		T = T * 2 - 1;
+		T.xyz = mul((float3x3)worldMatrix, T.xyz);
+		T.xyz = normalize(T.xyz);
+		float3 B = normalize(cross(T.xyz, surface.N) * T.w);
+		float3x3 TBN = float3x3(T.xyz, B, surface.N);
+
+		const float2 UV_normalMap = material.uvset_normalMap == 0 ? uvsets.xy : uvsets.zw;
+		float3 normalMap = bindless_textures[material.texture_normalmap_index].SampleLevel(sampler_linear_wrap, UV_normalMap, 0).rgb;
+		normalMap = normalMap * 2 - 1;
+		surface.N = normalize(lerp(surface.N, mul(normalMap, TBN), material.normalMapStrength));
+	}
+}
+
+
+#else
+// Software raytracing implementation:
+
+#ifndef RAYTRACE_STACKSIZE
+#define RAYTRACE_STACKSIZE 32
+#endif // RAYTRACE_STACKSIZE
+
+// have the stack in shared memory instead of registers:
+#ifdef RAYTRACE_STACK_SHARED
+groupshared uint stack[RAYTRACE_STACKSIZE][RAYTRACING_LAUNCH_BLOCKSIZE * RAYTRACING_LAUNCH_BLOCKSIZE];
+#endif // RAYTRACE_STACK_SHARED
+
+STRUCTUREDBUFFER(materialBuffer, ShaderMaterial, TEXSLOT_ONDEMAND0);
+TEXTURE2D(materialTextureAtlas, float4, TEXSLOT_ONDEMAND1);
+RAWBUFFER(primitiveCounterBuffer, TEXSLOT_ONDEMAND2);
+STRUCTUREDBUFFER(primitiveBuffer, BVHPrimitive, TEXSLOT_ONDEMAND3);
+STRUCTUREDBUFFER(primitiveDataBuffer, BVHPrimitiveData, TEXSLOT_ONDEMAND4);
+STRUCTUREDBUFFER(bvhNodeBuffer, BVHNode, TEXSLOT_ONDEMAND5);
 
 struct RayHit
 {
-	float distance;
-	float3 position;
-	uint primitiveID;
 	float2 bary;
+	float distance;
+	uint primitiveID;
 };
 
 inline RayHit CreateRayHit()
 {
 	RayHit hit;
-	hit.distance = FLT_MAX;
-	hit.position = 0;
-	hit.primitiveID = 0xFFFFFFFF;
 	hit.bary = 0;
+	hit.distance = FLT_MAX;
+	hit.primitiveID = ~0u;
 	return hit;
 }
 
@@ -155,11 +240,85 @@ inline TriangleData TriangleData_Unpack(in BVHPrimitive prim, in BVHPrimitiveDat
 	return tri;
 }
 
-inline void IntersectTriangle(in Ray ray, inout RayHit bestHit, in BVHPrimitive tri, uint primitiveID)
+void EvaluateObjectSurface(
+	in RayHit hit,
+	out ShaderMaterial material,
+	out Surface surface
+)
 {
-	float3 v0v1 = tri.v1() - tri.v0();
-	float3 v0v2 = tri.v2() - tri.v0();
-	float3 pvec = cross(ray.direction, v0v2);
+	surface = (Surface)0; // otherwise it won't let "out" parameter
+
+	TriangleData tri = TriangleData_Unpack(primitiveBuffer[hit.primitiveID], primitiveDataBuffer[hit.primitiveID]);
+
+	float u = hit.bary.x;
+	float v = hit.bary.y;
+	float w = 1 - u - v;
+
+	float4 uvsets = tri.u0 * w + tri.u1 * u + tri.u2 * v;
+	float4 color = tri.c0 * w + tri.c1 * u + tri.c2 * v;
+	uint materialIndex = tri.materialIndex;
+
+	material = materialBuffer[materialIndex];
+
+	uvsets = frac(uvsets); // emulate wrap
+
+	float4 baseColor = material.baseColor * color;
+	[branch]
+	if (material.uvset_baseColorMap >= 0 && (g_xFrame_Options & OPTION_BIT_DISABLE_ALBEDO_MAPS) == 0)
+	{
+		const float2 UV_baseColorMap = material.uvset_baseColorMap == 0 ? uvsets.xy : uvsets.zw;
+		float4 baseColorMap = materialTextureAtlas.SampleLevel(sampler_linear_clamp, UV_baseColorMap * material.baseColorAtlasMulAdd.xy + material.baseColorAtlasMulAdd.zw, 0);
+		baseColorMap.rgb = DEGAMMA(baseColorMap.rgb);
+		baseColor *= baseColorMap;
+	}
+
+	float4 surfaceMap = 1;
+	[branch]
+	if (material.uvset_surfaceMap >= 0)
+	{
+		const float2 UV_surfaceMap = material.uvset_surfaceMap == 0 ? uvsets.xy : uvsets.zw;
+		surfaceMap = materialTextureAtlas.SampleLevel(sampler_linear_clamp, UV_surfaceMap * material.surfaceMapAtlasMulAdd.xy + material.surfaceMapAtlasMulAdd.zw, 0);
+	}
+
+	surface.create(material, baseColor, surfaceMap);
+
+	surface.emissiveColor = material.emissiveColor;
+	[branch]
+	if (surface.emissiveColor.a > 0 && material.uvset_emissiveMap >= 0)
+	{
+		const float2 UV_emissiveMap = material.uvset_emissiveMap == 0 ? uvsets.xy : uvsets.zw;
+		float4 emissiveMap = materialTextureAtlas.SampleLevel(sampler_linear_clamp, UV_emissiveMap * material.emissiveMapAtlasMulAdd.xy + material.emissiveMapAtlasMulAdd.zw, 0);
+		emissiveMap.rgb = DEGAMMA(emissiveMap.rgb);
+		surface.emissiveColor *= emissiveMap;
+	}
+
+	surface.transmission = material.transmission;
+
+	surface.N = normalize(tri.n0 * w + tri.n1 * u + tri.n2 * v);
+	surface.facenormal = surface.N;
+
+	[branch]
+	if (material.uvset_normalMap >= 0)
+	{
+		const float2 UV_normalMap = material.uvset_normalMap == 0 ? uvsets.xy : uvsets.zw;
+		float3 normalMap = materialTextureAtlas.SampleLevel(sampler_linear_clamp, UV_normalMap * material.normalMapAtlasMulAdd.xy + material.normalMapAtlasMulAdd.zw, 0).rgb;
+		normalMap = normalMap.rgb * 2 - 1;
+		const float3x3 TBN = float3x3(tri.tangent, tri.binormal, surface.N);
+		surface.N = normalize(lerp(surface.N, mul(normalMap, TBN), material.normalMapStrength));
+	}
+
+}
+
+inline void IntersectTriangle(
+	in RayDesc ray,
+	inout RayHit bestHit,
+	in BVHPrimitive prim,
+	uint primitiveID
+)
+{
+	float3 v0v1 = prim.v1() - prim.v0();
+	float3 v0v2 = prim.v2() - prim.v0();
+	float3 pvec = cross(ray.Direction, v0v2);
 	float det = dot(v0v1, pvec);
 #ifdef RAY_BACKFACE_CULLING 
 	// if the determinant is negative the triangle is backfacing
@@ -173,74 +332,104 @@ inline void IntersectTriangle(in Ray ray, inout RayHit bestHit, in BVHPrimitive 
 #endif 
 	float invDet = 1 / det;
 
-	float3 tvec = ray.origin - tri.v0();
+	float3 tvec = ray.Origin - prim.v0();
 	float u = dot(tvec, pvec) * invDet;
 	if (u < 0 || u > 1)
 		return;
 
 	float3 qvec = cross(tvec, v0v1);
-	float v = dot(ray.direction, qvec) * invDet;
+	float v = dot(ray.Direction, qvec) * invDet;
 	if (v < 0 || u + v > 1)
 		return;
 
 	float t = dot(v0v2, qvec) * invDet;
 
-	if (t > 0 && t < bestHit.distance)
+	if (t >= ray.TMin && t <= bestHit.distance)
 	{
 		bestHit.distance = t;
-		bestHit.position = ray.origin + t * ray.direction;
 		bestHit.primitiveID = primitiveID;
 		bestHit.bary = float2(u, v);
 	}
 }
 
-inline bool IntersectTriangleANY(in Ray ray, in float maxDistance, in BVHPrimitive tri)
+inline bool IntersectTriangleANY(
+	in RayDesc ray,
+	in BVHPrimitive prim,
+	uint primitiveID
+)
 {
-	float3 v0v1 = tri.v1() - tri.v0();
-	float3 v0v2 = tri.v2() - tri.v0();
-	float3 pvec = cross(ray.direction, v0v2);
+	float3 v0v1 = prim.v1() - prim.v0();
+	float3 v0v2 = prim.v2() - prim.v0();
+	float3 pvec = cross(ray.Direction, v0v2);
 	float det = dot(v0v1, pvec);
-#ifdef RAY_BACKFACE_CULLING 
-	// if the determinant is negative the triangle is backfacing
-	// if the determinant is close to 0, the ray misses the triangle
-	if (det < 0.000001)
-		return false;
-#else 
 	// ray and triangle are parallel if det is close to 0
 	if (abs(det) < 0.000001)
 		return false;
-#endif 
 	float invDet = 1 / det;
 
-	float3 tvec = ray.origin - tri.v0();
+	float3 tvec = ray.Origin - prim.v0();
 	float u = dot(tvec, pvec) * invDet;
 	if (u < 0 || u > 1)
 		return false;
 
 	float3 qvec = cross(tvec, v0v1);
-	float v = dot(ray.direction, qvec) * invDet;
+	float v = dot(ray.Direction, qvec) * invDet;
 	if (v < 0 || u + v > 1)
 		return false;
 
 	float t = dot(v0v2, qvec) * invDet;
 
-	if (t > 0 && t < maxDistance)
+	if (t >= ray.TMin && t <= ray.TMax)
 	{
-		return true;
+		RayHit hit;
+		hit.distance = t;
+		hit.primitiveID = primitiveID;
+		hit.bary = float2(u, v);
+
+		TriangleData tri = TriangleData_Unpack(prim, primitiveDataBuffer[hit.primitiveID]);
+
+		float u = hit.bary.x;
+		float v = hit.bary.y;
+		float w = 1 - u - v;
+
+		float4 uvsets = tri.u0 * w + tri.u1 * u + tri.u2 * v;
+		float4 color = tri.c0 * w + tri.c1 * u + tri.c2 * v;
+		uint materialIndex = tri.materialIndex;
+
+		ShaderMaterial material = materialBuffer[materialIndex];
+
+		uvsets = frac(uvsets); // emulate wrap
+
+		float4 baseColor = material.baseColor * color;
+		[branch]
+		if (material.uvset_baseColorMap >= 0 && (g_xFrame_Options & OPTION_BIT_DISABLE_ALBEDO_MAPS) == 0)
+		{
+			const float2 UV_baseColorMap = material.uvset_baseColorMap == 0 ? uvsets.xy : uvsets.zw;
+			float4 baseColorMap = materialTextureAtlas.SampleLevel(sampler_linear_clamp, UV_baseColorMap * material.baseColorAtlasMulAdd.xy + material.baseColorAtlasMulAdd.zw, 0);
+			baseColorMap.rgb = DEGAMMA(baseColorMap.rgb);
+			baseColor *= baseColorMap;
+		}
+
+		return baseColor.a > material.alphaTest;
 	}
 
 	return false;
 }
 
 
-inline bool IntersectNode(in Ray ray, in BVHNode box, in float primitive_best_distance)
+inline bool IntersectNode(
+	in RayDesc ray,
+	in BVHNode box,
+	in float3 rcpDirection,
+	in float primitive_best_distance
+)
 {
-	const float t0 = (box.min.x - ray.origin.x) * ray.direction_rcp.x;
-	const float t1 = (box.max.x - ray.origin.x) * ray.direction_rcp.x;
-	const float t2 = (box.min.y - ray.origin.y) * ray.direction_rcp.y;
-	const float t3 = (box.max.y - ray.origin.y) * ray.direction_rcp.y;
-	const float t4 = (box.min.z - ray.origin.z) * ray.direction_rcp.z;
-	const float t5 = (box.max.z - ray.origin.z) * ray.direction_rcp.z;
+	const float t0 = (box.min.x - ray.Origin.x) * rcpDirection.x;
+	const float t1 = (box.max.x - ray.Origin.x) * rcpDirection.x;
+	const float t2 = (box.min.y - ray.Origin.y) * rcpDirection.y;
+	const float t3 = (box.max.y - ray.Origin.y) * rcpDirection.y;
+	const float t4 = (box.min.z - ray.Origin.z) * rcpDirection.z;
+	const float t5 = (box.max.z - ray.Origin.z) * rcpDirection.z;
 	const float tmin = max(max(min(t0, t1), min(t2, t3)), min(t4, t5)); // close intersection point's distance on ray
 	const float tmax = min(min(max(t0, t1), max(t2, t3)), max(t4, t5)); // far intersection point's distance on ray
 
@@ -253,14 +442,18 @@ inline bool IntersectNode(in Ray ray, in BVHNode box, in float primitive_best_di
 		return true;
 	}
 }
-inline bool IntersectNode(in Ray ray, in BVHNode box)
+inline bool IntersectNode(
+	in RayDesc ray,
+	in BVHNode box,
+	in float3 rcpDirection
+)
 {
-	const float t0 = (box.min.x - ray.origin.x) * ray.direction_rcp.x;
-	const float t1 = (box.max.x - ray.origin.x) * ray.direction_rcp.x;
-	const float t2 = (box.min.y - ray.origin.y) * ray.direction_rcp.y;
-	const float t3 = (box.max.y - ray.origin.y) * ray.direction_rcp.y;
-	const float t4 = (box.min.z - ray.origin.z) * ray.direction_rcp.z;
-	const float t5 = (box.max.z - ray.origin.z) * ray.direction_rcp.z;
+	const float t0 = (box.min.x - ray.Origin.x) * rcpDirection.x;
+	const float t1 = (box.max.x - ray.Origin.x) * rcpDirection.x;
+	const float t2 = (box.min.y - ray.Origin.y) * rcpDirection.y;
+	const float t3 = (box.max.y - ray.Origin.y) * rcpDirection.y;
+	const float t4 = (box.min.z - ray.Origin.z) * rcpDirection.z;
+	const float t5 = (box.max.z - ray.Origin.z) * rcpDirection.z;
 	const float tmin = max(max(min(t0, t1), min(t2, t3)), min(t4, t5)); // close intersection point's distance on ray
 	const float tmax = min(min(max(t0, t1), max(t2, t3)), max(t4, t5)); // far intersection point's distance on ray
 
@@ -268,26 +461,11 @@ inline bool IntersectNode(in Ray ray, in BVHNode box)
 }
 
 
-#ifndef RAYTRACE_STACKSIZE
-#define RAYTRACE_STACKSIZE 32
-#endif // RAYTRACE_STACKSIZE
-
-// have the stack in shared memory instead of registers:
-#ifdef RAYTRACE_STACK_SHARED
-groupshared uint stack[RAYTRACE_STACKSIZE][RAYTRACING_TRACE_GROUPSIZE];
-#endif // RAYTRACE_STACK_SHARED
-
-STRUCTUREDBUFFER(materialBuffer, ShaderMaterial, TEXSLOT_ONDEMAND0);
-TEXTURE2D(materialTextureAtlas, float4, TEXSLOT_ONDEMAND1);
-RAWBUFFER(primitiveCounterBuffer, TEXSLOT_ONDEMAND2);
-STRUCTUREDBUFFER(primitiveBuffer, BVHPrimitive, TEXSLOT_ONDEMAND3);
-STRUCTUREDBUFFER(primitiveDataBuffer, BVHPrimitiveData, TEXSLOT_ONDEMAND4);
-STRUCTUREDBUFFER(bvhNodeBuffer, BVHNode, TEXSLOT_ONDEMAND5);
-
-
 // Returns the closest hit primitive if any (useful for generic trace). If nothing was hit, then rayHit.distance will be equal to FLT_MAX
-inline RayHit TraceRay_Closest(Ray ray, uint groupIndex = 0)
+inline RayHit TraceRay_Closest(RayDesc ray, uint groupIndex = 0)
 {
+	const float3 rcpDirection = rcp(ray.Direction);
+
 	RayHit bestHit = CreateRayHit();
 
 #ifndef RAYTRACE_STACK_SHARED
@@ -308,7 +486,7 @@ inline RayHit TraceRay_Closest(Ray ray, uint groupIndex = 0)
 
 		BVHNode node = bvhNodeBuffer[nodeIndex];
 
-		if (IntersectNode(ray, node, bestHit.distance))
+		if (IntersectNode(ray, node, rcpDirection, bestHit.distance))
 		{
 			if (nodeIndex >= leafNodeOffset)
 			{
@@ -343,8 +521,10 @@ inline RayHit TraceRay_Closest(Ray ray, uint groupIndex = 0)
 }
 
 // Returns true immediately if any primitives were hit, flase if nothing was hit (useful for opaque shadows):
-inline bool TraceRay_Any(Ray ray, float maxDistance, uint groupIndex = 0)
+inline bool TraceRay_Any(RayDesc ray, uint groupIndex = 0)
 {
+	const float3 rcpDirection = rcp(ray.Direction);
+
 	bool shadow = false;
 
 #ifndef RAYTRACE_STACK_SHARED
@@ -365,7 +545,7 @@ inline bool TraceRay_Any(Ray ray, float maxDistance, uint groupIndex = 0)
 
 		BVHNode node = bvhNodeBuffer[nodeIndex];
 
-		if (IntersectNode(ray, node))
+		if (IntersectNode(ray, node, rcpDirection))
 		{
 			if (nodeIndex >= leafNodeOffset)
 			{
@@ -373,7 +553,7 @@ inline bool TraceRay_Any(Ray ray, float maxDistance, uint groupIndex = 0)
 				const uint primitiveID = node.LeftChildIndex;
 				const BVHPrimitive prim = primitiveBuffer[primitiveID];
 
-				if (IntersectTriangleANY(ray, maxDistance, prim))
+				if (IntersectTriangleANY(ray, prim, primitiveID))
 				{
 					shadow = true;
 					break;
@@ -405,8 +585,10 @@ inline bool TraceRay_Any(Ray ray, float maxDistance, uint groupIndex = 0)
 
 // Returns number of BVH nodes that were hit (useful for debug):
 //	returns 0xFFFFFFFF when there was a stack overflow
-inline uint TraceRay_DebugBVH(Ray ray)
+inline uint TraceRay_DebugBVH(RayDesc ray)
 {
+	const float3 rcpDirection = rcp(ray.Direction);
+
 	uint hit_counter = 0;
 
 	// Emulated stack for tree traversal:
@@ -425,7 +607,7 @@ inline uint TraceRay_DebugBVH(Ray ray)
 
 		BVHNode node = bvhNodeBuffer[nodeIndex];
 
-		if (IntersectNode(ray, node))
+		if (IntersectNode(ray, node, rcpDirection))
 		{
 			hit_counter++;
 
@@ -457,5 +639,7 @@ inline uint TraceRay_DebugBVH(Ray ray)
 
 	return hit_counter;
 }
+
+#endif // RTAPI
 
 #endif // WI_RAYTRACING_HF

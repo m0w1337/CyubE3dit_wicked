@@ -25,6 +25,7 @@ std::shared_ptr<wiResource> cyBlocks::emitter_dust_material;
 std::shared_ptr<wiResource> cyBlocks::emitter_smoke_material;
 std::shared_ptr<wiResource> cyBlocks::emitter_fire_material;
 std::shared_ptr<wiResource> cyBlocks::emitter_flare_material;
+std::shared_ptr<wiResource> cyBlocks::hair_grass_material;
 wiECS::Entity cyBlocks::toolblock_material;
 
 void cyBlocks::LoadRegBlocks(void) {
@@ -74,109 +75,136 @@ void cyBlocks::LoadRegBlocks(void) {
 }
 
 void cyBlocks::loadMeshes(void) {
-	m_toolMeshes[TOOL_ROT]	  = ImportModel_OBJ("data\\meshes\\rotCW.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_ORIGIN] = ImportModel_OBJ("data\\meshes\\originOnly.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_XAXIS]  = ImportModel_OBJ("data\\meshes\\xAxis.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_YAXIS]  = ImportModel_OBJ("data\\meshes\\yAxis.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_ZAXIS]  = ImportModel_OBJ("data\\meshes\\zAxis.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_PLANE]  = ImportModel_OBJ("data\\meshes\\plane.obj", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.obj", wiScene::GetScene(), 0, 0.6);
-	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.obj", wiScene::GetScene(), 0, 0.6);
+	m_toolMeshes[TOOL_ROT]	  = ImportModel_OBJ("data\\meshes\\rotCW.m02", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_ORIGIN] = ImportModel_OBJ("data\\meshes\\originOnly.m02", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_XAXIS]  = ImportModel_OBJ("data\\meshes\\xAxis.m02", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_YAXIS]  = ImportModel_OBJ("data\\meshes\\yAxis.m02", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_ZAXIS]  = ImportModel_OBJ("data\\meshes\\zAxis.m02", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_PLANE]  = ImportModel_OBJ("data\\meshes\\plane.m02", wiScene::GetScene(), 0);
+	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.m02", wiScene::GetScene(), 0, 0.6);
+	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.m02", wiScene::GetScene(), 0, 0.6);
 
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.obj", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.obj", wiScene::GetScene(), 0));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.obj", wiScene::GetScene(), 1, 130));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dbush.obj", wiScene::GetScene(), 1, 40));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.m02", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.m02", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b.m02", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.m02", wiScene::GetScene(), 2));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.m02", wiScene::GetScene(), 0));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.m02", wiScene::GetScene(), 1, 130));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dbush.m02", wiScene::GetScene(), 1, 40));
 
 	emitter_dust_material  = wiResourceManager::Load("images/particle_dust.dds");
 	emitter_smoke_material = wiResourceManager::Load("images/particle_smoke.png");
 	emitter_fire_material  = wiResourceManager::Load("images/fire.jpg");
 	emitter_flare_material = wiResourceManager::Load("images/ripple.png");
+	hair_grass_material	   = wiResourceManager::Load("images/straws.png");
 
-	toolblock_material = m_scene.Entity_CreateMaterial("TBmat");
-	for (uint8_t i = 0; i < 6; ++i) {
-		meshGen::toolBlockFaces[i] = meshGen::AddToolBoxFace(toolblock_material, i);
-	}
-	
-	
+	toolblock_material					 = m_scene.Entity_CreateMaterial("TBmat");
 	wiScene::MaterialComponent* material = m_scene.materials.GetComponent(toolblock_material);
 	material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 	material->textures[MaterialComponent::BASECOLORMAP].name	 = "data/meshes/Toolblock.png";
 	material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("data/meshes/Toolblock.png");
-	material->SetReflectance(0.09);
-	material->SetTransmissionAmount(0.9);
-	//material->SetRefractionAmount(0.0f);
-	material->SetMetalness(0.03f);
-	material->SetRoughness(0.05f);
-	material->SetCastShadow(true);
-	//material->SetDirty(true);
+	material->SetReflectance(0.04);
+	material->SetTransmissionAmount(0.95);
+	material->SetMetalness(0.005f);
+	material->SetRoughness(0.07f);
+	for (uint8_t i = 0; i < 6; ++i) {
+		meshGen::toolBlockFaces[i] = meshGen::AddToolBoxFace(toolblock_material, i);
+	}
 }
 
 void cyBlocks::catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype) {
 	string meshObj = "";
 	mesh_t mesh;
-	uint8_t id = 0;
-	try {
-		id = (matType_t)it.value().at(i).at("id");
-	}
-	catch (...) {
+	uint8_t id		 = 0;
+	uint8_t meshAttr = 0;
+	auto iit		 = it.value().at(i).find("id");
+	if (iit != it.value().at(i).end()) {
+		id = (matType_t)iit.value();
+	} else
 		return;
-	}
 	m_regBlockTypes[id] = blocktype;
 	if (blocktype != BLOCKTYPE_TORCH || m_torchID == 0) {
 		mesh.type	 = blocktype;
-		mesh.mesh[0] = 0;
-		mesh.mesh[1] = 0;
-		try {
-			mesh.name = it.value().at(i).at("text");
+		mesh.mesh[0] = wiECS::INVALID_ENTITY;
+		mesh.mesh[1] = wiECS::INVALID_ENTITY;
+		auto iit	 = it.value().at(i).find("text");
+		if (iit != it.value().at(i).end()) {
+			mesh.name = iit.value();
 		}
-		catch (...) {
+
+		iit = it.value().at(i).find("textype");
+		if (iit != it.value().at(i).end()) {
+			meshAttr = iit.value();
 		}
-		try {
-			uint8_t meshAttr = it.value().at(i).at("textype");
-			meshObj			 = it.value().at(i).at("mesh0");
-			mesh.mesh[0]	 = ImportModel_OBJ("data\\meshes\\" + meshObj, wiScene::GetScene(), 0);
-			mesh.material[0] = mesh.mesh[0] - 1;
-			if (meshAttr == 5) {
-				wiScene::MaterialComponent* mat = wiScene::GetScene().materials.GetComponent(mesh.material[0]);
-				mat->SetUseWind(true);
-				mat->SetCastShadow(false);
+		iit = it.value().at(i).find("mesh0");
+		if (iit != it.value().at(i).end()) {
+			meshObj = iit.value();
+			for (size_t i = 0; i < wiScene::GetScene().meshes.GetCount(); i++) {
+				if (wiScene::GetScene().names.GetComponent(wiScene::GetScene().meshes.GetEntity(i))->name == "data\\meshes\\" + meshObj) {
+					mesh.mesh[0]	 = wiScene::GetScene().meshes.GetEntity(i);
+					mesh.material[0] = mesh.mesh[0] - 1;
+					break;
+				}
 			}
-			meshObj			 = it.value().at(i).at("mesh1");
-			mesh.mesh[1]	 = ImportModel_OBJ("data\\meshes\\" + meshObj, wiScene::GetScene(), 0);
-			mesh.material[1] = mesh.mesh[1] - 1;
-			if (blocktype == BLOCKTYPE_TORCH)
-				m_torchID = id;
+			if (mesh.mesh[0] == wiECS::INVALID_ENTITY) {
+				mesh.mesh[0]	 = ImportModel_OBJ("data\\meshes\\" + meshObj, wiScene::GetScene(), 0);
+				mesh.material[0] = mesh.mesh[0] - 1;
+				if (meshAttr == 5) {
+					wiScene::MaterialComponent* mat = wiScene::GetScene().materials.GetComponent(mesh.material[0]);
+					mat->SetUseWind(true);
+					mat->SetCastShadow(false);
+				}
+			}
+			iit = it.value().at(i).find("mesh1");
+			if (iit != it.value().at(i).end()) {
+				meshObj = iit.value();
+				for (size_t i = 0; i < wiScene::GetScene().meshes.GetCount(); i++) {
+					if (wiScene::GetScene().names.GetComponent(wiScene::GetScene().meshes.GetEntity(i))->name == "data\\meshes\\" + meshObj) {
+						mesh.mesh[1]	 = wiScene::GetScene().meshes.GetEntity(i);
+						mesh.material[1] = mesh.mesh[1] - 1;
+						break;
+					}
+				}
+				if (mesh.mesh[1] == wiECS::INVALID_ENTITY) {
+					mesh.mesh[1]	 = ImportModel_OBJ("data\\meshes\\" + meshObj, wiScene::GetScene(), 0);
+					mesh.material[1] = mesh.mesh[1] - 1;
+				}
+			}
 		}
-		catch (...) {
-		}
+		if (blocktype == BLOCKTYPE_TORCH)
+			m_torchID = id;
+
 		if (mesh.mesh[0]) {
 			m_regMeshes[id] = mesh;
 		}
 	}
-	try {  //catch torch color in any case
-		m_regBlockFlags[id][0] = it.value().at(i).at("LightR");
-		m_regBlockFlags[id][1] = it.value().at(i).at("LightG");
-		m_regBlockFlags[id][2] = it.value().at(i).at("LightB");
+
+	iit = it.value().at(i).find("LightR");
+	if (iit != it.value().at(i).end()) {
+		m_regBlockFlags[id][0] = iit.value();
 	}
-	catch (...) {
+	iit = it.value().at(i).find("LightG");
+	if (iit != it.value().at(i).end()) {
+		m_regBlockFlags[id][1] = iit.value();
+	}
+	iit = it.value().at(i).find("LightB");
+	if (iit != it.value().at(i).end()) {
+		m_regBlockFlags[id][2] = iit.value();
 	}
 }
 
 void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype) {
 	json::iterator bSpec;
 	matType_t materialType;
-	string tex				= "";
-	uint8_t id				= 0;
-	try {
-		id = (matType_t)it.value().at(i).at("id");
-	}
-	catch (...) {
+	string tex = "";
+	uint8_t id = 0;
+
+	auto iit = it.value().at(i).find("id");
+	if (iit != it.value().at(i).end()) {
+		id = (matType_t)iit.value();
+	} else
 		return;
-	}
+
 	m_regBlockTypes[id] = blocktype;
 	if (blocktype == BLOCKTYPE_VOID) {
 		m_voidID = id;
@@ -187,92 +215,98 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	catch (...) {
 		materialType = BLOCKMAT_SINGLE;
 	}*/
-	try {
-		m_regBlockNames[id] = it.value().at(i).at("text");
-	}
-	catch (...) {
+
+	iit = it.value().at(i).find("text");
+	if (iit != it.value().at(i).end()) {
+		m_regBlockNames[id] = iit.value();
+	} else
 		m_regBlockNames[id] = "";
-	}
 	wiScene::MaterialComponent* material;
 
 	for (uint8_t ft = 0; ft < 6; ft++) {
 		m_regBlockMats[id][ft] = wiECS::INVALID_ENTITY;
-		try {
-			tex					   = it.value().at(i).at("texture" + std::to_string(ft));
-			m_regBlockMats[id][ft] = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
-			material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
-			material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, .0f));
-			material->textures[MaterialComponent::BASECOLORMAP].name	 = "images/" + tex;
-			material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/" + tex);
-			/*if ((id == 1 && ft == 0) || blocktype == 0 || blocktype == 13 || blocktype == 12 || blocktype == 25 || blocktype == 26 || blocktype == 67) {
-				material->SetUseVertexColors(true);
-			}*/
-			if (blocktype == BLOCKTYPE_ALPHA) {
-				material->SetReflectance(0.09);
-				//material->userBlendMode = BLENDMODE_ALPHA;
-				material->SetTransmissionAmount(0.99);
-				material->SetRefractionAmount(0.01f);
-				material->SetMetalness(0.03f);
-				material->SetRoughness(0.05f);
-				material->SetCastShadow(true);
-			} else {
-				material->SetReflectance(0);
-				material->SetMetalness(0);
-				material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
-				material->SetEmissiveStrength(.2);
-				material->SetRoughness(1);
-				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+		iit			   = it.value().at(i).find("texture" + std::to_string(ft));
+		if (iit != it.value().at(i).end()) {
+			tex = iit.value();
+			for (size_t i = 0; i < m_scene.materials.GetCount(); i++) {	 //check if the material was loaded by another block type before, if so re-use it
+				if (m_scene.materials.GetComponent(m_scene.materials.GetEntity(i))->textures[MaterialComponent::BASECOLORMAP].name == "images/" + tex) {
+					m_regBlockMats[id][ft] = m_scene.materials.GetEntity(i);
+					material			   = m_scene.materials.GetComponent(m_scene.materials.GetEntity(i));
+					break;
+				}
 			}
-			try {
-				bool antitile = it.value().at(i).at("antitile" + std::to_string(ft));
-				if (antitile) {
-					m_regBlockFlags[id][ft] |= cyBlocks::BLOCKFLAG_ANTITILE;
-					material->SetUseVertexColors(true);
+			if (m_regBlockMats[id][ft] == wiECS::INVALID_ENTITY) {
+				m_regBlockMats[id][ft] = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
+				material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
+				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, .0f));
+				material->textures[MaterialComponent::BASECOLORMAP].name	 = "images/" + tex;
+				material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/" + tex);
+				if (blocktype == BLOCKTYPE_ALPHA) {
+					material->SetReflectance(0.09);
+					//material->userBlendMode = BLENDMODE_ALPHA;
+					material->SetTransmissionAmount(0.99);
+					material->SetRefractionAmount(0.01f);
+					material->SetMetalness(0.03f);
+					material->SetRoughness(0.02f);
+					material->SetCastShadow(true);
+				} else {
+					material->SetReflectance(0);
+					material->SetMetalness(0);
+					material->SetEmissiveColor(XMFLOAT4(.0f, .5f, .5f, 1.0f));
+					material->SetEmissiveStrength(.2);
+					material->SetRoughness(1);
+					material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
+				}
+
+				iit = it.value().at(i).find("antitile" + std::to_string(ft));
+				if (iit != it.value().at(i).end()) {
+					bool antitile = iit.value();
+					if (antitile) {
+						m_regBlockFlags[id][ft] |= cyBlocks::BLOCKFLAG_ANTITILE;
+						material->SetUseVertexColors(true);
+					} else {
+						m_regBlockFlags[id][ft] &= ~cyBlocks::BLOCKFLAG_ANTITILE;
+					}
 				} else {
 					m_regBlockFlags[id][ft] &= ~cyBlocks::BLOCKFLAG_ANTITILE;
 				}
+				iit = it.value().at(i).find("normal" + std::to_string(ft));
+				if (iit != it.value().at(i).end()) {
+					tex														  = iit.value();
+					material->textures[MaterialComponent::NORMALMAP].name	  = "images/" + tex;
+					material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load("images/" + tex);
+					material->SetNormalMapStrength(1.5);
+				}
+				iit = it.value().at(i).find("surface" + std::to_string(ft));
+				if (iit != it.value().at(i).end()) {
+					tex														   = iit.value();
+					material->textures[MaterialComponent::SURFACEMAP].name	   = "images/" + tex;
+					material->textures[MaterialComponent::SURFACEMAP].resource = wiResourceManager::Load("images/" + tex);
+					material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
+					material->SetParallaxOcclusionMapping(2.0);
+					material->SetMetalness(1.0f);
+					material->SetRoughness(1.0f);
+					material->SetReflectance(1.0f);
+				}
+				iit = it.value().at(i).find("occlusion" + std::to_string(ft));
+				if (iit != it.value().at(i).end()) {
+					tex															 = iit.value();
+					material->textures[MaterialComponent::OCCLUSIONMAP].name	 = "images/" + tex;
+					material->textures[MaterialComponent::OCCLUSIONMAP].resource = wiResourceManager::Load("images/" + tex);
+					material->SetParallaxOcclusionMapping(2.0);
+					material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
+				}
+				iit = it.value().at(i).find("glow" + std::to_string(ft));
+				if (iit != it.value().at(i).end()) {
+					tex															= iit.value();
+					material->textures[MaterialComponent::EMISSIVEMAP].name		= "images/" + tex;
+					material->textures[MaterialComponent::EMISSIVEMAP].resource = wiResourceManager::Load("images/" + tex);
+					material->SetEmissiveStrength(15.0f);
+				}
+				material->SetDirty();
 			}
-			catch (...) {
-				m_regBlockFlags[id][ft] &= ~cyBlocks::BLOCKFLAG_ANTITILE;
-			}
-			try {
-				tex														  = it.value().at(i).at("normal" + std::to_string(ft));
-				material->textures[MaterialComponent::NORMALMAP].name	  = "images/" + tex;
-				material->textures[MaterialComponent::NORMALMAP].resource = wiResourceManager::Load("images/" + tex);
-				material->SetNormalMapStrength(1.0);
-				tex														   = it.value().at(i).at("surface" + std::to_string(ft));
-				material->textures[MaterialComponent::SURFACEMAP].name	   = "images/" + tex;
-				material->textures[MaterialComponent::SURFACEMAP].resource = wiResourceManager::Load("images/" + tex);
-				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
-				material->SetParallaxOcclusionMapping(1.0);
-				//material->SetClearcoatFactor(1.);
-				//material->SetClearcoatRoughness(.5);
-				material->SetMetalness(1.0f);
-				material->SetRoughness(1.0f);
-				material->SetReflectance(1.0f);
-			}
-			catch (...) {
-			}
-			try {
-				tex															 = it.value().at(i).at("occlusion" + std::to_string(ft));
-				material->textures[MaterialComponent::OCCLUSIONMAP].name	 = "images/" + tex;
-				material->textures[MaterialComponent::OCCLUSIONMAP].resource = wiResourceManager::Load("images/" + tex);
-				material->SetParallaxOcclusionMapping(1.0);
-				material->SetCustomShaderID(MaterialComponent::SHADERTYPE_PBR_PARALLAXOCCLUSIONMAPPING);
-			}
-			catch (...) {
-			}
-			try {
-				tex															= it.value().at(i).at("glow" + std::to_string(ft));
-				material->textures[MaterialComponent::EMISSIVEMAP].name		= "images/" + tex;
-				material->textures[MaterialComponent::EMISSIVEMAP].resource = wiResourceManager::Load("images/" + tex);
-				material->SetEmissiveStrength(15.0f);
-			}
-			catch (...) {
-			}
-			material->SetDirty();
-		}
-		catch (...) {
+		} else {
+
 			if (ft == 0) {	//Support blocks without texture at all
 				m_regBlockMats[id][ft] = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
 				material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);

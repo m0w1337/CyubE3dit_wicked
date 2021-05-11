@@ -506,9 +506,55 @@ bool cyChunk::saveChunk(void) {
 	}
 	sqlite3_finalize(stmt);
 	cerr << "execution done: " << sqlite3_errmsg(m_db) << endl;
-
 	free(newChunk);
+	deleteInstaLoad();
 	return ret;
+}
+
+void cyChunk::deleteInstaLoad(void) {
+	sqlite3* instaDB;
+	stringstream ss("");
+	if (sqlite3_open_v2(settings::getWorld()->m_instaLoadDB.c_str(), &(instaDB), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE, NULL)) {
+		if (sqlite3_open_v2(settings::getWorld()->m_instaLoadDB.c_str(), &(instaDB), SQLITE_OPEN_NOMUTEX | SQLITE_OPEN_READWRITE, NULL)) {
+			instaDB = nullptr;
+			ss << "failed to open instaload DB";
+			ss << settings::getWorld()->m_instaLoadDB.c_str();
+			if (instaDB != nullptr) {
+				sqlite3_close(instaDB);
+				instaDB = nullptr;
+			}
+		}
+	}
+	if (instaDB != nullptr) {
+		sqlite3_stmt* stmt = NULL;
+		
+		int rc;
+		rc	 = sqlite3_prepare_v2(m_db,
+								  string("DELETE FROM CHUNKDATA WHERE CHUNKID = ?").c_str(),
+								  -1, &stmt, NULL);
+		if (rc != SQLITE_OK) {
+			wiHelper::messageBox("SQLITE instaload deletion failed!");
+
+		} else {
+			rc = sqlite3_bind_int(stmt, 1, m_id);
+			if (rc != SQLITE_OK) {
+				ss << "instaload INT bind failed: " << sqlite3_errmsg(m_db) << endl;
+			} else {
+				rc = sqlite3_step(stmt);
+				while (rc == SQLITE_BUSY) {
+					rc = sqlite3_step(stmt);
+				}
+				if (rc != SQLITE_DONE)
+					ss << "instaload deletion failed: " << sqlite3_errmsg(m_db) << endl;
+			}
+		}
+		ss << "instaload deletion done: " << sqlite3_errmsg(m_db) << endl;
+		sqlite3_finalize(stmt);
+		sqlite3_close(instaDB);
+	} else {
+		ss << "InstaLoad DB connection failed!!";
+	}
+	wiBackLog::post(ss.str().c_str());
 }
 
 cyChunk::~cyChunk() {

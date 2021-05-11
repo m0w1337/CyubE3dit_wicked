@@ -54,6 +54,7 @@ private:
 	wiGraphics::Texture rt_selectionOutline[2];
 	*/
 
+
 public:
 	/*enum EDITORSTENCILREF {
 		EDITORSTENCILREF_CLEAR				= 0x00,
@@ -77,6 +78,7 @@ public:
 	wiButton visualsWnd_Toggle;
 	wiButton loadSchBtn;
 	wiButton saveSchBtn;
+	wiButton reposSchBtn;
 	wiButton saveButton;
 	wiButton PauseChunkLoading;
 	wiSlider viewDist;

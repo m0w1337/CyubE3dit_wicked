@@ -88,6 +88,7 @@ public:
 	static std::shared_ptr<wiResource> emitter_fire_material;
 	static std::shared_ptr<wiResource> emitter_flare_material;
 	static std::shared_ptr<wiResource> emitter_smoke_material;
+	static std::shared_ptr<wiResource> hair_grass_material;
 	static wiECS::Entity toolblock_material;
 	static void LoadRegBlocks(void);
 	static void loadMeshes(void);
