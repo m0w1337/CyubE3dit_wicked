@@ -11,6 +11,7 @@ uint8_t cyBlocks::m_regBlockTypes[256]	  = {wiECS::INVALID_ENTITY};
 uint8_t cyBlocks::m_regBlockFlags[256][6] = {{wiECS::INVALID_ENTITY}};
 Entity cyBlocks::m_regBlockMats[256][6]	  = {{wiECS::INVALID_ENTITY}};
 std::unordered_map<uint32_t, cyBlocks::mesh_t> cyBlocks::m_regMeshes;
+std::unordered_map<uint32_t, uint32_t> cyBlocks::m_cBlockRotSubst;
 uint8_t cyBlocks::m_voidID	   = 255;
 uint8_t cyBlocks::m_torchID	   = 0;
 Entity cyBlocks::m_fallbackMat = wiECS::INVALID_ENTITY;
@@ -81,16 +82,16 @@ void cyBlocks::loadMeshes(void) {
 	m_toolMeshes[TOOL_YAXIS]  = ImportModel_OBJ("data\\meshes\\yAxis.m02", wiScene::GetScene(), 0);
 	m_toolMeshes[TOOL_ZAXIS]  = ImportModel_OBJ("data\\meshes\\zAxis.m02", wiScene::GetScene(), 0);
 	m_toolMeshes[TOOL_PLANE]  = ImportModel_OBJ("data\\meshes\\plane.m02", wiScene::GetScene(), 0);
-	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.m02", wiScene::GetScene(), 0, 0.6);
-	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.m02", wiScene::GetScene(), 0, 0.6);
+	m_toolMeshes[TOOL_CHECK]  = ImportModel_OBJ("data\\meshes\\check.m02", wiScene::GetScene(), 0, 0.6f);
+	m_toolMeshes[TOOL_CROSS]  = ImportModel_OBJ("data\\meshes\\cross.m02", wiScene::GetScene(), 0, 0.6f);
 
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.m02", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.m02", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b.m02", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.m02", wiScene::GetScene(), 2));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.m02", wiScene::GetScene(), 0));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.m02", wiScene::GetScene(), 1, 130));
-	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dbush.m02", wiScene::GetScene(), 1, 40));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree1.m02", wiScene::GetScene(), 2, 0,.5f));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2.m02", wiScene::GetScene(), 2, 0, .5f));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree2b.m02", wiScene::GetScene(), 2, 0, .5f));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\tree3.m02", wiScene::GetScene(), 2, 0, .5f));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\cactus.m02", wiScene::GetScene(), 0, 0, .5f));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dgrass.m02", wiScene::GetScene(), 1, 130, .5f));
+	m_treeMeshes.push_back(ImportModel_OBJ("data\\trees\\dbush.m02", wiScene::GetScene(), 1, 40, .5f));
 
 	emitter_dust_material  = wiResourceManager::Load("images/particle_dust.dds");
 	emitter_smoke_material = wiResourceManager::Load("images/particle_smoke.png");
@@ -358,6 +359,11 @@ void cyBlocks::LoadCustomBlocks(void) {
 			SteamApps = L"C:\\Program Files (x86)\\Steam";
 		}
 	}
+	m_cBlockRotSubst[1337133706] = 1337133710;
+	m_cBlockRotSubst[1337133710] = 1337133706;
+	m_cBlockRotSubst[1337133701] = 1337133700;
+	m_cBlockRotSubst[1337133700] = 1337133701;
+
 	bool found = false;
 	struct _stat64i32 info;
 	wstring workshopdir = SteamApps + L"\\steamapps\\workshop\\content\\619500\\";

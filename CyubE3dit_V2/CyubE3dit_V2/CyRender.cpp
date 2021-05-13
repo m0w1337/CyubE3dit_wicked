@@ -26,6 +26,7 @@ wiAudio::Sound CyRender::windSound;
 wiAudio::SoundInstance CyRender::windSoundinstance;
 wiAudio::Sound CyRender::bgSound;
 wiAudio::SoundInstance CyRender::bgSoundinstance;
+std::vector<wiECS::Entity> CyRender::m_selectedObjects;
 bool CyRender::fireSoundIsPlaying[]	 = {false};
 bool CyRender::anyfireSoundIsPlaying = false;
 
@@ -281,12 +282,12 @@ void CyMainComponent::Compose(CommandList cmd) {
 		stringstream ss("");
 		ss << "---- Schematic info: ----" << endl;
 		ss << "Size:" << endl;
-		ss << "    X:" << cySchematic::m_schematics[0]->size.x << " Y:" << cySchematic::m_schematics[0]->size.y << " Z:" << cySchematic::m_schematics[0]->size.z << " meters" << endl;
+		ss << "    X:" << cySchematic::m_schematics[0]->size.x << " Y:" << cySchematic::m_schematics[0]->size.y << " Z:" << cySchematic::m_schematics[0]->size.z << " m" << endl;
 		ss << "    X:" << cySchematic::m_schematics[0]->size.x * 2 << " Y:" << cySchematic::m_schematics[0]->size.y * 2 << " Z:" << cySchematic::m_schematics[0]->size.z * 2 << " Blocks" << endl;
 		ss << "World Position:" << endl;
-		ss << "    X:" << cySchematic::m_schematics[0]->pos.x + roundf(settings::getWorld()->m_playerpos.x / 100) << " Y : " << cySchematic::m_schematics[0]->pos.y + roundf(settings::getWorld()->m_playerpos.y / 100) << " Z : " << cySchematic::m_schematics[0]->pos.z << " meters " << endl;
+		ss << "    X:" << cySchematic::m_schematics[0]->pos.x + roundf(settings::getWorld()->m_playerpos.x / 100) << " Y : " << cySchematic::m_schematics[0]->pos.y + roundf(settings::getWorld()->m_playerpos.y / 100) << " Z : " << cySchematic::m_schematics[0]->pos.z << " m" << endl;
 		ss.precision(1);
-		wiFont::Draw(ss.str(), wiFontParams(wiRenderer::GetDevice()->GetScreenWidth()-30, wiRenderer::GetDevice()->GetScreenHeight() - 30, 20, WIFALIGN_RIGHT, WIFALIGN_BOTTOM, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
+		wiFont::Draw(ss.str(), wiFontParams(wiRenderer::GetDevice()->GetScreenWidth() - 30, wiRenderer::GetDevice()->GetScreenHeight() - 30, 20, WIFALIGN_RIGHT, WIFALIGN_BOTTOM, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
 	}
 
 	// Draw the information display
@@ -389,27 +390,32 @@ void CyMainComponent::Compose(CommandList cmd) {
 			static wiScene::MaterialComponent* highlightComp = scene.materials.GetComponent(scene.materials.GetIndex(0));
 			wiECS::Entity mat								 = 0;
 			if (renderer.hovered.entity) {
-				wiScene::MeshComponent* mesh = scene.meshes.GetComponent(scene.objects.GetComponent(renderer.hovered.entity)->meshID);
-				mat							 = mesh->subsets[renderer.hovered.subsetIndex].materialID;
-				if (cyBlocks::m_regBlockTypes[id] != cyBlocks::BLOCKTYPE_BILLBOARD) {
-					XMFLOAT3 pos = mesh->vertex_positions[renderer.hovered.vertexID0];
-					pos.x		 = roundf(renderer.hovered.position.x * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].x;
-					pos.y		 = roundf(renderer.hovered.position.y * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].y;
-					pos.z		 = roundf(renderer.hovered.position.z * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].z;
-					//pos.x += //mesh->vertex_positions[renderer.hovered.vertexID2].x;
-					//pos.y += //mesh->vertex_positions[renderer.hovered.vertexID2].y;
-					//pos.z += //mesh->vertex_positions[renderer.hovered.vertexID2].z;
-					//pos.x /= 1.5;
-					//pos.y /= 1.5;
-					//pos.z /= 1.5;
-					pos.x -= mesh->vertex_normals[renderer.hovered.vertexID1].x * 0.5;
-					pos.y -= mesh->vertex_normals[renderer.hovered.vertexID1].y * 0.5;
-					pos.z -= mesh->vertex_normals[renderer.hovered.vertexID1].z * 0.5;
-					XMMATRIX sca = XMMatrixScaling(0.26f, 0.26f, 0.26f);
-					XMMATRIX tra = XMMatrixTranslation(pos.x, pos.y, pos.z);
-					XMFLOAT4X4 hoverBox;
-					XMStoreFloat4x4(&hoverBox, sca * tra);
-					wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.8f, 0.8f, 2.f, 1.0f));
+				wiScene::ObjectComponent* obj = scene.objects.GetComponent(renderer.hovered.entity);
+				if (obj != nullptr && id < 256) {
+					wiScene::MeshComponent* mesh = scene.meshes.GetComponent(obj->meshID);
+					mat							 = mesh->subsets[renderer.hovered.subsetIndex].materialID;
+					if (cyBlocks::m_regBlockTypes[id] != cyBlocks::BLOCKTYPE_BILLBOARD) {
+						XMFLOAT3 pos = mesh->vertex_positions[renderer.hovered.vertexID0];
+						pos.x		 = roundf(renderer.hovered.position.x * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].x;
+						pos.y		 = roundf(renderer.hovered.position.y * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].y;
+						pos.z		 = roundf(renderer.hovered.position.z * 2) * 0.5;  //mesh->vertex_positions[renderer.hovered.vertexID1].z;
+						//pos.x += //mesh->vertex_positions[renderer.hovered.vertexID2].x;
+						//pos.y += //mesh->vertex_positions[renderer.hovered.vertexID2].y;
+						//pos.z += //mesh->vertex_positions[renderer.hovered.vertexID2].z;
+						//pos.x /= 1.5;
+						//pos.y /= 1.5;
+						//pos.z /= 1.5;
+						pos.x -= mesh->vertex_normals[renderer.hovered.vertexID1].x * 0.5;
+						pos.y -= mesh->vertex_normals[renderer.hovered.vertexID1].y * 0.5;
+						pos.z -= mesh->vertex_normals[renderer.hovered.vertexID1].z * 0.5;
+						XMMATRIX sca = XMMatrixScaling(0.26f, 0.26f, 0.26f);
+						XMMATRIX tra = XMMatrixTranslation(pos.x, pos.y, pos.z);
+						XMFLOAT4X4 hoverBox;
+						XMStoreFloat4x4(&hoverBox, sca * tra);
+						wiRenderer::DrawBox(hoverBox, XMFLOAT4(0.8f, 0.8f, 2.f, 1.0f));
+					}
+				} else {
+					renderer.hovered.entity = wiECS::INVALID_ENTITY;
 				}
 			}
 
@@ -561,7 +567,12 @@ void CyRender::ResizeLayout() {
 	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 2 - 20));
 	saveSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	reposSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
-	xOffset += 10 + max(saveSchBtn.scale.x, loadSchBtn.scale.x);
+	xOffset += 10 + max(reposSchBtn.scale.x, loadSchBtn.scale.x);
+
+	treeDelBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
+	treeDelRstBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 2 - 20));
+	treeDelGoBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 3 - 25));
+	xOffset += 10 + max(treeDelGoBtn.scale.x, treeDelBtn.scale.x);
 
 	PauseChunkLoading.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 20 + PauseChunkLoading.scale.x;
@@ -570,6 +581,7 @@ void CyRender::ResizeLayout() {
 	postprocessWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 2 - 20));
 	visualsWnd_Toggle.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y - 15));
 	xOffset += 10 + max(postprocessWnd_Toggle.scale.x, visualsWnd_Toggle.scale.x);
+
 	//saveButton.SetPos(XMFLOAT2(xOffset, screenH - postprocessWnd_Toggle.scale.y - 15));
 
 	viewDist.SetPos(XMFLOAT2(screenW - viewDist.scale.x - 45, screenH - saveSchBtn.scale.y - 20));
@@ -633,7 +645,7 @@ void CyRender::Load() {
 	wiScene::GetCamera().zNearP = 0.15f;
 	wiScene::GetCamera().zFarP	= 2000.f;
 	label.Create("Label1");
-	label.SetText("CyubE3dit Wicked - sneak peek");
+	label.SetText("CyubE3dit Wicked - Beta");
 	label.SetColor(uiColor_idle, wiWidget::WIDGETSTATE::IDLE);
 	label.SetColor(uiColor_focus, wiWidget::WIDGETSTATE::FOCUS);
 	label.SetColor(uiColor_active, wiWidget::WIDGETSTATE::ACTIVE);
@@ -785,12 +797,12 @@ void CyRender::Load() {
 	});
 	GetGUI().AddWidget(&visualsWnd_Toggle);
 
-	loadSchBtn.Create("Load schematic");
+	loadSchBtn.Create("Insert schematic");
 	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world");
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	loadSchBtn.SetSize(XMFLOAT2(120, 20));
+	loadSchBtn.SetSize(XMFLOAT2(150, 20));
 	loadSchBtn.OnClick([&](wiEventArgs args) {
 		loadSchBtn.SetEnabled(false);
 		wiHelper::FileDialogParams params;
@@ -807,23 +819,116 @@ void CyRender::Load() {
 	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	saveSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
 	saveSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	saveSchBtn.SetSize(XMFLOAT2(120, 20));
+	saveSchBtn.SetSize(XMFLOAT2(150, 20));
 	saveSchBtn.OnClick([&](wiEventArgs args) {
 		cySchematic::addBoxSelector();
 	});
 	GetGUI().AddWidget(&saveSchBtn);
 
-	reposSchBtn.Create("move Schematic in View");
+	reposSchBtn.Create("Bring Schematic in view.");
 	reposSchBtn.SetTooltip("This will move the current schematic to your viewport in case you lost it somewhere.");
 	reposSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	reposSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
 	reposSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
-	reposSchBtn.SetSize(XMFLOAT2(120, 20));
+	reposSchBtn.SetSize(XMFLOAT2(150, 20));
 	reposSchBtn.SetVisible(false);
 	reposSchBtn.OnClick([&](wiEventArgs args) {
 		cySchematic::reposition();
 	});
 	GetGUI().AddWidget(&reposSchBtn);
+
+	if (settings::treeDeletion) {
+		treeDelBtn.Create("Disable Tree removal.");
+	}
+
+	else {
+		treeDelBtn.Create("Enable Tree removal.");
+	}
+
+	treeDelBtn.SetTooltip("This will enable you to select trees by clicking and deleting them.");
+	treeDelBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	treeDelBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	treeDelBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	treeDelBtn.SetSize(XMFLOAT2(160, 20));
+	treeDelBtn.SetVisible(true);
+	treeDelBtn.OnClick([&](wiEventArgs args) {
+		settings::treeDeletion = !settings::treeDeletion;
+		m_selectedObjects.clear();
+		if (settings::treeDeletion) {
+			treeDelBtn.SetText("Disable Tree removal.");
+			treeDelRstBtn.SetVisible(true);
+			treeDelGoBtn.SetVisible(true);
+		} else {
+			treeDelRstBtn.SetVisible(false);
+			treeDelGoBtn.SetVisible(false);
+			treeDelBtn.SetText("Enable Tree removal.");
+		}
+	});
+	GetGUI().AddWidget(&treeDelBtn);
+
+	treeDelRstBtn.Create("Reset Selection.");
+	treeDelRstBtn.SetTooltip("This unselects all trees.");
+	treeDelRstBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	treeDelRstBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	treeDelRstBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	treeDelRstBtn.SetSize(XMFLOAT2(160, 20));
+	if (!settings::treeDeletion)
+		treeDelRstBtn.SetVisible(false);
+	treeDelRstBtn.OnClick([&](wiEventArgs args) {
+		for (size_t i = 0; i < m_selectedObjects.size(); i++) {
+			ObjectComponent* object = wiScene::GetScene().objects.GetComponent(m_selectedObjects[i]);
+			if (object != nullptr) {
+				object->emissiveColor = XMFLOAT4(0, 0, 0, 1);
+			}
+		}
+		m_selectedObjects.clear();
+	});
+	GetGUI().AddWidget(&treeDelRstBtn);
+
+	treeDelGoBtn.Create("Del. selected trees.");
+	treeDelGoBtn.SetTooltip("This deletes all selected trees.");
+	treeDelGoBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
+	treeDelGoBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
+	treeDelGoBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
+	treeDelGoBtn.SetSize(XMFLOAT2(160, 20));
+	if (!settings::treeDeletion)
+		treeDelGoBtn.SetVisible(false);
+	treeDelGoBtn.OnClick([&](wiEventArgs args) {
+		if (m_selectedObjects.size()) {
+			std::unordered_set<cyImportant::chunkpos_t, cyImportant::chunkposHasher_t> update;
+			for (size_t i = 0; i < m_selectedObjects.size(); i++) {
+				ObjectComponent* object = wiScene::GetScene().objects.GetComponent(m_selectedObjects[i]);
+				TransformComponent* tf	= wiScene::GetScene().transforms.GetComponent(m_selectedObjects[i]);
+				if (object != nullptr) {
+					object->emissiveColor = XMFLOAT4(0, 0, 0, 1);
+					cyImportant::chunkpos_t zero, chunkPos;
+					uint32_t chunkID;
+					cyImportant* world = settings::getWorld();
+					zero.x			   = world->m_playerpos.x / 100;
+					zero.y			   = world->m_playerpos.y / 100;
+					chunkPos		   = world->getChunkPos(tf->translation_local.x + 0.1, tf->translation_local.z - 0.1);
+
+					if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y, &chunkID)) {
+						cyChunk chunk;
+						chunk.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID);
+						cyChunk::blockpos_t pos;
+						pos.x	= tf->translation_local.x * 2.f - chunkPos.x * 2.f;
+						int txt = tf->translation_local.z;
+						pos.y	= 32 - (tf->translation_local.z * 2.f + chunkPos.y * 2.f);
+						pos.z	= (tf->translation_local.y + 0.25f) * 2.f;
+						chunk.deleteTree(pos);
+						update.insert(chunkPos);
+					}
+				}
+			}
+			m_selectedObjects.clear();
+			for (auto it = update.begin(); it != update.end(); ++it) {
+				chunkLoader::reloadChunk(*it);
+			}
+			update.clear();
+		}
+	});
+	GetGUI().AddWidget(&treeDelGoBtn);
 
 	RenderPath3D::Load();
 	//ResizeBuffers();
@@ -1018,6 +1123,15 @@ void CyRender::Update(float dt) {
 					break;
 			}
 		} else {
+			if (settings::treeDeletion) {
+				RAY pickRay			  = wiRenderer::GetPickRay((long)currentMouse.x, (long)currentMouse.y);
+				wiECS::Entity treeSel = wiScene::Pick(pickRay, RENDERTYPE_ALL, LAYER_TREE).entity;
+				ObjectComponent* obj  = wiScene::GetScene().objects.GetComponent(treeSel);
+				if (obj != nullptr) {
+					obj->emissiveColor = XMFLOAT4(1.f, 0.f, 0.f, 1.f);
+					m_selectedObjects.push_back(treeSel);
+				}
+			}
 			hovered.entity = wiECS::INVALID_ENTITY;
 		}
 
@@ -1153,7 +1267,21 @@ void CyRender::Update(float dt) {
 	{
 		yDif += buttonrotSpeed;
 	}
+	if (wiInput::Down(wiInput::KEYBOARD_BUTTON_ESCAPE)) {
+		if (m_selectedObjects.size()) {
+			for (size_t i = 0; i < m_selectedObjects.size(); i++) {
+				ObjectComponent* object = wiScene::GetScene().objects.GetComponent(m_selectedObjects[i]);
+				if (object != nullptr) {
+					object->emissiveColor = XMFLOAT4(0, 0, 0, 1);
+				}
+			}
+			m_selectedObjects.clear();
+		}
+	}
+	/*if (wiInput::Down(wiInput::KEYBOARD_BUTTON_DELETE)) {
 
+		
+	}*/
 	//const XMFLOAT4 leftStick	= wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_L, 0);
 	//const XMFLOAT4 rightStick	= wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_THUMBSTICK_R, 0);
 	//const XMFLOAT4 rightTrigger = wiInput::GetAnalog(wiInput::GAMEPAD_ANALOG_TRIGGER_R, 0);

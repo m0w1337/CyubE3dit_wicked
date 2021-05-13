@@ -87,13 +87,21 @@ void VisualsWindow::Create(CyRender* renderer) {
 	renderLightsCheckBox.SetPos(XMFLOAT2(x, y += step));
 	renderLightsCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
 	renderLightsCheckBox.SetCheck(settings::torchlights);
-	renderLightsCheckBox.OnClick([](wiEventArgs args) {
+	renderLightsCheckBox.OnClick([this, renderer](wiEventArgs args) {
 		settings::torchlights = args.bValue;
 		wiScene::Scene& scn	  = wiScene::GetScene();
 		for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
 			if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
 				scn.lights[i].SetStatic(!args.bValue);
 			}
+		}
+		if (settings::torchlights) {
+			renderEmittersCheckBox.SetEnabled(true);
+		} else {
+			renderEmittersCheckBox.SetEnabled(false);
+			renderer->setlayerMask(renderer->getLayerMask() & ~LAYER_EMITTER);
+			settings::rendermask = renderer->getLayerMask();
+			renderEmittersCheckBox.SetCheck(renderer->getLayerMask() & LAYER_EMITTER);
 		}
 	});
 	AddWidget(&renderLightsCheckBox);
@@ -102,8 +110,9 @@ void VisualsWindow::Create(CyRender* renderer) {
 	renderEmittersCheckBox.SetTooltip("Enable, if you want to see nice fire for the torches (high performance impact)");
 	renderEmittersCheckBox.SetPos(XMFLOAT2(x, y += step));
 	renderEmittersCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
-	renderEmittersCheckBox.SetEnabled(false);
-	renderEmittersCheckBox.SetCheck(renderer->getLayerMask() & LAYER_EMITTER);
+	if (!settings::torchlights)
+		renderEmittersCheckBox.SetEnabled(false);
+	renderEmittersCheckBox.SetCheck(settings::rendermask & LAYER_EMITTER);
 	renderEmittersCheckBox.OnClick([renderer](wiEventArgs args) {
 		if (args.bValue)
 			renderer->setlayerMask(renderer->getLayerMask() | LAYER_EMITTER);
@@ -117,7 +126,7 @@ void VisualsWindow::Create(CyRender* renderer) {
 	renderGizmosCheckBox.SetTooltip("Enable, if you want to see the schematic interaction objects (Drag planes, axes and origin as well as buttons).");
 	renderGizmosCheckBox.SetPos(XMFLOAT2(x, y += step));
 	renderGizmosCheckBox.SetSize(XMFLOAT2(itemheight, itemheight));
-	renderGizmosCheckBox.SetCheck(renderer->getLayerMask() & LAYER_GIZMO);
+	renderGizmosCheckBox.SetCheck(settings::rendermask & LAYER_GIZMO);
 	renderGizmosCheckBox.OnClick([renderer](wiEventArgs args) {
 		if (args.bValue)
 			renderer->setlayerMask(renderer->getLayerMask() | LAYER_GIZMO);

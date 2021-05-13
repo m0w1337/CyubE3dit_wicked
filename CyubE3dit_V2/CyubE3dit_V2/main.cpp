@@ -122,7 +122,7 @@ wiJobSystem::Wait(ctx);
 	chunkLoader loader;
 	uint8_t numChunkThreads = wiJobSystem::GetThreadCount();
 	if (wiJobSystem::GetThreadCount() > 4)
-		numChunkThreads = wiJobSystem::GetThreadCount() - 2;
+		numChunkThreads = wiJobSystem::GetThreadCount() - 3;
 
 	loader.spawnThreads(numChunkThreads);
 	DWORD lasttick = 0, lasttickEmitter = 0;

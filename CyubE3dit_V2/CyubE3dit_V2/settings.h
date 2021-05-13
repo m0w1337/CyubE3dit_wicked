@@ -29,6 +29,7 @@ public:
 	static uint32_t pickType;
 	static bool volClouds;
 	static bool tempAA;
+	static bool treeDeletion;
 	
 	static void save(void);
 	static void load(void);
@@ -46,5 +47,5 @@ static inline void setViewDist(uint32_t _viewDist) {
 }
 
 private:
-static const size_t prefsLen = 27+2*sizeof(float);
+static const size_t prefsLen = 29+2*sizeof(float);
 };

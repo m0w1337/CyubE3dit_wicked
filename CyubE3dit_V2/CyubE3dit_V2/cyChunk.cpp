@@ -2,7 +2,6 @@
 #include "cyChunk.h"
 #include "settings.h"
 
-using namespace std;
 
 cyChunk::cyChunk(void) {
 	m_chunkdata = (char*)malloc(32 * 32 * 800 + 4);
@@ -14,6 +13,7 @@ void cyChunk::loadChunk(sqlite3* db, uint32_t chunkID, bool fast) {
 	int rc;
 	sqlite3_blob* pChunkBlob;
 	m_id			 = chunkID;
+	m_treetypeOffset = 0;
 	m_cBlocksTmapPos = 0;
 	m_torchTmapPos	 = 0;
 	m_saveable		 = false;  //set it to true to mark not chunk as completely loaded until all data is found successfully, then set to correct state
@@ -332,6 +332,7 @@ void cyChunk::loadMeshes(sqlite3* db) {
 			offset = skipCdataArray(meshData, offset, 1);
 			dSize--;
 		}
+		m_treetypeOffset = offset;
 		memcpy(&treetypes, meshData + offset, 4);
 		offset += 4;
 		treeLoc tree;
@@ -511,6 +512,149 @@ bool cyChunk::saveChunk(void) {
 	return ret;
 }
 
+void cyChunk::deleteTree(blockpos_t position) {
+	int rc;
+	sqlite3_blob* pChunkBlob;
+	meshObjects.clear();
+	rc = sqlite3_blob_open(m_db, "main", "MESHOBJECTS", "DATA", m_id, 0, &pChunkBlob);
+	while (rc) {
+		if (sqlite3_errmsg(m_db) == std::string("database (mesh) is locked")) {
+			Sleep(2);
+			std::string str(sqlite3_errmsg(m_db));
+			wiBackLog::post("retry...");
+			wiBackLog::post(str.c_str());
+			rc = sqlite3_blob_open(m_db, "main", "MESHOBJECTS", "DATA", m_id, 0, &pChunkBlob);
+		} else {
+			break;
+		}
+	}
+	int32_t chunksize = 0;
+	int32_t size	  = 0;
+	char* meshData = nullptr;
+	meshData = (char*)malloc(100);
+	if (rc) {
+		ifstream file;
+		file.open(settings::getWorld()->m_worldFolder.c_str() + to_wstring(m_id) + L".chunkmon", fstream::in | ios::binary | std::ios::ate);
+		if (file.is_open()) {
+			std::streamsize fsize = file.tellg();
+			size				  = (uint32_t)fsize;
+			file.seekg(0, std::ios::beg);
+			meshData = (char*)realloc(meshData, size);
+			if (!file.read(meshData, size))
+			{
+				free(meshData);
+				file.close();
+				return;
+			}
+			file.close();
+
+		} else {
+			free(meshData);
+			return;
+		}
+	} else {
+		size	 = sqlite3_blob_bytes(pChunkBlob);
+		meshData = (char*)realloc(meshData, size);
+		sqlite3_blob_read(pChunkBlob, meshData, size, 0);
+		sqlite3_blob_close(pChunkBlob);
+	}
+
+	uint32_t dSize = 0, treetypes = 0, offset = 4;
+	if (size > 32) {
+		meshLoc mesh;
+		memcpy(&dSize, meshData + offset, 4);
+		offset += 4;
+		while (dSize) {
+			offset += 41;
+			offset = skipCdataArray(meshData, offset, 1);
+			dSize--;
+		}
+		m_treetypeOffset = offset;
+		memcpy(&treetypes, meshData + offset, 4);
+		offset += 4;
+		treeLoc tree;
+		if (treetypes < 50) {
+
+			for (uint32_t ttype = 0; ttype < treetypes; ttype++) {
+				memcpy(&dSize, meshData + offset, 4);
+				size_t sizeLoc = offset;
+				offset += 4;
+				tree.type = ttype;
+				for (uint32_t i = 0; i < dSize && (offset + 20) < size; i++) {
+					memcpy(&(tree.pos.x), meshData + offset, 1);
+					memcpy(&(tree.pos.y), meshData + 1 + offset, 1);
+					memcpy(&(tree.pos.z), meshData + 2 + offset, 2);
+
+					if (tree.pos == position) {
+						//stringstream ss("");
+						--dSize;
+						memcpy(meshData + sizeLoc, &dSize, 4);
+						memmove(meshData + offset, meshData + offset + 20, size - (offset + 20));
+						sqlite3_stmt* stmt = NULL;
+						rc				   = sqlite3_prepare_v2(m_db,
+												string("DELETE FROM MESHOBJECTS WHERE CHUNKID = ?;").c_str(),
+												-1, &stmt, NULL);
+						if (rc != SQLITE_OK) {
+							wiHelper::messageBox("SQLITE deletion failed!");
+
+						} else {
+							rc = sqlite3_bind_int(stmt, 1, m_id);
+							if (rc != SQLITE_OK) {
+								//ss << "INT bind failed: " << sqlite3_errmsg(m_db) << endl;
+							} else {
+								rc = sqlite3_step(stmt);
+								while (rc == SQLITE_BUSY) {
+									rc = sqlite3_step(stmt);
+								}
+								//if (rc != SQLITE_DONE)
+								//	ss << "deletion failed: " << sqlite3_errmsg(m_db) << endl;
+							}
+						}
+						//ss << "deletion done: " << sqlite3_errmsg(m_db) << endl;
+						sqlite3_finalize(stmt);
+
+						rc = sqlite3_prepare_v2(m_db,
+												string("INSERT INTO MESHOBJECTS(CHUNKID, DATA) VALUES(?, ?)").c_str(),
+												-1, &stmt, NULL);
+						if (rc != SQLITE_OK) {
+							wiHelper::messageBox("SQLITE insertion failed!");
+
+						} else {
+
+							// SQLITE_STATIC because the statement is finalized
+							// before the buffer is freed:
+							rc = sqlite3_bind_blob(stmt, 2, meshData, size - 20, SQLITE_STATIC);
+							if (rc != SQLITE_OK) {
+								//	ss << "bind failed: " << sqlite3_errmsg(m_db) << endl;
+							} else {
+								rc = sqlite3_bind_int(stmt, 1, m_id);
+								if (rc != SQLITE_OK) {
+									//		ss << "INT bind failed: " << sqlite3_errmsg(m_db) << endl;
+								} else {
+									rc = sqlite3_step(stmt);
+									while (rc == SQLITE_BUSY || rc == SQLITE_ROW) {
+										rc = sqlite3_step(stmt);
+									}
+									//	if (rc != SQLITE_DONE)
+									//	ss << "execution failed: " << sqlite3_errmsg(m_db) << endl;
+								}
+							}
+						}
+						sqlite3_finalize(stmt);
+						deleteInstaLoad();
+						//ss << "execution done: " << sqlite3_errmsg(m_db) << endl;
+						//wiBackLog::post(ss.str().c_str());
+						i = dSize - 1;
+						break;
+					}
+					offset += 20;
+				}
+			}
+		}
+	}
+	free(meshData);
+}
+
 void cyChunk::deleteInstaLoad(void) {
 	sqlite3* instaDB;
 	stringstream ss("");
@@ -529,8 +673,8 @@ void cyChunk::deleteInstaLoad(void) {
 		sqlite3_stmt* stmt = NULL;
 		
 		int rc;
-		rc	 = sqlite3_prepare_v2(m_db,
-								  string("DELETE FROM CHUNKDATA WHERE CHUNKID = ?").c_str(),
+		rc = sqlite3_prepare_v2(instaDB,
+								  string("DELETE FROM CHUNKDATA WHERE CHUNKID = ?;").c_str(),
 								  -1, &stmt, NULL);
 		if (rc != SQLITE_OK) {
 			wiHelper::messageBox("SQLITE instaload deletion failed!");
@@ -538,19 +682,21 @@ void cyChunk::deleteInstaLoad(void) {
 		} else {
 			rc = sqlite3_bind_int(stmt, 1, m_id);
 			if (rc != SQLITE_OK) {
-				ss << "instaload INT bind failed: " << sqlite3_errmsg(m_db) << endl;
+				ss << "instaload INT bind failed: " << sqlite3_errmsg(instaDB) << endl;
 			} else {
 				rc = sqlite3_step(stmt);
-				while (rc == SQLITE_BUSY) {
+				while (rc == SQLITE_BUSY || rc == SQLITE_ROW) {
 					rc = sqlite3_step(stmt);
 				}
 				if (rc != SQLITE_DONE)
-					ss << "instaload deletion failed: " << sqlite3_errmsg(m_db) << endl;
+					ss << "instaload deletion failed: " << sqlite3_errmsg(instaDB) << endl;
 			}
 		}
-		ss << "instaload deletion done: " << sqlite3_errmsg(m_db) << endl;
+		ss << "instaload deletion done: " << sqlite3_errmsg(instaDB) << endl;
 		sqlite3_finalize(stmt);
+		
 		sqlite3_close(instaDB);
+
 	} else {
 		ss << "InstaLoad DB connection failed!!";
 	}

@@ -54,9 +54,16 @@ void chunkLoader::clearMaskedChunk(void) {
 	maskMutex.unlock();
 }
 
+void chunkLoader::reloadChunk(const cyImportant::chunkpos_t chunkPos) {
+	maskMutex.lock();
+	pendingChunks.push_back(chunkPos);
+	maskMutex.unlock();
+}
+
 void chunkLoader::checkChunks(void) {
 	cyImportant::chunkpos_t ghostpos, coords, lastghostpos, exactGhostPos;
 	cyImportant* world	  = settings::getWorld();
+	std::vector<cyImportant::chunkpos_t> tmpChunks;
 	uint32_t changed	  = 0;
 	lastghostpos.x		  = -1000;
 	lastghostpos.y		  = -1000;
@@ -82,16 +89,36 @@ void chunkLoader::checkChunks(void) {
 				}
 			}
 		}
-		for (size_t i = 0; i < pendingChunks.size(); i++) {
-			auto it = m_visibleChunks.find(pendingChunks[i]);
-			if (it != m_visibleChunks.end()) {
-				while (!employThread(pendingChunks[i])) {
-					Sleep(4);
+		maskMutex.unlock();
+		if (pendingChunks.size()) {
+			maskMutex.lock();
+			tmpChunks = pendingChunks;
+			pendingChunks.clear();
+			maskMutex.unlock();
+			for (size_t i = 0; i < tmpChunks.size(); i++) {
+				auto it = m_visibleChunks.find(tmpChunks[i]);
+				if (it != m_visibleChunks.end()) {
+					if (it->second.chunkObj != 0xFFFFFFFE) {
+						m.lock();
+						wiScene::Scene& scene		  = wiScene::GetScene();
+						wiScene::ObjectComponent* obj = scene.objects.GetComponent(it->second.chunkObj);
+						if (obj != nullptr) {
+							wiECS::Entity meshEnt = obj->meshID;
+							scene.Component_RemoveChildren(it->second.chunkObj);
+							scene.Entity_Remove(it->second.chunkObj);
+							scene.Entity_Remove(meshEnt);
+							it->second.chunkObj = wiECS::INVALID_ENTITY;						
+						}
+						m.unlock();
+						while (!employThread(tmpChunks[i])) {
+							Sleep(4);
+						}
+					}
 				}
 			}
+			tmpChunks.clear();
 		}
-		pendingChunks.clear();
-		maskMutex.unlock();
+		
 		Sleep(5);
 		uint32_t viewDist = settings::getViewDist();
 		if (!world->isStopped()) {
@@ -526,6 +553,8 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 			surfaceHeight -= 25;
 		else
 			surfaceHeight = 0;
+		if (chunk.m_lowestZ > surfaceHeight)
+			surfaceHeight = chunk.m_lowestZ - 2;
 	} else {
 
 		if (chunk.m_lowestZ > 2)
@@ -766,7 +795,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 					LayerComponent& layer	= *tmpScene.layers.GetComponent(objEnt);
 					layer.layerMask			= LAYER_TREE;
 					TransformComponent& tf	= *tmpScene.transforms.GetComponent(objEnt);
-					tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2., chunk.trees[i].pos.z / 2. - 0.25, relY + 16 - chunk.trees[i].pos.y / 2.));
+					tf.Translate(XMFLOAT3(relX + chunk.trees[i].pos.x / 2.f, chunk.trees[i].pos.z / 2.f - 0.25f, relY + 16.f- chunk.trees[i].pos.y / 2.f));
 					tf.Scale(XMFLOAT3(chunk.trees[i].scale.x, chunk.trees[i].scale.z, chunk.trees[i].scale.y));
 					switch (chunk.trees[i].type) {
 						case 0:	 //leaf trees (light wood)
@@ -776,7 +805,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 							object.meshID = cyBlocks::m_treeMeshes[3];
 							break;
 						case 2:	 //cactus
-							tf.Scale(XMFLOAT3(chunk.trees[i].scale.x * 3, chunk.trees[i].scale.z * 1.5, chunk.trees[i].scale.y * 3));
+							tf.Scale(XMFLOAT3(chunk.trees[i].scale.x * 3.f, chunk.trees[i].scale.z * 1.5f, chunk.trees[i].scale.y * 3.f));
 							object.meshID = cyBlocks::m_treeMeshes[6];	//desert bush
 							break;
 						case 3:
@@ -795,6 +824,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 					tf.RotateRollPitchYaw(XMFLOAT3(0, chunk.trees[i].yaw, 0));
 					tf.UpdateTransform();
 					object.parentObject = entity;
+					object.emissiveColor = XMFLOAT4(0, 0, 0, 1.0f);
 					if (_lod == true) {
 						object.SetRenderable(false);  //load the Mesh with lowest LOD to prevent flicker
 						object.SetCastShadow(false);

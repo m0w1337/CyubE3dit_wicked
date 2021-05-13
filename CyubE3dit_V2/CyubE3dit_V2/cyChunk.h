@@ -98,12 +98,14 @@ public:
 	void replaceCubeWithAir(const uint8_t x1, const uint8_t y1, const uint16_t z1, const uint8_t x2, const uint8_t y2, const uint16_t z2);
 	bool saveChunk(void);
 	void deleteInstaLoad(void);
+	void deleteTree(blockpos_t position);
 	~cyChunk(void);
 
 protected:
 	sqlite3* m_db;
 	
 	size_t m_cBlocksTmapPos;
+	size_t m_treetypeOffset;
 	size_t m_torchTmapPos;
 	uint64_t skipCdataArray(char* memory, uint64_t startpos, uint8_t elementsize);
 	void loadCblockTmap(uint64_t startpos);

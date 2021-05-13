@@ -2,11 +2,12 @@
 #include "cyImportant.h"
 #include <iostream>
 #include <filesystem>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
 cyImportant::cyImportant(void) {
-	m_valid = false;
+	m_valid	  = false;
 	m_stopped = true;
 	for (uint8_t i = 0; i < MAX_THREADS + 1; i++) {
 		db[i] = nullptr;
@@ -40,7 +41,7 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 		m_instaLoadDB = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData_InstaLoad\\" + Worldname + "\\chunkmeshes.sqlite";
 		m_filename	  = find_importantFile(m_worldFolder);
 		m_worldFolder += L"\\";
-		dbpath	   = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";
+		dbpath = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";
 	}
 	if (m_filename.size() > 1) {
 		cyImportant::loadData(dbpath, cleanWorld);
@@ -49,12 +50,10 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 	}
 }
 
-
-
 bool cyImportant::getChunkID(const double x, const double y, uint32_t* chunkID) {
 	chunkpos_t pos;
-	pos.x = round(x / 16) * 16 - 8;
-	pos.y = round(y / 16) * 16 - 8;
+	pos.x = (int)(x / 16) * 16 - 8;
+	pos.y = (int)(y / 16) * 16 - 8;
 	if (x - pos.x > 15.5)
 		pos.x += 16;
 	if (y - pos.y > 15.5)
@@ -74,10 +73,10 @@ inline bool cyImportant::getChunkIDFast(const cyImportant::chunkpos_t chunkPos, 
 	return true;
 }
 
-cyImportant::chunkpos_t cyImportant::getChunkPos(const double x, const double y) {
+cyImportant::chunkpos_t cyImportant::getChunkPos(double x, double y) {
 	chunkpos_t pos;
-	pos.x = x;
-	pos.y = y;
+	pos.x = roundf((x - 8.) / 16.) * 16;
+	pos.y = -roundf((y - 8.) / 16.) * 16;
 	pos.x &= 0xFFFFFFF0;
 	pos.y &= 0xFFFFFFF0;
 	return pos;
@@ -86,7 +85,7 @@ cyImportant::chunkpos_t cyImportant::getChunkPos(const double x, const double y)
 void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 	ifstream file;
 	m_stopped = true;
-	cleaned = false;
+	cleaned	  = false;
 	while (!cleaned && cleanWorld) {
 		Sleep(10);
 	}
@@ -146,7 +145,7 @@ void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {
 			}
 		}
 
-		m_valid = true;
+		m_valid	  = true;
 		m_stopped = false;
 		file.close();
 	}

@@ -7,16 +7,17 @@ atomic<size_t> settings::numVisChunks = 0;
 string settings::newWorld			  = "";
 string settings::thisWorld			  = "";
 bool settings::torchlights			  = false;
-bool settings::clipUnderground		  = false;
+bool settings::clipUnderground		  = true;
 float settings::camspeed			  = 2.0f;
 bool settings::pauseChunkloader		  = false;
 bool settings::sound				  = false;
-uint32_t settings::rendermask		  = LAYER_CHUNKMESH | LAYER_GIZMO | LAYER_SCHEMATIC | LAYER_TORCH | LAYER_TREE | LAYER_MESH;
+uint32_t settings::rendermask		  = LAYER_CHUNKMESH | LAYER_GIZMO | LAYER_SCHEMATIC | LAYER_TORCH | LAYER_FOILAGE | LAYER_TREE | LAYER_MESH;
 uint32_t settings::camMode			  = 0;
 float settings::musicVol			  = 1.;
 float settings::effectVol			  = 0.5;
 bool settings::volClouds			  = false;
-bool settings::tempAA			  = true;
+bool settings::tempAA			  = false;
+bool settings::treeDeletion			  = false;
 uint32_t settings::pickType			  = 0x00000000;
 
 void settings::save(void) {
@@ -61,6 +62,8 @@ void settings::save(void) {
 	data[i++] = 0xAA;
 	data[i++] = volClouds;
 	data[i++] = 0xAA;
+	data[i++] = treeDeletion;
+	data[i++] = 0xAA;
 	wiHelper::FileWrite("prefs.bin", data, i);
 }
 
@@ -103,7 +106,9 @@ void settings::load(void) {
 		i++;
 		volClouds = data[i++];
 		i++;
-		rendermask |= LAYER_CHUNKMESH | LAYER_SCHEMATIC | LAYER_GIZMO;	//at least enable the most basic layers after restart to prevent confusion
+		treeDeletion = data[i++];
+		i++;
+		rendermask |= (LAYER_CHUNKMESH | LAYER_SCHEMATIC | LAYER_GIZMO);	//at least enable the most basic layers after restart to prevent confusion
 		}
 	}
 }

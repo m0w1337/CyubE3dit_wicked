@@ -79,6 +79,9 @@ public:
 	wiButton loadSchBtn;
 	wiButton saveSchBtn;
 	wiButton reposSchBtn;
+	wiButton treeDelBtn;
+	wiButton treeDelRstBtn;
+	wiButton treeDelGoBtn;
 	wiButton saveButton;
 	wiButton PauseChunkLoading;
 	wiSlider viewDist;
@@ -91,6 +94,7 @@ public:
 	static wiAudio::SoundInstance windSoundinstance;
 	static wiAudio::Sound bgSound;
 	static wiAudio::SoundInstance bgSoundinstance;
+	static std::vector<wiECS::Entity> m_selectedObjects;
 	bool m_soundLoaded;
 	static bool fireSoundIsPlaying[NUM_TORCHSOUNDS];
 	static bool anyfireSoundIsPlaying;

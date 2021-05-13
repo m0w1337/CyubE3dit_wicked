@@ -77,6 +77,7 @@ public:
 	static wiECS::Entity m_regBlockMats[256][6];
 	static std::unordered_map<uint32_t, cBlock_t> m_cBlockTypes;
 	static std::unordered_map<uint32_t, cyBlocks::mesh_t> m_regMeshes;
+	static std::unordered_map<uint32_t, uint32_t> m_cBlockRotSubst;
 	static uint8_t m_voidID;
 	static uint8_t m_torchID;
 	static  std::string m_regBlockNames[256];

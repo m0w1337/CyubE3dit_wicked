@@ -402,101 +402,114 @@ void cySchematic::prepareSchematic(wiScene::Scene& tmpScene) {
 			}
 		}
 	}
-	if (faces.size()) {
-		SimplexNoise noise;
-		sort(faces.begin(), faces.end());
-		MeshComponent* mesh;
-		if (wiScene::GetScene().materials.GetComponent(faces[0].material) != nullptr) {
-			mesh = meshGen::AddMesh(tmpScene, "Schematic", faces[0].material, &mainEntity);
+
+	SimplexNoise noise;
+	MeshComponent* mesh;
+	wiECS::Entity currMat = 0;
+	if (!faces.size()) {	//handle a compl air schematic
+		chunkLoader::face_t tmpface;
+
+		tmpface.face	 = cyBlocks::FACE_BOTTOM;
+		tmpface.x		 = 0;
+		tmpface.y		 = 0.5;
+		tmpface.z		 = 0;
+		tmpface.material = cyBlocks::m_fallbackMat;
+		faces.push_back(tmpface);
+	}
+
+	sort(faces.begin(), faces.end());
+	if (wiScene::GetScene().materials.GetComponent(faces[0].material) != nullptr) {
+		mesh = meshGen::AddMesh(tmpScene, "Schematic", faces[0].material, &mainEntity);
+	} else {
+		mesh = meshGen::AddMesh(tmpScene, "Schematic", cyBlocks::m_fallbackMat, &mainEntity);
+	}
+	currMat = faces[0].material;
+	//tmpScene.objects.GetComponent(mainEntity)->SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
+	LayerComponent* layer = tmpScene.layers.GetComponent(mainEntity);
+	layer->layerMask	  = LAYER_SCHEMATIC | LAYER_GIZMO;
+
+	mesh->SetDoubleSided(true);
+	for (unsigned i = 0; i < faces.size(); ++i)
+	{
+		if (faces[i].material != currMat) {
+			if (wiScene::GetScene().materials.GetComponent(faces[i].material) != nullptr) {
+				meshGen::newMaterial(mesh, faces[i].material);
+			}
+			currMat = faces[i].material;
+		}
+		switch (faces[i].face) {
+			case cyBlocks::FACE_TOP:
+				meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				break;
+			case cyBlocks::FACE_BOTTOM:
+				meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				break;
+			case cyBlocks::FACE_LEFT:
+				meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				break;
+			case cyBlocks::FACE_RIGHT:
+				meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				break;
+			case cyBlocks::FACE_BACK:
+				meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				break;
+			case cyBlocks::FACE_FRONT:
+				meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				break;
+			case cyBlocks::FACE_BILLBOARD:
+				meshGen::AddBillboard(mesh, faces[i].x, faces[i].y, faces[i].z);
+				break;
+		}
+	}
+	mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
+
+	mesh->SetDynamic(false);
+	mesh->CreateRenderData();
+	wiScene::TransformComponent* tf;
+	wiScene::ObjectComponent* object;
+	wiECS::Entity objEnt;
+	for (size_t i = 0; i < trees.size(); i++) {
+		if (trees[i].scale.x > 2 || trees[i].scale.y > 2 || trees[i].scale.z > 2) {
+			wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
+			wiBackLog::post("Weird tree data: in Schematic.");
 		} else {
-			mesh = meshGen::AddMesh(tmpScene, "Schematic", cyBlocks::m_fallbackMat, &mainEntity);
-		}
-		//tmpScene.objects.GetComponent(mainEntity)->SetUserStencilRef(chunkLoader::STENCIL_HIGHLIGHT_OBJ);
-		LayerComponent* layer = tmpScene.layers.GetComponent(mainEntity);
-		layer->layerMask	  = LAYER_SCHEMATIC | LAYER_GIZMO;
-		wiECS::Entity currMat = faces[0].material;
-		mesh->SetDoubleSided(true);
-		for (unsigned i = 0; i < faces.size(); ++i)
-		{
-			if (faces[i].material != currMat) {
-				if (wiScene::GetScene().materials.GetComponent(faces[i].material) != nullptr) {
-					meshGen::newMaterial(mesh, faces[i].material);
-				}
-				currMat = faces[i].material;
-			}
-			switch (faces[i].face) {
-				case cyBlocks::FACE_TOP:
-					meshGen::AddFaceTop(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+			objEnt			 = tmpScene.Entity_CreateObject("tree");
+			object			 = tmpScene.objects.GetComponent(objEnt);
+			layer			 = tmpScene.layers.GetComponent(objEnt);
+			layer->layerMask = LAYER_SCHEMATIC | LAYER_GIZMO;
+			tf				 = tmpScene.transforms.GetComponent(objEnt);
+			switch (trees[i].type) {
+				case 0:	 //leaf trees (light wood)
+					object->meshID = cyBlocks::m_treeMeshes[((trees[i].pos.x + trees[i].pos.y + trees[i].pos.z) % 3)];
 					break;
-				case cyBlocks::FACE_BOTTOM:
-					meshGen::AddFaceBottom(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				case 1:	 //needle trees (dark wood)
+					object->meshID = cyBlocks::m_treeMeshes[3];
 					break;
-				case cyBlocks::FACE_LEFT:
-					meshGen::AddFaceLeft(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
+				case 2:	 //cactus
+				case 3:
+				case 4:
+				case 5:
+					object->meshID = cyBlocks::m_treeMeshes[4];
 					break;
-				case cyBlocks::FACE_RIGHT:
-					meshGen::AddFaceRight(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
-					break;
-				case cyBlocks::FACE_BACK:
-					meshGen::AddFaceBack(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
-					break;
-				case cyBlocks::FACE_FRONT:
-					meshGen::AddFaceFront(mesh, faces[i].x, faces[i].y, faces[i].z, faces[i].antitile);
-					break;
-				case cyBlocks::FACE_BILLBOARD:
-					meshGen::AddBillboard(mesh, faces[i].x, faces[i].y, faces[i].z);
+				default:  //desert grass 6,7
+					object->meshID = cyBlocks::m_treeMeshes[5];
 					break;
 			}
+			tf->Translate(XMFLOAT3(pos.x + trees[i].pos.x / 2.0f, pos.z + trees[i].pos.z / 2.0f - 0.25, pos.y + size.y - trees[i].pos.y / 2.0f));
+			tf->Scale(XMFLOAT3(trees[i].scale.x, trees[i].scale.z, trees[i].scale.y));
+			tf->RotateRollPitchYaw(XMFLOAT3(0, trees[i].yaw, 0));
+			tf->UpdateTransform();
+			object->parentObject = mainEntity;
+			tmpScene.Component_Attach(objEnt, mainEntity);
 		}
-		mesh->subsets.back().indexCount = (uint32_t)mesh->indices.size() - mesh->subsets.back().indexOffset;
+	}
+	placeTorches(torches, tmpScene);
+	attachGizmos(tmpScene);
+	tf = tmpScene.transforms.GetComponent(mainEntity);
+	tf->Translate(XMFLOAT3(pos.x, pos.z, pos.y));
+	tf->UpdateTransform();
 
-		mesh->SetDynamic(false);
-		mesh->CreateRenderData();
-		wiScene::TransformComponent* tf;
-		wiScene::ObjectComponent* object;
-		wiECS::Entity objEnt;
-		for (size_t i = 0; i < trees.size(); i++) {
-			if (trees[i].scale.x > 2 || trees[i].scale.y > 2 || trees[i].scale.z > 2) {
-				wiHelper::messageBox("Tree scaling out of bounds!", "Error!");
-				wiBackLog::post("Weird tree data: in Schematic.");
-			} else {
-				objEnt			 = tmpScene.Entity_CreateObject("tree");
-				object			 = tmpScene.objects.GetComponent(objEnt);
-				layer			 = tmpScene.layers.GetComponent(objEnt);
-				layer->layerMask = LAYER_SCHEMATIC | LAYER_GIZMO;
-				tf				 = tmpScene.transforms.GetComponent(objEnt);
-				switch (trees[i].type) {
-					case 0:	 //leaf trees (light wood)
-						object->meshID = cyBlocks::m_treeMeshes[((trees[i].pos.x + trees[i].pos.y + trees[i].pos.z) % 3)];
-						break;
-					case 1:	 //needle trees (dark wood)
-						object->meshID = cyBlocks::m_treeMeshes[3];
-						break;
-					case 2:	 //cactus
-					case 3:
-					case 4:
-					case 5:
-						object->meshID = cyBlocks::m_treeMeshes[4];
-						break;
-					default:  //desert grass 6,7
-						object->meshID = cyBlocks::m_treeMeshes[5];
-						break;
-				}
-				tf->Translate(XMFLOAT3(pos.x + trees[i].pos.x / 2.0f, pos.z + trees[i].pos.z / 2.0f - 0.25, pos.y + size.y - trees[i].pos.y / 2.0f));
-				tf->Scale(XMFLOAT3(trees[i].scale.x, trees[i].scale.z, trees[i].scale.y));
-				tf->RotateRollPitchYaw(XMFLOAT3(0, trees[i].yaw, 0));
-				tf->UpdateTransform();
-				object->parentObject = mainEntity;
-				tmpScene.Component_Attach(objEnt, mainEntity);
-			}
-		}
-		placeTorches(torches, tmpScene);
-		attachGizmos(tmpScene);
-		tf = tmpScene.transforms.GetComponent(mainEntity);
-		tf->Translate(XMFLOAT3(pos.x, pos.z, pos.y));
-		tf->UpdateTransform();
-
-	}  //else	wiBackLog::post("Chunk has no blocks");
+	//}  //else	wiBackLog::post("Chunk has no blocks");
 }
 
 void cySchematic::reposition(void) {
@@ -522,7 +535,7 @@ inline void cySchematic::placeTorches(const std::vector<torch_t>& torches, Scene
 				case 0:
 					meshID = cyBlocks::m_regMeshes.at(cyBlocks::m_torchID).mesh[0];
 					transform.Translate(XMFLOAT3(torch.x / 2.0f + 0.248, torch.z / 2.0f - 0.14f, size.y - torch.y / 2.0f));
-					transform.RotateRollPitchYaw(XMFLOAT3(0, PI *0.5f, 0));
+					transform.RotateRollPitchYaw(XMFLOAT3(0, PI * 0.5f, 0));
 					lightEnt = tmpScene.Entity_CreateLight("TL", XMFLOAT3(torch.x / 2.0f + 0.1f, torch.z / 2.0f + 0.02f, size.y - torch.y / 2.0f), color, 5, 4);
 					light	 = tmpScene.lights.GetComponent(lightEnt);
 					break;
@@ -1008,16 +1021,17 @@ void cySchematic::resizeGizmos(void) {
 }
 
 cySchematic::chunkstate_t cySchematic::checkAffectedChunks(void) {
-	chunkLoader::clearMaskedChunk();
-	settings::worldOffset_t offset;
+	//chunkLoader::clearMaskedChunk();
+	cyImportant::chunkpos_t zero, chunkPos;
 	cyImportant* world = settings::getWorld();
-	offset.x		   = settings::getWorld()->m_playerpos.x / 100;
-	offset.y		   = settings::getWorld()->m_playerpos.y / 100;
+	zero.x			   = settings::getWorld()->m_playerpos.x / 100;
+	zero.y			   = settings::getWorld()->m_playerpos.y / 100;
 	uint32_t chunkID   = 0;
 	if (world->isValid()) {
 		for (float x = floor((pos.x - 0.5f) / 16); x <= ceil((pos.x + size.x + 0.5f) / 16); x += 1) {
 			for (float y = floor((pos.y - 0.5f) / 16); y <= ceil((pos.y + size.y + 0.5f) / 16); y += 1) {
-				if (settings::getWorld()->getChunkID(offset.x + x * 16, offset.y - y * 16, &chunkID)) {
+				chunkPos = world->getChunkPos(x * 16 + 0.2, y * 16 + 0.2);
+				if (settings::getWorld()->getChunkID(zero.x + chunkPos.x, zero.y + chunkPos.y, &chunkID)) {
 					cyChunk chunk;
 					chunk.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID);
 					if (!chunk.m_saveable) {
@@ -1056,7 +1070,8 @@ void cySchematic::generateChunkPreview(void) {
 
 		for (float x = floor((pos.x - 0.5f) / 16); x <= ceil((pos.x + size.x + 0.5f) / 16); x += 1) {
 			for (float y = floor((pos.y - 0.5f) / 16); y <= ceil((pos.y + size.y + 0.5f) / 16); y += 1) {
-				chunkPos = world->getChunkPos(x * 16, -y * 16);
+				chunkPos = world->getChunkPos(x * 16. + 0.2, y * 16. + 0.2);
+
 				cyChunk chunk;
 				cyChunk chunkL;
 				cyChunk chunkR;
@@ -1066,7 +1081,7 @@ void cySchematic::generateChunkPreview(void) {
 					chunk.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID);
 					for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5f) {
 						for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5f) {
-							for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5f) {
+							for (float schZ = pos.z; schZ <= pos.z + size.z; schZ += 0.5f) {
 								chunk.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
 								//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 							}
@@ -1078,7 +1093,7 @@ void cySchematic::generateChunkPreview(void) {
 						chunkL.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
 						for (float schX = max(pos.x, (float)chunkPos.x + 16); schX < min(pos.x + size.x, (float)chunkPos.x + 32); schX += 0.5f) {
 							for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5f) {
-								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5f) {
+								for (float schZ = pos.z; schZ <= pos.z + size.z; schZ += 0.5f) {
 									chunkL.replaceWithAir((uint8_t)((schX - chunkPos.x - 16) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
 									//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x - 16) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 								}
@@ -1090,7 +1105,7 @@ void cySchematic::generateChunkPreview(void) {
 						chunkR.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
 						for (float schX = max(pos.x, (float)chunkPos.x - 16); schX < min(pos.x + size.x, (float)chunkPos.x); schX += 0.5f) {
 							for (float schY = max(pos.y, -(float)chunkPos.y); schY < min(pos.y + size.y, -(float)chunkPos.y + 16); schY += 0.5f) {
-								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5f) {
+								for (float schZ = pos.z; schZ <= pos.z + size.z; schZ += 0.5f) {
 									chunkR.replaceWithAir((uint8_t)((schX - chunkPos.x + 16) * 2), (uint8_t)((15.5 - schY - chunkPos.y) * 2), (uint16_t)((schZ)*2));
 									//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x + 16) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 								}
@@ -1104,7 +1119,7 @@ void cySchematic::generateChunkPreview(void) {
 						chunkU.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
 						for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5f) {
 							for (float schY = max(pos.y, -(float)chunkPos.y - 16); schY < min(pos.y + size.y, -(float)chunkPos.y); schY += 0.5f) {
-								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5f) {
+								for (float schZ = pos.z; schZ <= pos.z + size.z; schZ += 0.5f) {
 									chunkU.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y - 16) * 2), (uint16_t)((schZ)*2));
 									//chunk.m_chunkdata[4 + (uint8_t)((schX - chunkPos.x) * 2) + 32 * (uint8_t)((15.5 - schY - chunkPos.y - 16) * 2) + 32 * 32 * (uint16_t)((schZ)*2)] = cyBlocks::m_voidID;
 								}
@@ -1118,7 +1133,7 @@ void cySchematic::generateChunkPreview(void) {
 						chunkD.loadChunk(world->db[cyImportant::DBHANDLE_MAIN], chunkID, true);
 						for (float schX = max(pos.x, (float)chunkPos.x); schX < min(pos.x + size.x, (float)chunkPos.x + 16); schX += 0.5) {
 							for (float schY = max(pos.y, -(float)chunkPos.y + 16); schY < min(pos.y + size.y, -(float)chunkPos.y + 32); schY += 0.5) {
-								for (float schZ = pos.z; schZ < pos.z + size.z; schZ += 0.5) {
+								for (float schZ = pos.z; schZ <= pos.z + size.z; schZ += 0.5) {
 									chunkD.replaceWithAir((uint8_t)((schX - chunkPos.x) * 2), (uint8_t)((15.5 - schY - chunkPos.y + 16) * 2), (uint16_t)((schZ)*2));
 								}
 							}
@@ -1276,7 +1291,7 @@ void cySchematic::rotate(bool _cclock) {
 	scene.Entity_Remove(meshEnt);
 	m.unlock();
 	prepareSchematic(tmpScene);
-	
+
 	while (wiJobSystem::IsBusy(ctx))
 		;
 	m.lock();
@@ -1327,6 +1342,10 @@ void cySchematic::rotateMemory(const bool _cc) {
 						if (it != old_cBlocks.end()) {
 							bpos.x			= dest_col;
 							bpos.y			= x;
+							auto sit = cyBlocks::m_cBlockRotSubst.find(it->second);
+							if (sit != cyBlocks::m_cBlockRotSubst.end()) {
+								it->second = sit->second;
+							}
 							m_cBlocks[bpos] = it->second;
 						}
 					} else if (cyBlocks::m_regBlockTypes[new_blocks[x * bsize.y + dest_col]] == cyBlocks::BLOCKTYPE_TORCH) {
@@ -1475,7 +1494,7 @@ void cySchematic::saveToWorld(void) {
 		uint32_t blockData = 0;
 		for (float x = floor((pos.x - 0.5f) / 16.f); x <= ceil((pos.x + size.x + 0.5f) / 16.f); x += 1.f) {
 			for (float y = floor((pos.y - 0.5f) / 16.f); y <= ceil((pos.y + size.y + 0.5f) / 16.f); y += 1.f) {
-				chunkPos = world->getChunkPos(x * 16, -y * 16);
+				chunkPos = world->getChunkPos(x * 16 + 0.2, y * 16 + 0.2);
 				cyChunk chunk;
 
 				if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y, &chunkID)) {
@@ -1502,7 +1521,7 @@ void cySchematic::saveToWorld(void) {
 							}
 						}
 					}
-					chunk.saveZlimits(min(chunk.m_lowestZ, (uint16_t)(pos.z * 2.f)), max(chunk.m_highestZ, (uint16_t)((pos.z + size.z) * 2)));
+					chunk.saveZlimits(min(chunk.m_lowestZ, (uint16_t)((pos.z * 2.f) - 5)), max(chunk.m_highestZ, (uint16_t)((pos.z + size.z) * 2)));
 					success = chunk.saveChunk();
 				}
 			}
@@ -1555,7 +1574,7 @@ void cySchematic::saveToMem(void) {
 			success = true;
 			for (float x = floor((pos.x - 0.5f) / 16.f); x <= ceil((pos.x + size.x + 0.5f) / 16.f); x += 1.f) {
 				for (float y = floor((pos.y - 0.5f) / 16.f); y <= ceil((pos.y + size.y + 0.5f) / 16.f); y += 1.f) {
-					chunkPos = world->getChunkPos(x * 16, -y * 16);
+					chunkPos = world->getChunkPos(x * 16 + 0.2, y * 16 + 0.2);
 					cyChunk chunk;
 
 					if (world->getChunkID(chunkPos.x + zero.x, chunkPos.y + zero.y, &chunkID)) {

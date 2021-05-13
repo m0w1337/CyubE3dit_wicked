@@ -72,6 +72,7 @@ public:
 	static chunkobjects_t RenderChunk(cyChunk& chunk, const cyChunk& northChunk, const cyChunk& eastChunk, const cyChunk& southChunk, const cyChunk& westChunk, const int32_t relX, const int32_t relY, bool _lod = true);
 
 	static void addMaskedChunk(const cyImportant::chunkpos_t chunkPos);
+	static void reloadChunk(const cyImportant::chunkpos_t chunkPos);
 	static void clearMaskedChunk(void);
 	//cyImportant::chunkpos_t spiral(const int32_t iteration);  //Legacy
 	unordered_map<cyImportant::chunkpos_t, chunkobjects_t, cyImportant::chunkposHasher_t> m_visibleChunks;
