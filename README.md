@@ -25,10 +25,9 @@
 6. Bottom center: Pause World loading -- click here to stop the chunkloader from loading/deleting chunks of the world (if you want to look from far away, or just increase performance during schematic placement)
 7. Bottom right: View distance -- increase/decrease the distance of chunk loading/deletion to load a smaller/larger portion of your world, greatly affects performance. If values above the dragable range are desired they can be typed in the unmeric field. (they should be multiples of four)
 
-# Navigation mouse interaction
-Navigating within the world is done by right clicking within the view area. While clicked the camera moves along the mouse movement. 
-Camera movement is done by the WASD keys. 
-To alternalte altitude press E and Q keys. 
-To increase movement speed hold shift.
-Schematics and world interaction is done with the left mouse button. Whenever an object changes color when hovered by the mouse it can be interacted with by clicking/dragging. 
-(Only trees won't change color when hovered yet even if tree deletion is active.)
+# Navigation and mouse interaction
+- Navigating within the world is done by right clicking within the view area. While clicked the camera moves along the mouse movement. 
+- Camera movement is done by the WASD keys. 
+- To alternalte altitude press E and Q keys. 
+- To increase movement speed hold shift.
+- Schematics and world interaction is done with the left mouse button. Whenever an object changes color when hovered by the mouse it can be interacted with by clicking/dragging. (Only trees won't change color when hovered yet even if tree deletion is active.)
