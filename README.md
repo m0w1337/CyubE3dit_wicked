@@ -31,3 +31,4 @@
 - To alternalte altitude press E and Q keys. 
 - To increase movement speed hold shift.
 - Schematics and world interaction is done with the left mouse button. Whenever an object changes color when hovered by the mouse it can be interacted with by clicking/dragging. (Only trees won't change color when hovered yet even if tree deletion is active.)
+- There are times where interaction is not permitted (during recalculation of the schematic preview, or while other manipulations are currently active) during this time all not allowed interactive objects are invisible, they will return as soon as the operation is completed.
