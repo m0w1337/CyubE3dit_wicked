@@ -13,3 +13,22 @@
 3. Navigate into the "bin" folder and start the executable.
 4. Please don't be afraid when seeing the yellow microsoft defender warning, this only appears, because smart people believe, that developers should pay a minimum of 100$ per year for a certificate, just so their software will be considered "safe". Unless you want to pay for this tool in the future, I suggest to simply ignore this warning.
 5. For further information please stay tuned, as this page is currently being filled with content ;) (or help me fill it)
+
+# User interface
+![grafik](https://user-images.githubusercontent.com/11231913/118854630-3adc6800-b8d5-11eb-8c76-f8b323ba4cc0.png)
+
+1. Top center: World selector -- this holds a list of all your cyubeVR worlds select one to spawn at in game spawn and load the world. To switch worlds just select another world at any time.
+2. Top right: Camera movement selection -- choose if the camera should move in view direction (including altitude change), or altitude should only be adjustable by keyboard (E/Q)
+3. Bottom left: Insert Schematic -- click here to load a previously saved (or downloaded) .cySchem file to place it in your World.
+4. Bottom left: Save Schematic -- click here to select a c(y)ube of your world to save as .cySchem schematic file for sharing/duplicating.
+5. Bottom left: Enable tree removal -- click here to be able to select trees by clicking on them. Selected trees will be displayed in red and can then be deleted.
+6. Bottom center: Pause World loading -- click here to stop the chunkloader from loading/deleting chunks of the world (if you want to look from far away, or just increase performance during schematic placement)
+7. Bottom right: View distance -- increase/decrease the distance of chunk loading/deletion to load a smaller/larger portion of your world, greatly affects performance. If values above the dragable range are desired they can be typed in the unmeric field. (they should be multiples of four)
+
+# Navigation mouse interaction
+Navigating within the world is done by right clicking within the view area. While clicked the camera moves along the mouse movement. 
+Camera movement is done by the WASD keys. 
+To alternalte altitude press E and Q keys. 
+To increase movement speed hold shift.
+Schematics and world interaction is done with the left mouse button. Whenever an object changes color when hovered by the mouse it can be interacted with by clicking/dragging. 
+(Only trees won't change color when hovered yet even if tree deletion is active.)
