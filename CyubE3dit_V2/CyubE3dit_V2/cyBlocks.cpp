@@ -239,17 +239,15 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 			if (m_regBlockMats[id][ft] == wiECS::INVALID_ENTITY) {
 				m_regBlockMats[id][ft] = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
 				material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
-				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, .0f));
+				material->SetBaseColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.f));
 				material->textures[MaterialComponent::BASECOLORMAP].name	 = "images/" + tex;
 				material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load("images/" + tex);
 				if (blocktype == BLOCKTYPE_ALPHA) {
-					material->SetReflectance(0.09);
-					//material->userBlendMode = BLENDMODE_ALPHA;
-					material->SetTransmissionAmount(0.99);
-					material->SetRefractionAmount(0.01f);
-					material->SetMetalness(0.03f);
-					material->SetRoughness(0.02f);
-					material->SetCastShadow(true);
+					material->SetReflectance(0.06);
+					material->SetTransmissionAmount(1.f);
+					material->SetMetalness(0.05f);
+					material->SetRoughness(0.07f);
+					
 				} else {
 					material->SetReflectance(0);
 					material->SetMetalness(0);
@@ -312,11 +310,11 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 				m_regBlockMats[id][ft] = m_scene.Entity_CreateMaterial("bMat" + std::to_string(id) + std::to_string(ft));
 				material			   = m_scene.materials.GetComponent(m_regBlockMats[id][ft]);
 				if (blocktype == BLOCKTYPE_ALPHA) {
-					material->SetReflectance(0.09);
-					material->SetTransmissionAmount(0.98);
+					material->SetReflectance(0.1);
+					material->SetTransmissionAmount(0.999);
 					material->SetRefractionAmount(0.01f);
-					material->SetMetalness(0.03f);
-					material->SetRoughness(0.05f);
+					material->SetMetalness(0.2f);
+					material->SetRoughness(0.01f);
 					material->SetCastShadow(true);
 				} else {
 					material->SetBaseColor(XMFLOAT4(1., 0.5, 0, 1));
@@ -339,13 +337,14 @@ void cyBlocks::catchRegularBlockSpecs(const json::iterator& it, const size_t i, 
 	} else {
 		for (uint8_t ft = 0; ft < 6; ft++) {
 			if (m_regBlockMats[id][ft] != wiECS::INVALID_ENTITY) {
-				//m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetSubsurfaceScatteringColor(XMFLOAT3(0.3,0.8,0));
-				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetAlphaRef(0.3f);
+				//m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetSubsurfaceScatteringColor(XMFLOAT3(1.f,1.f,1.f));
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetAlphaRef(0.2f);
+				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->normalMapStrength = 1.f;
 				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetReceiveShadow(true);
 				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetUseWind(true);
 				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetCastShadow(false);
 				m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetUseVertexColors(true);
-				//m_scene.materials.GetComponent(m_regBlockMats[id][0])->SetSubsurfaceScatteringAmount(1.);
+				//m_scene.materials.GetComponent(m_regBlockMats[id][ft])->SetSubsurfaceScatteringAmount(0.5);
 			}
 		}
 	}
@@ -463,6 +462,7 @@ void cyBlocks::addCustomBlocksPath(wstring customPath) {
 								if (iequals(texdir.path().filename().string(), "all.dds") || iequals(texdir.path().filename().string(), "up.dds") || iequals(texdir.path().filename().string(), "updown.dds")) {
 									m_cBlockTypes[tmpID].material[0]							 = m_scene.Entity_CreateMaterial("");
 									material													 = m_scene.materials.GetComponent(m_cBlockTypes[tmpID].material[0]);
+									material->SetNormalMapStrength(3.0);
 									material->textures[MaterialComponent::BASECOLORMAP].name	 = texdir.path().string();
 									material->textures[MaterialComponent::BASECOLORMAP].resource = wiResourceManager::Load(texdir.path().string());
 									if (tmpAnimation) {

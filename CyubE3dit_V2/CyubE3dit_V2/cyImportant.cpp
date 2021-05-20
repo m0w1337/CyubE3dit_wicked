@@ -44,7 +44,7 @@ void cyImportant::loadWorldInfo(const std::string Worldname, bool cleanWorld) {
 		dbpath = utf8_encode(path) + "\\cyubeVR\\Saved\\WorldData\\" + Worldname + "\\chunkdata.sqlite";
 	}
 	if (m_filename.size() > 1) {
-		cyImportant::loadData(dbpath, cleanWorld);
+		loadData(dbpath, cleanWorld);
 	} else {
 		m_stopped = true;
 	}
@@ -80,6 +80,29 @@ cyImportant::chunkpos_t cyImportant::getChunkPos(double x, double y) {
 	pos.x &= 0xFFFFFFF0;
 	pos.y &= 0xFFFFFFF0;
 	return pos;
+}
+
+void cyImportant::setPlayerPos(double x, double y, double z) {
+	fstream file;
+	file.open(m_filename, fstream::in | fstream::out | ios::binary);
+	if (file.is_open()) {
+		uint32_t maplen;
+		file.seekg(POS_WORLDSEED);
+		file.read(reinterpret_cast<char*>(&m_seed), sizeof(m_seed));
+		file.read(reinterpret_cast<char*>(&maplen), sizeof(maplen));
+		file.seekg(maplen * 8, ios_base::cur);
+		/*for (uint32_t i = 0; i < maplen; i++) {
+			chunkpos_t pos;
+			file.read((char*)&(pos.x), 4);
+			file.read((char*)&(pos.y), 4);
+		}*/
+		file.read(reinterpret_cast<char*>(&maplen), sizeof(maplen));  //unknown map
+		file.seekg(maplen * 12 + 24 + 28, ios_base::cur);
+		file.write(reinterpret_cast<char*>(&(x)), sizeof(x));
+		file.write(reinterpret_cast<char*>(&(y)), sizeof(y));
+		file.write(reinterpret_cast<char*>(&(z)), sizeof(z));
+		file.close();
+	}
 }
 
 void cyImportant::loadData(const std::string dbpath, bool cleanWorld) {

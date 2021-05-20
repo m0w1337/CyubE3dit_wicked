@@ -174,7 +174,8 @@
       {
         "id": 5,
         "textype": 5,
-        "texture0": "straws.png",
+        "texture0": "straws42.dds",
+		"normal0": "straws4_n.dds",
 		"texture1": "fern.png",
 		"texture2": "straws3.png",
         "text": "Grassblades"
@@ -255,12 +256,24 @@
 		"LightR": 255,
 		"LightG": 0,
 		"LightB": 0
+      },
+      {
+        "id": 61,
+        "textype": 6,
+        "mesh0": "walltorch.m02",
+		"mesh1": "standtorch.m02",
+        "text": "Rainbow Torch",
+		"LightR": 255,
+		"LightG": 255,
+		"LightB": 255
       }
 	],
 	"AlphaBlock":[
 	  {
         "id": 89,
         "textype": 1,
+		"texture0": "glass.dds",
+		"normal0": "glass_n.dds",
         "text": "Glass"
       }
 	],
@@ -392,13 +405,6 @@
         "textype": 6,
         "texture0": "CopperSlegdehammer.png",
         "text": "Copper Sledgehammer"
-      },
-      {
-        "id": 61,
-        "textype": 6,
-        "texture0": "RainbowTorch.jpg",
-        "mesh": "torch_obj.mesh",
-        "text": "Rainbow Torch"
       },
       {
         "id": 62,

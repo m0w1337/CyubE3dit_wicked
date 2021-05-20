@@ -26,7 +26,7 @@ public:
 		float noisev   = m_noise.fractal(5, x * 0.1f, y * 0.1f, z * 0.1f);
 		uint32_t color  = 255 | (uint32_t)(255 - 32 + noisev * 32) << 8 | (uint32_t)(255 - 96 + noisev * 96) << 16 | 0xFF000000;
 		noisev   = 0.5 + 0.3 * noisev;
-		float noiseh   = 0.8 + 0.35 * m_noise.noise(x * 0.5f, y * 0.5f, z * 0.5f);
+		float noiseh   = 0.5 + 0.35 * m_noise.noise(x * 0.5f, y * 0.5f, z * 0.5f);
 		uint32_t start = (uint32_t)mesh->vertex_positions.size();
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z - 0.25f, y - noisev));
 		mesh->vertex_positions.emplace_back(XMFLOAT3(x, z + noiseh, y - noisev));
@@ -73,10 +73,11 @@ public:
 		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
 		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
 		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
-		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
-		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
-		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
+
 		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 1));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(1, 0));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 0));
+		mesh->vertex_uvset_0.emplace_back(XMFLOAT2(0, 1));
 
 		mesh->indices.emplace_back(start + 2);
 		mesh->indices.emplace_back(start + 1);

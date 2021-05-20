@@ -418,6 +418,8 @@ inline void chunkLoader::removeFarChunks(cyImportant::chunkpos_t ghostpos, bool 
 									fire->gravity		   = XMFLOAT3(weather->windDirection.x * weather->windSpeed / 10.f, 0.1f, weather->windDirection.z * weather->windSpeed / 10.f);
 									fire->velocity		   = XMFLOAT3(0, 0.05, 0);
 									fire->parentObject	   = light->parentObject;
+									if (light->_flags & wiScene::LightComponent::RAINBOW)
+										fire->_flags |= wiScene::wiEmittedParticle::FLAG_RAINBOW;
 									//fire->SetPaused(true);
 									wiScene::MaterialComponent* dustmat							= scene.materials.GetComponent(lightEnt);
 									dustmat->textures[MaterialComponent::BASECOLORMAP].resource = cyBlocks::emitter_fire_material;
@@ -621,7 +623,7 @@ chunkLoader::chunkobjects_t chunkLoader::RenderChunk(cyChunk& chunk, const cyChu
 						}
 					} else {
 						for (uint8_t ft = 0; ft < 6; ft++) {
-							if (neighbour[ft] != cyBlocks::m_regBlockTypes[blocktype]) {
+							if (neighbour[ft] != cyBlocks::m_regBlockTypes[blocktype] && neighbour[ft] > cyBlocks::BLOCKTYPE_SOLID_THRESH) {
 								tmpface.x		 = relX + x / 2.0f;
 								tmpface.y		 = relY + 16 - y / 2.0f;
 								tmpface.z		 = z / 2.0f;
@@ -953,6 +955,10 @@ inline void chunkLoader::placeTorches(const std::vector<chunkLoader::torch_t>& t
 				lightEnt = tmpScene.Entity_CreateLight("TL", lightPos, color, 5, 4);
 				meshlist.push_back(lightEnt);
 				light = tmpScene.lights.GetComponent(lightEnt);
+				if (color.x == 1.f && color.y == 1.f && color.z == 1.f) {
+					light->_flags |= wiScene::LightComponent::RAINBOW;
+					light->color = XMFLOAT3(1.f, 0, 0);
+				}
 				light->SetCastShadow(true);
 				light->parentObject = parent;
 				if (settings::torchlights == false) {

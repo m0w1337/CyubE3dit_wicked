@@ -630,11 +630,11 @@ void CyRender::Load() {
 	setExposure(1.f);
 
 	wiRenderer::GetDevice()->SetVSyncEnabled(true);
-	wiRenderer::SetVoxelRadianceEnabled(true);
+	wiRenderer::SetVoxelRadianceEnabled(false);
 	wiRenderer::SetVoxelRadianceNumCones(2);
 	wiRenderer::SetVoxelRadianceRayStepSize(1.0f);
-	wiRenderer::SetVoxelRadianceMaxDistance(30);
-	wiRenderer::SetVoxelRadianceVoxelSize(0.2f);
+	wiRenderer::SetVoxelRadianceMaxDistance(300);
+	wiRenderer::SetVoxelRadianceVoxelSize(0.125f);
 	wiRenderer::SetVoxelRadianceSecondaryBounceEnabled(true);
 	wiRenderer::SetOcclusionCullingEnabled(false);
 	wiProfiler::SetEnabled(false);

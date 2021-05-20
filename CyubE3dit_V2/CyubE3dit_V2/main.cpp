@@ -129,6 +129,8 @@ wiJobSystem::Wait(ctx);
 	SimplexNoise noise;
 	std::set<float, greater<float>> nearestTorches;
 	XMFLOAT3 minPos		 = XMFLOAT3(0, 0, 0);
+	XMFLOAT3 rainbowColor(1.f,0,0);
+	uint8_t fadestate	 = 0;
 	XMFLOAT3 leastMinPos = XMFLOAT3(0, 0, 0);
 	float minDist[CyRender::NUM_TORCHSOUNDS];
 	std::vector<XMFLOAT4> neartorches;
@@ -157,11 +159,41 @@ wiJobSystem::Wait(ctx);
 			wiScene::Scene& scn = wiScene::GetScene();
 			if (GetTickCount() - lasttick > 100 && settings::torchlights == true) {
 				lasttick = GetTickCount();
+				switch (fadestate){
+					case 0:
+						rainbowColor.x += 0.01f;
+						rainbowColor.y -= 0.01f;
+						if (rainbowColor.x > 1.f) {
+							rainbowColor.x = 1;
+							rainbowColor.y = 0;
+							++fadestate;
+						}
+						break;
+					case 1:
+						rainbowColor.z += 0.01f;
+						rainbowColor.x -= 0.01f;
+						if (rainbowColor.z > 1.f) {
+							rainbowColor.z = 1;
+							rainbowColor.x = 0;
+							++fadestate;
+						}
+						break;
+					case 2:
+						rainbowColor.y += 0.01f;
+						rainbowColor.z -= 0.01f;
+						if (rainbowColor.y > 1.f) {
+							rainbowColor.y = 1;
+							rainbowColor.z = 0;
+							fadestate = 0;
+						}
+						break;
+				}
 				for (uint32_t i = 0; i < scn.lights.GetCount(); i++) {
 					if (scn.lights[i].GetType() == wiScene::LightComponent::LightType::POINT) {
-						scn.lights[i].energy = 6 + ((float)rand() / RAND_MAX) * 4;
-						if (wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.lights[i].position) < 50) {
+						if (scn.lights[i]._flags & wiScene::LightComponent::RAINBOW) {
+							scn.lights[i].color = rainbowColor;
 						}
+						scn.lights[i].energy = 6 + ((float)rand() / RAND_MAX) * 4;
 					}
 				}
 				//wiScene::WeatherComponent* weather = wiScene::GetScene().weathers.GetComponent(wiScene::GetScene().weathers.GetEntity(0));
@@ -173,6 +205,8 @@ wiJobSystem::Wait(ctx);
 					if (settings::rendermask & LAYER_EMITTER) {
 						for (uint32_t i = 2; i < scn.emitters.GetCount(); i++) {
 							float dist = wiMath::DistanceEstimated(wiScene::GetCamera().Eye, scn.emitters[i].center);
+							if (scn.emitters[i]._flags & wiScene::wiEmittedParticle::FLAG_RAINBOW)
+								wiScene::GetScene().materials.GetComponent(scn.emitters.GetEntity(i))->SetBaseColor(XMFLOAT4(rainbowColor.x, rainbowColor.y, rainbowColor.z, 0.4f));
 							if (dist < 10) {
 								if(settings::sound)
 									neartorches.push_back(XMFLOAT4(scn.emitters[i].center.x, scn.emitters[i].center.y, scn.emitters[i].center.z, dist));
@@ -237,6 +271,13 @@ wiJobSystem::Wait(ctx);
 				if (wiInput::Press((wiInput::BUTTON)'H')) {
 					//int msgboxID = MessageBox(NULL, L"test", L"", 0);
 					wiBackLog::Toggle();
+				}
+				if (wiInput::Press((wiInput::BUTTON)'T')) {
+					double x, y, z;
+					x = (double)wiScene::GetCamera().Eye.x * 100;
+					y = (double)wiScene::GetCamera().Eye.z * 100;
+					z = (double)wiScene::GetCamera().Eye.y * 100;
+					settings::getWorld()->setPlayerPos(x, y, z);
 				}
 				if (wiInput::Press((wiInput::BUTTON)'P')) {
 					wiProfiler::SetEnabled(!wiProfiler::IsEnabled());

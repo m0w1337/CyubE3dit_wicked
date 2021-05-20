@@ -84,6 +84,7 @@ public:
 	void loadWorldInfo(const std::string Worldname, bool cleanWorld = true);
 	bool isValid(void);
 	bool isStopped(void);
+	void setPlayerPos(double x, double y, double z);
 	bool getChunkID(const double x, const double y, uint32_t* chunkID);
 	inline bool getChunkIDFast(const chunkpos_t chunkPos, uint32_t* chunkID);
 	chunkpos_t getChunkPos(double x, double y);
