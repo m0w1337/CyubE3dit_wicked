@@ -123,6 +123,7 @@ private:
 
 	static bool GetStringRegKey(const std::wstring& key, const std::wstring& strValueName, std::wstring& strValue);
 	static bool iequals(std::string str1, std::string str2);
+	static bool iequals(std::wstring str1, std::wstring str2);
 	static void addCustomBlocksPath(std::wstring customPath);
 	static void catchRegularMeshSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype); 
 	static void catchRegularBlockSpecs(const json::iterator& it, const size_t i, const blocktype_t blocktype);

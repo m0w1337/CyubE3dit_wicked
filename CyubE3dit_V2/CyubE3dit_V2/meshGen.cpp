@@ -32,9 +32,9 @@ void meshGen::ResizeToolBlock(float _x, float _y, float _z, bool _antitile) {
 		wiScene::MeshComponent* mesh = scene.meshes.GetComponent(toolBlockFaces[i]);
 
 		for (size_t ii = 0; ii < 4; ii++) {
-			mesh->vertex_positions[ii].x = mesh->vertex_positions[ii].x / (toolblockSize.x - 0.001) * (_x - 0.001);
-			mesh->vertex_positions[ii].y = mesh->vertex_positions[ii].y / (toolblockSize.y - 0.001) * (_y - 0.001);
-			mesh->vertex_positions[ii].z = mesh->vertex_positions[ii].z / (toolblockSize.z - 0.001) * (_z - 0.001);
+			mesh->vertex_positions[ii].x = mesh->vertex_positions[ii].x / (toolblockSize.x - 0.001f) * (_x - 0.001f);
+			mesh->vertex_positions[ii].y = mesh->vertex_positions[ii].y / (toolblockSize.y - 0.001f) * (_y - 0.001f);
+			mesh->vertex_positions[ii].z = mesh->vertex_positions[ii].z / (toolblockSize.z - 0.001f) * (_z - 0.001f);
 		}
 		switch (i) {
 			case cyBlocks::FACE_TOP:
@@ -80,22 +80,22 @@ wiECS::Entity meshGen::AddToolBoxFace(wiECS::Entity _material, uint8_t _face) {
 	mesh->subsets.back().indexOffset = 0;
 	switch (_face) {
 		case cyBlocks::FACE_TOP:
-			AddFaceTop(mesh, 0.25, 0.25, 0.25);
+			AddFaceTop(mesh, 0.25f, 0.25f, 0.25f);
 			break;
 		case cyBlocks::FACE_BOTTOM:
-			AddFaceBottom(mesh, 0.25, 0.25, 0.25);
+			AddFaceBottom(mesh, 0.25f, 0.25f, 0.25f);
 			break;
 		case cyBlocks::FACE_LEFT:
-			AddFaceLeft(mesh, 0.25, 0.25, 0.25);
+			AddFaceLeft(mesh, 0.25f, 0.25f, 0.25f);
 			break;
 		case cyBlocks::FACE_RIGHT:
-			AddFaceRight(mesh, 0.25, 0.25, 0.25);
+			AddFaceRight(mesh, 0.25f, 0.25f, 0.25f);
 			break;
 		case cyBlocks::FACE_FRONT:
-			AddFaceFront(mesh, 0.25, 0.25, 0.25);
+			AddFaceFront(mesh, 0.25f, 0.25f, 0.25f);
 			break;
 		case cyBlocks::FACE_BACK:
-			AddFaceBack(mesh, 0.25, 0.25, 0.25);
+			AddFaceBack(mesh, 0.25f, 0.25f, 0.25f);
 			break;
 	}
 	/*

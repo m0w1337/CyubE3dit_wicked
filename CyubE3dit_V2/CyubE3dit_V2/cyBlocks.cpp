@@ -371,7 +371,7 @@ void cyBlocks::LoadCustomBlocks(void) {
 			found = true;
 		}
 	}
-	if (!found) {  //extremely dirty vdf file parser to extract the library paths for steam installs searching for cyubeVR
+	if (!found) {  //extremely dirty vdf file parser to extract the library paths for steam installs searching for cyubeVR <<---for old version of stream
 		wifstream file;
 		wstring linebuffer;
 		file.open(SteamApps + L"\\steamapps\\libraryfolders.vdf", fstream::in);
@@ -388,7 +388,36 @@ void cyBlocks::LoadCustomBlocks(void) {
 							size_t val_end = linebuffer.find('"', ++val_start);
 							workshopdir	   = linebuffer.substr(val_start, val_end - val_start) + L"\\steamapps\\workshop\\content\\619500\\";
 							if (_wstat(workshopdir.c_str(), &info) == 0) {
-								if (info.st_mode & _S_IFDIR) {	//workshof folder not found in standard steam install directory --> search in secondary library paths
+								if (info.st_mode & _S_IFDIR) {	//workshop folder not found in standard steam install directory --> search in secondary library paths
+									SteamApps = linebuffer.substr(val_start, val_end - val_start);
+									found	  = true;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if (!found) {	//libraryfolders.vdf parser for new steam versions
+		wifstream file;
+		wstring linebuffer;
+		file.open(SteamApps + L"\\steamapps\\libraryfolders.vdf", fstream::in);
+		if (file.is_open()) {
+			while (!file.eof()) {
+				getline(file, linebuffer);
+				size_t key_start = linebuffer.find('"');
+				if (key_start != wstring::npos) {
+					size_t key_end = linebuffer.find('"', ++key_start);
+					wstring entry  = linebuffer.substr(key_start, key_end - key_start);
+					if (iequals(entry, L"path")) {
+						size_t val_start = linebuffer.find('"', key_end + 1);
+						if (val_start != wstring::npos) {
+							size_t val_end = linebuffer.find('"', ++val_start);
+							workshopdir	   = linebuffer.substr(val_start, val_end - val_start) + L"\\steamapps\\workshop\\content\\619500\\";
+							if (_wstat(workshopdir.c_str(), &info) == 0) {
+								if (info.st_mode & _S_IFDIR) {	//workshop folder not found in standard steam install directory --> search in secondary library paths
 									SteamApps = linebuffer.substr(val_start, val_end - val_start);
 									found	  = true;
 									break;
@@ -630,6 +659,15 @@ bool cyBlocks::GetStringRegKey(const std::wstring& key, const std::wstring& strV
 }
 
 bool cyBlocks::iequals(string str1, string str2) {
+	//convert s1 and s2 into lower case strings
+	transform(str1.begin(), str1.end(), str1.begin(), ::tolower);
+	transform(str2.begin(), str2.end(), str2.begin(), ::tolower);
+	if (str1.compare(str2) == 0)
+		return true;  //The strings are same
+	return false;	  //not matched
+}
+
+bool cyBlocks::iequals(wstring str1, wstring str2) {
 	//convert s1 and s2 into lower case strings
 	transform(str1.begin(), str1.end(), str1.begin(), ::tolower);
 	transform(str2.begin(), str2.end(), str2.begin(), ::tolower);
