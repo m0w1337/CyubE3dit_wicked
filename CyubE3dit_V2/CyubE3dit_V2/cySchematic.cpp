@@ -1473,15 +1473,23 @@ void cySchematic::saveToWorld(void) {
 			break;
 		case STATE_BROKEN:
 			wiHelper::messageBox("There is at least one chunk, that was either not yet generated, or with data format not completely readable by CyubE3dit.");
+			showGizmos(true);
+			m_dirty = NOT_DIRTY;
 			return;
 		case STATE_NOTPRESENT:
-			wiHelper::messageBox("There is at least one chunk, that was either not yet generated. Please visit this spot in VR to generate the world here before inserting schematics.");
+			wiHelper::messageBox("There is at least one chunk, that was not yet generated. Please visit this spot in VR to generate the world here before inserting schematics.");
+			showGizmos(true);
+			m_dirty = NOT_DIRTY;
 			return;
 		case STATE_OLD:
 			wiHelper::messageBox("There is at least one chunk, that was saved with a very old version of the game, please visit this spot in VR to let the game update the world data to the newest format.");
+			showGizmos(true);
+			m_dirty = NOT_DIRTY;
 			return;
 		default:
 			wiHelper::messageBox("There was a problem checking the affected chunks before the update, aborted!");
+			showGizmos(true);
+			m_dirty = NOT_DIRTY;
 			return;
 	}
 

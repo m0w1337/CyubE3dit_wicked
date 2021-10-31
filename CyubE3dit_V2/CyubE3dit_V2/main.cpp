@@ -292,6 +292,30 @@ wiJobSystem::Wait(ctx);
 						mainComp.infoDisplay.active = false;
 					}
 				}
+				if (wiInput::Press((wiInput::BUTTON)'S')) {
+					if (cySchematic::m_schematics.size() > 0) {
+						cySchematic::m_schematics[0]->m_dirty = cySchematic::DIRTY_SAVE;
+					}
+				}
+				if (wiInput::Press((wiInput::BUTTON)'Y') || wiInput::Press((wiInput::BUTTON)'Z')) {
+					if (cySchematic::m_schematics.size() > 0) {
+						cySchematic::m_schematics[0]->m_dirty = cySchematic::DIRTY_ROTCC;
+					}
+				}
+				if (wiInput::Press((wiInput::BUTTON)'X')) {
+					if (cySchematic::m_schematics.size() > 0) {
+						cySchematic::m_schematics[0]->m_dirty = cySchematic::DIRTY_ROTCW;
+					}
+				}
+				if (wiInput::Press((wiInput::BUTTON)'V')) {
+					mainComp.renderer.loadSchBtn.SetEnabled(false);
+					wiHelper::FileDialogParams params;
+					params.description = "CyubeVR schematic";
+					params.extensions.push_back("cySch");
+					params.OPEN;
+					wiHelper::FileDialog(params, cySchematic::addSchematic);
+					mainComp.renderer.loadSchBtn.SetEnabled(true);
+				}
 				if (wiInput::Press((wiInput::BUTTON)'F')) {
 					if (mainComp.m_headLight != INVALID_ENTITY) {
 						LightComponent* light = wiScene::GetScene().lights.GetComponent(mainComp.m_headLight);

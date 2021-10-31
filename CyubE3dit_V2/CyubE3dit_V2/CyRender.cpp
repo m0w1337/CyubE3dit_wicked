@@ -282,10 +282,12 @@ void CyMainComponent::Compose(CommandList cmd) {
 		stringstream ss("");
 		ss << "---- Schematic info: ----" << endl;
 		ss << "Size:" << endl;
-		ss << "    X:" << cySchematic::m_schematics[0]->size.x << " Y:" << cySchematic::m_schematics[0]->size.y << " Z:" << cySchematic::m_schematics[0]->size.z << " m" << endl;
-		ss << "    X:" << cySchematic::m_schematics[0]->size.x * 2 << " Y:" << cySchematic::m_schematics[0]->size.y * 2 << " Z:" << cySchematic::m_schematics[0]->size.z * 2 << " Blocks" << endl;
+		ss << "    X: " << cySchematic::m_schematics[0]->size.x << "  Y: " << cySchematic::m_schematics[0]->size.y << "  Z: " << cySchematic::m_schematics[0]->size.z << " m" << endl;
+		ss << "    X: " << cySchematic::m_schematics[0]->size.x * 2 << "  Y: " << cySchematic::m_schematics[0]->size.y * 2 << "  Z: " << cySchematic::m_schematics[0]->size.z * 2 << " Blocks" << endl;
 		ss << "World Position:" << endl;
-		ss << "    X:" << cySchematic::m_schematics[0]->pos.x + roundf(settings::getWorld()->m_playerpos.x / 100) << " Y : " << cySchematic::m_schematics[0]->pos.y + roundf(settings::getWorld()->m_playerpos.y / 100) << " Z : " << cySchematic::m_schematics[0]->pos.z << " m" << endl;
+		ss << "    X: " << cySchematic::m_schematics[0]->pos.x + roundf(settings::getWorld()->m_playerpos.x / 100) << "  Y: " << cySchematic::m_schematics[0]->pos.y + roundf(settings::getWorld()->m_playerpos.y / 100) << "  Z: " << cySchematic::m_schematics[0]->pos.z << " m" << endl;
+		ss << "Rotate with Ctrl+Y/Z and Ctrl+X." << endl;
+		ss << "Click the green tick, or hit Ctrl+S to save to world." << endl;
 		ss.precision(1);
 		wiFont::Draw(ss.str(), wiFontParams(wiRenderer::GetDevice()->GetScreenWidth() - 30, wiRenderer::GetDevice()->GetScreenHeight() - 30, 20, WIFALIGN_RIGHT, WIFALIGN_BOTTOM, wiColor(255, 255, 255, 255), wiColor(0, 0, 0, 255)), cmd);
 	}
@@ -561,7 +563,7 @@ void CyRender::ResizeLayout() {
 	float screenH = wiRenderer::GetDevice()->GetScreenHeight();
 	worldSelector.SetPos(XMFLOAT2((screenW - worldSelector.scale.x) / 2.f, 15));
 	camModeSelector.SetPos(XMFLOAT2(screenW - camModeSelector.scale.x - 20, 15));
-	label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
+	//label.SetPos(XMFLOAT2((screenW - label.scale.x) / 2, screenH - label.scale.y - 15));
 
 	float xOffset = 15;
 	loadSchBtn.SetPos(XMFLOAT2(xOffset, screenH - saveSchBtn.scale.y * 2 - 20));
@@ -644,13 +646,13 @@ void CyRender::Load() {
 	setEyeAdaptionEnabled(false);
 	wiScene::GetCamera().zNearP = 0.15f;
 	wiScene::GetCamera().zFarP	= 2000.f;
-	label.Create("Label1");
+	/*label.Create("Label1");
 	label.SetText("CyubE3dit Wicked - Beta");
 	label.SetColor(uiColor_idle, wiWidget::WIDGETSTATE::IDLE);
 	label.SetColor(uiColor_focus, wiWidget::WIDGETSTATE::FOCUS);
 	label.SetColor(uiColor_active, wiWidget::WIDGETSTATE::ACTIVE);
 	label.font.params.h_align = WIFALIGN_CENTER;
-	label.SetSize(XMFLOAT2(240, 20));
+	label.SetSize(XMFLOAT2(240, 20));*/
 	GetGUI().AddWidget(&label);
 	cyWorlds::getWorlds();
 	worldSelector.Create("WorldSelector");
@@ -798,7 +800,7 @@ void CyRender::Load() {
 	GetGUI().AddWidget(&visualsWnd_Toggle);
 
 	loadSchBtn.Create("Insert schematic");
-	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world");
+	loadSchBtn.SetTooltip("Load a schematic from disc to place it in the world (Ctrl+V)");
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
 	loadSchBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
@@ -825,7 +827,7 @@ void CyRender::Load() {
 	});
 	GetGUI().AddWidget(&saveSchBtn);
 
-	reposSchBtn.Create("Bring Schematic in view.");
+	reposSchBtn.Create("Bring Schematic in view");
 	reposSchBtn.SetTooltip("This will move the current schematic to your viewport in case you lost it somewhere.");
 	reposSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	reposSchBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
@@ -838,14 +840,16 @@ void CyRender::Load() {
 	GetGUI().AddWidget(&reposSchBtn);
 
 	if (settings::treeDeletion) {
-		treeDelBtn.Create("Disable Tree removal.");
+		treeDelBtn.Create("Disable Tree removal");
+		treeDelBtn.SetTooltip("Tree selection will no longer be possible.");
 	}
 
 	else {
-		treeDelBtn.Create("Enable Tree removal.");
+		treeDelBtn.Create("Enable Tree removal");
+		treeDelBtn.SetTooltip("This will enable you to select trees by clicking and deleting them.");
 	}
 
-	treeDelBtn.SetTooltip("This will enable you to select trees by clicking and deleting them.");
+	
 	treeDelBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	treeDelBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
 	treeDelBtn.SetColor(wiColor(100, 100, 100, 200), wiWidget::WIDGETSTATE::ACTIVE);
@@ -856,12 +860,15 @@ void CyRender::Load() {
 		m_selectedObjects.clear();
 		if (settings::treeDeletion) {
 			treeDelBtn.SetText("Disable Tree removal.");
+			treeDelBtn.SetTooltip("Tree selection will no longer be possible.");
 			treeDelRstBtn.SetVisible(true);
 			treeDelGoBtn.SetVisible(true);
+
 		} else {
 			treeDelRstBtn.SetVisible(false);
 			treeDelGoBtn.SetVisible(false);
 			treeDelBtn.SetText("Enable Tree removal.");
+			treeDelBtn.SetTooltip("This will enable you to select trees by clicking and deleting them.");
 		}
 	});
 	GetGUI().AddWidget(&treeDelBtn);
@@ -885,7 +892,7 @@ void CyRender::Load() {
 	});
 	GetGUI().AddWidget(&treeDelRstBtn);
 
-	treeDelGoBtn.Create("Del. selected trees.");
+	treeDelGoBtn.Create("Del. selected trees");
 	treeDelGoBtn.SetTooltip("This deletes all selected trees.");
 	treeDelGoBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::IDLE);
 	treeDelGoBtn.SetColor(wiColor(100, 100, 100, 150), wiWidget::WIDGETSTATE::FOCUS);
